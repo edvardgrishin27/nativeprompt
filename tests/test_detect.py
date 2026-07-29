@@ -19,7 +19,8 @@ def _isolate_detection_environment(monkeypatch):
         "CLAUDE_CODE_ENTRYPOINT",
     ):
         monkeypatch.delenv(key, raising=False)
-    monkeypatch.setattr(detect, "_read_claude_settings", lambda: None)
+    # _read_claude_settings отдаёт (model_id, откуда) — каскад настроек проекта
+    monkeypatch.setattr(detect, "_read_claude_settings", lambda: (None, None))
     monkeypatch.setattr(detect, "_read_codex_config", lambda: None)
 
 
@@ -101,3 +102,44 @@ def test_claude_session_wins_over_conflicting_model_env(monkeypatch):
     assert r["family"] == "claude"
     assert r["model_id"] == "claude-opus-5"
     assert r["source"].startswith("env ANTHROPIC_MODEL")
+
+
+# ── VS Code / алиасы / суффикс 1M ────────────────────────────────────
+@pytest.mark.parametrize("mid,fam,gen,ctx1m", [
+    ("opus[1m]", "claude", None, True),           # VS Code пишет так
+    ("claude-opus-5[1m]", "claude", "opus-5", True),
+    ("claude-opus-5", "claude", "opus-5", False),
+    ("sonnet[1m]", "claude", None, True),
+    ("opusplan", "claude", None, False),
+    ("fable", "claude", None, False),
+    ("best", "claude", None, False),
+])
+def test_alias_and_1m_suffix(mid, fam, gen, ctx1m):
+    r = detect._build_result(mid, "тест")
+    assert r is not None, mid
+    assert r["family"] == fam
+    assert r["generation"] == gen
+    assert r["context_1m"] is ctx1m
+    assert r["model_id"] == mid          # показываем как есть (не теряем [1m])
+
+
+def test_alias_marked_unresolved():
+    """Алиас не резолвим в версию — за ним у разных провайдеров разные модели."""
+    assert detect._build_result("opus[1m]", "t")["generation_source"] == "alias-unresolved"
+    assert detect._build_result("claude-opus-5", "t")["generation_source"] == "model-id"
+    assert detect._build_result("claude-opus-9", "t")["generation_source"] == "unknown-id"
+
+
+def test_project_settings_win_over_home(tmp_path, monkeypatch):
+    """.claude/settings.json проекта важнее ~/.claude/settings.json."""
+    _isolate_detection_environment(monkeypatch)
+    monkeypatch.undo()  # вернём реальную _read_claude_settings
+    for key in ("ANTHROPIC_MODEL", "OPENAI_MODEL", "CODEX_MODEL"):
+        monkeypatch.delenv(key, raising=False)
+    proj = tmp_path / ".claude"
+    proj.mkdir()
+    (proj / "settings.json").write_text('{"model": "claude-sonnet-5"}', encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    model, where = detect._read_claude_settings()
+    assert model == "claude-sonnet-5"
+    assert "проект" in where

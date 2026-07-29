@@ -25,9 +25,25 @@ def _soften_caps(text):
     return text
 
 
+def _tidy(text):
+    """Прибрать шов после вырезаний: висящие запятые/союзы, двойные пробелы,
+    слипшиеся предложения. Иначе выдача выглядит небрежно (это же демо на камеру)."""
+    text = re.sub(r"\s+([,.;:!?])", r"\1", text)          # пробел перед знаком
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    text = re.sub(r"(?i)(^|[.!?]\s*)(и|а|но)\s+", r"\1", text)  # висящий союз в начале фразы
+    text = re.sub(r",\s*([.!?])", r"\1", text)             # ", ." → "."
+    text = re.sub(r"([а-яa-z0-9])\s+([А-ЯA-Z][а-яa-z])", r"\1. \2", text)  # слипшиеся фразы
+    text = re.sub(r"\s+", " ", text).strip()
+    if text and text[0].islower():
+        text = text[0].upper() + text[1:]
+    if text and text[-1] not in ".!?":
+        text += "."
+    return text
+
+
 def _strip_cot(text):
     return re.sub(
-        r"(?i)[,.;]?\s*(думай пошагово|шаг за шагом|по шагам|пошагово|"
+        r"(?i)[,.;]?\s*(и\s+)?(обязательно\s+)?(думай пошагово|шаг за шагом|по шагам|пошагово|"
         r"think step by step|step[- ]by[- ]step|let'?s think(?: step by step)?|"
         r"рассуждай вслух|покажи ход мыслей|распиши (свои )?рассуждени\w*)[.,]?",
         "",
@@ -117,7 +133,10 @@ def rewrite(prompt, target, findings, shape=None):
         if new != core:
             core, _ = new, applied.append("codex-lean")
 
-    core = re.sub(r"[ \t]{2,}", " ", core).strip()
+    if applied:  # прибираем шов только если что-то реально вырезали/смягчили
+        core = _tidy(core)
+    else:
+        core = re.sub(r"[ \t]{2,}", " ", core).strip()
 
     # ── добавления (плейсхолдеры, не выдумываем содержание) ──────────
     additions = []  # (tag, label, content)
@@ -146,7 +165,9 @@ def rewrite(prompt, target, findings, shape=None):
     if "opus5-concise" in ids:
         additions.append(("note", "Краткость", "Ответь кратко."))
         applied.append("opus5-concise")
-    if "codex-autonomy" in ids and shape != "trivial":
+    # политика «для каких форм задачи» живёт в rules/*.json (when_shapes) —
+    # analyze уже отфильтровал, второй раз здесь не проверяем (один источник правды)
+    if "codex-autonomy" in ids:
         additions.append(("note", "Автономность",
                            "Доведи задачу до конца; при неоднозначности действуй с разумными допущениями, не останавливайся на анализе."))
         applied.append("codex-autonomy")

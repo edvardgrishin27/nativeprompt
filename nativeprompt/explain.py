@@ -55,6 +55,16 @@ def render_report(report, show_metaprompt=True):
     out.append(bar)
     out.append("МОДЕЛЬ: %s%s%s" % (t.get("cli", t["family"]), mid, gen))
     out.append("определено: %s" % t.get("source", "—"))
+    if t.get("context_1m"):
+        out.append("контекст: 1M (суффикс [1m] — не теряйте его при смене модели)")
+    if t.get("generation_source") == "alias-unresolved":
+        out.append(
+            "⚠ модель задана алиасом — точная версия зависит от провайдера и плана,\n"
+            "  поэтому применяю правила СЕМЕЙСТВА. Для версионных правил укажите\n"
+            "  полное имя: --model claude-opus-5"
+        )
+    elif t.get("generation_source") == "unknown-id" and t.get("family"):
+        out.append("⚠ версия модели неизвестна — применяю правила семейства")
     out.append(bar)
 
     findings = [f for f in report["findings"] if not f.get("always")]

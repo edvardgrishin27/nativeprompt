@@ -75,9 +75,21 @@ def test_sources_manifest():
             assert u.startswith("https://") and u.endswith(".md"), u
 
 
-def test_codex_config_notes_use_documented_keys():
-    notes = " ".join(catalog.load_family("openai").get("config_notes", []))
+def test_codex_config_notes_separate_cli_and_api_layers():
+    """Оба слоя документированы, но их НЕЛЬЗЯ путать:
+    CLI-конфиг Codex (~/.codex/config.toml) — model_reasoning_effort / model_verbosity;
+    Responses API — reasoning.effort / reasoning.mode / text.verbosity.
+    Проверяем, что заметка называет оба и явно их разделяет."""
+    data = catalog.load_family("openai")
+    notes = " ".join(data.get("config_notes", []))
+    # слой CLI
     assert "model_reasoning_effort" in notes
     assert "model_verbosity" in notes
-    assert "reasoning.mode" not in notes
-    assert "text.verbosity" not in notes
+    # слой API (Codex ошибочно удалил их как «недокументированные» — вернули)
+    assert "reasoning.mode" in notes
+    assert "text.verbosity" in notes
+    # слои явно разведены
+    assert "config.toml" in notes and "API" in notes
+    # у заметок есть источники
+    srcs = data.get("config_notes_sources", [])
+    assert srcs and all(u.startswith("https://") for u in srcs)

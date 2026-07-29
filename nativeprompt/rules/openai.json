@@ -15,7 +15,13 @@
   },
   "config_notes": [
     "Постоянные правила проекта — в AGENTS.md (слитый из ~/.codex и каталогов от корня репо к текущему; глубже переопределяет), а не в каждом промпте.",
-    "В Codex задавайте глубину рассуждения через model_reasoning_effort (minimal|low|medium|high|xhigh, если модель поддерживает) и длину ответа через model_verbosity (low|medium|high), а не словами в промпте."
+    "Codex CLI (~/.codex/config.toml): глубина рассуждения — model_reasoning_effort (minimal|low|medium|high|xhigh; xhigh зависит от модели), длина ответа — model_verbosity (low|medium|high). Задавайте их в конфиге, а не словами в промпте.",
+    "Responses API (тот же GPT-5.6, но другой слой — НЕ путать с CLI-конфигом): reasoning.effort (none|low|medium|high|xhigh|max), reasoning.mode: \"pro\" для сложных задач, text.verbosity (low|medium|high)."
+  ],
+  "config_notes_sources": [
+    "https://learn.chatgpt.com/docs/agent-configuration/agents-md",
+    "https://learn.chatgpt.com/docs/config-file/config-reference",
+    "https://developers.openai.com/api/docs/guides/reasoning"
   ],
   "rules": [
     {
@@ -79,7 +85,7 @@
       "action": "warn",
       "title": "Постоянные правила проекта — в AGENTS.md, не в промпте",
       "why": "Повторяющиеся установки (стиль, команды, границы) выносите в AGENTS.md — Codex подхватывает его автоматически. Промпт тогда — только про конкретную задачу.",
-      "source": "https://developers.openai.com/codex/prompting"
+      "source": "https://learn.chatgpt.com/docs/prompting"
     },
     {
       "id": "codex-autonomy",
@@ -89,7 +95,7 @@
       "action": "add",
       "title": "Для большой задачи разрешить идти до конца",
       "why": "Codex смещён к автономии: для крупной задачи явно разрешите довести до конца («не останавливайся на анализе или частичной правке; реализуй с разумными допущениями»), иначе остановится рано.",
-      "source": "https://developers.openai.com/codex/prompting"
+      "source": "https://learn.chatgpt.com/docs/prompting"
     }
   ],
   "harness": {
@@ -100,35 +106,35 @@
         "command": "просто напиши задачу",
         "title": "Мелкая ясная правка — без /plan и /goal",
         "why": "Если правка описывается одним предложением — режимы plan/goal лишние.",
-        "source": "https://developers.openai.com/codex/prompting"
+        "source": "https://learn.chatgpt.com/docs/prompting"
       },
       {
         "id": "plan", "when": "planning",
         "command": "/plan",
         "title": "Неясен подход / многофайловое — /plan",
         "why": "Codex сначала исследует и предлагает подход до правок кода — чтобы не решить не ту задачу.",
-        "source": "https://developers.openai.com/codex/prompting"
+        "source": "https://learn.chatgpt.com/docs/prompting"
       },
       {
         "id": "goal", "when": "goal",
         "command": "/goal (Goal mode)",
         "title": "Долгая сквозная реализация — /goal",
         "why": "После плана «set a persistent goal» — включает end-to-end выполнение задачи до цели, без пошагового подталкивания.",
-        "source": "https://developers.openai.com/codex/prompting"
+        "source": "https://learn.chatgpt.com/docs/prompting"
       },
       {
         "id": "workflow", "when": "workflow",
         "command": "делегировать в облачный чат (parallel) / non-interactive режим",
         "title": "Очень большая реализация — делегировать и распараллелить",
         "why": "У Codex паттерн: план локально, а долгую реализацию делегировать в облачный чат, который идёт параллельно, пока вы работаете дальше. Массовый прогон — non-interactive режим.",
-        "source": "https://developers.openai.com/codex/prompting"
+        "source": "https://learn.chatgpt.com/docs/prompting"
       },
       {
         "id": "loop", "when": "loop",
         "command": "(в Codex нет /loop — используйте /goal или внешний планировщик)",
         "title": "Повтор по расписанию",
         "why": "Отдельной команды повтора-по-интервалу у Codex нет; для «до результата» берите /goal, для регулярного запуска — внешний планировщик/CI.",
-        "source": "https://developers.openai.com/codex/prompting"
+        "source": "https://learn.chatgpt.com/docs/prompting"
       }
     ]
   }
