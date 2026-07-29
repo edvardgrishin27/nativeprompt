@@ -1,0 +1,20 @@
+name: update-rules
+# Раз в неделю сверяет офиц. доки вендоров с нашей шпаргалкой.
+# Если доки изменились — job падает (виден в Actions), мейнтейнер сверяет
+# rules/*.json с источником и обновляет через PR. Правила НЕ меняются автоматически.
+# Никаких untrusted github.event.* входов в run: — инъекции невозможны.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  check-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Diff vendor prompting docs against snapshot
+        run: python -m nativeprompt update

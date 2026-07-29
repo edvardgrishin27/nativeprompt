@@ -1,0 +1,25 @@
+{
+  "note": "Манифест самообновления: канонические .md/llms.txt страницы вендоров, которые `nativeprompt update` тянет и диффает против снапшота. Правила НЕ трогаются автоматически — при изменении открывается PR на ревью.",
+  "rules_version": "2026-07-29",
+  "families": {
+    "claude": {
+      "docs": [
+        "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices.md",
+        "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5.md",
+        "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5.md",
+        "https://code.claude.com/docs/en/best-practices.md",
+        "https://code.claude.com/docs/en/goal.md",
+        "https://code.claude.com/docs/en/workflows.md"
+      ],
+      "index": "https://platform.claude.com/llms.txt"
+    },
+    "openai": {
+      "docs": [
+        "https://developers.openai.com/api/docs/guides/reasoning.md",
+        "https://developers.openai.com/api/docs/guides/prompt-guidance.md",
+        "https://developers.openai.com/codex/prompting.md"
+      ],
+      "index": "https://developers.openai.com/llms.txt"
+    }
+  }
+}

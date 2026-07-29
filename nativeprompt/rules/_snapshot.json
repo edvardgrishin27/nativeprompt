@@ -1,0 +1,13 @@
+{
+  "https://code.claude.com/docs/en/best-practices.md": "20f44ccf4e6c4397e52c8a8e900c37424843974fd10e534918ea298e5b11bdd9",
+  "https://code.claude.com/docs/en/goal.md": "f7b5281df344cfea4190e7b2948810a73f8fefcfecd33bb9c50f58e1ecf4ff62",
+  "https://code.claude.com/docs/en/workflows.md": "ed496d57683eb78fed89b1c4a56d8a65f6d5a8f1e104c35d11c4758857f9dd3e",
+  "https://developers.openai.com/api/docs/guides/prompt-guidance.md": "7591e641abc3cb124b2173843a03d40ea05ee421c8a036f04dda44c79188953e",
+  "https://developers.openai.com/api/docs/guides/reasoning.md": "ffed5869f64228eb8225eb02523f1cf035c49837ec4f3f61dde8d936312ab790",
+  "https://developers.openai.com/codex/prompting.md": "37492b2b7ce5a1d91a8099ba8f04f6bf99784070345750c453311fc41f607935",
+  "https://developers.openai.com/llms.txt": "8b827fe77f81325a640a2e7c9d2b42bc08198f47733db30fffd9ed7e22460a3a",
+  "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices.md": "85a49380cc87ce227b9792573a2b7c828a30f803a2e22f9450c6f46daf2e50dd",
+  "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5.md": "ddf68607d4e2247460b280b3ab51164fd3fe231db9fb0ed08c9e9b6566ed88b0",
+  "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5.md": "e0bb46d295279f5cda448a475e6fca4b4030d86e690d9b88166534514c8237d1",
+  "https://platform.claude.com/llms.txt": "1b3bf01c2070dd5c688180f2fce405443f18b3dedac8b47d19698e5efd547b79"
+}

@@ -1,0 +1,162 @@
+{
+  "family": "claude",
+  "vendor": "Anthropic",
+  "display": "Claude Code",
+  "surface": "Claude Code (агентный CLI). Правила — из best-practices Claude Code, НЕ из API/консоли.",
+  "rules_version": "2026-07-29",
+  "detect": {
+    "id_prefixes": ["claude-", "claude"],
+    "aliases": ["claude", "claude code", "claude-code", "anthropic", "opus", "sonnet", "haiku"]
+  },
+  "generations": {
+    "opus-5":   { "match": ["opus-5", "opus5", "claude-opus-5"],     "label": "Claude Opus 5" },
+    "sonnet-5": { "match": ["sonnet-5", "sonnet5", "claude-sonnet-5"], "label": "Claude Sonnet 5" },
+    "opus-4.8": { "match": ["opus-4-8", "opus-4.8", "opus48"],       "label": "Claude Opus 4.8" },
+    "haiku-4.5":{ "match": ["haiku-4-5", "haiku-4.5"],               "label": "Claude Haiku 4.5" }
+  },
+  "config_notes": [
+    "Постоянные правила проекта держите в CLAUDE.md, коротко (для каждой строки: «убери — Claude начнёт ошибаться?»). Разовые знания — в скилле, не в каждом промпте.",
+    "Главное ограничение — окно контекста: /clear между несвязанными задачами, тяжёлую разведку — субагентами."
+  ],
+  "rules": [
+    {
+      "id": "claude-scope",
+      "scope": "family",
+      "check": "missing_context",
+      "action": "add",
+      "title": "Заскоупить задачу: файл, сценарий, что значит «готово»",
+      "why": "«Добавь тесты для foo.py» → «Напиши тест для foo.py на случай, когда пользователь разлогинен; без моков». Чем точнее — тем меньше правок потом.",
+      "source": "https://code.claude.com/docs/en/best-practices"
+    },
+    {
+      "id": "claude-verification",
+      "scope": "family",
+      "check": "missing_verification",
+      "action": "add",
+      "title": "Дать проверку, которую Claude прогонит сам",
+      "why": "Дайте то, что вернёт pass/fail (тесты, сборка, скрин) и попросите прогнать после реализации — тогда цикл «сделал → проверил → починил» закрывается без вас. Без проверки «выглядит готовым» — единственный сигнал.",
+      "source": "https://code.claude.com/docs/en/best-practices"
+    },
+    {
+      "id": "claude-reference-files",
+      "scope": "family",
+      "check": "describe_location",
+      "action": "restructure",
+      "title": "Ссылаться на файлы через @, а не описывать словами",
+      "why": "`@src/auth/session.ts` вместо «файл, где логин» — Claude прочитает файл перед ответом, меньше промахов по контексту.",
+      "source": "https://code.claude.com/docs/en/best-practices"
+    },
+    {
+      "id": "claude-root-cause",
+      "scope": "family",
+      "check": "fix_symptom",
+      "action": "restructure",
+      "title": "Симптом + где искать + что значит «починено» (лечить причину)",
+      "why": "«Почини баг логина» → «Пользователи: логин падает после таймаута сессии; смотри src/auth/, особенно refresh токена; напиши падающий тест, потом почини причину, не глуши симптом».",
+      "source": "https://code.claude.com/docs/en/best-practices"
+    },
+    {
+      "id": "claude-output-contract",
+      "scope": "family",
+      "check": "missing_output_contract",
+      "action": "add",
+      "title": "Сказать желаемый формат результата",
+      "why": "Claude — «блестящий, но новый сотрудник»: невысказанное не угадывает. Прямо опишите результат (что должно получиться, структура, ограничения).",
+      "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/be-clear-and-direct"
+    },
+    {
+      "id": "claude-explicit-action",
+      "scope": "family",
+      "check": "vague_ask",
+      "action": "restructure",
+      "title": "Просить действие прямо, а не намёком",
+      "why": "«Не мог бы ты предложить правки» → Claude только предложит. Нужно сделать — пишите «Перепиши эту функцию».",
+      "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/be-clear-and-direct"
+    },
+    {
+      "id": "claude-xml",
+      "scope": "family",
+      "check": "missing_xml",
+      "action": "restructure",
+      "title": "Сложный промпт из нескольких частей — обернуть в XML-теги",
+      "why": "Когда в промпте смешаны инструкция, данные и примеры — теги <instructions>, <context>, <example> помогают Claude их не путать. Для одной короткой задачи не нужно.",
+      "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/use-xml-tags"
+    },
+    {
+      "id": "claude-dial-caps",
+      "scope": "family",
+      "check": "pushy_caps",
+      "action": "remove",
+      "title": "Убрать давящие КАПС / «CRITICAL» / «ОБЯЗАТЕЛЬНО!!!»",
+      "why": "На новых моделях агрессивные «КРИТИЧНО: ты ДОЛЖЕН…» вызывают пере-срабатывание. Достаточно обычного «Используй …, когда…».",
+      "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5"
+    },
+    {
+      "id": "opus5-remove-verification",
+      "scope": "opus-5",
+      "check": "verification_demand",
+      "action": "remove",
+      "title": "Убрать «перепроверь себя» (Opus 5 верифицирует сам)",
+      "why": "Opus 5 проверяет работу без напоминаний. Оставшиеся «перепроверь / убедись, что» вызывают пере-верификацию — лишние токены и задержка.",
+      "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5"
+    },
+    {
+      "id": "opus5-concise",
+      "scope": "opus-5",
+      "check": "always",
+      "action": "add",
+      "title": "Просить краткость явно (Opus 5 отвечает длинно)",
+      "why": "У Opus 5 ответы по умолчанию длиннее, и effort не укорачивает видимый вывод — попросите краткость прямо, если она нужна.",
+      "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5"
+    },
+    {
+      "id": "opus5-report-all",
+      "scope": "opus-5",
+      "check": "report_only_high",
+      "action": "restructure",
+      "title": "Не «репортить только важное» — просить всё, фильтровать отдельным проходом",
+      "why": "Opus 5 следует ограничениям буквально: «покажи только критичное» реально скроет остальное. Просите отчитаться обо всём, отбор делайте отдельным шагом.",
+      "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5"
+    }
+  ],
+  "harness": {
+    "cli": "Claude Code",
+    "commands": [
+      {
+        "id": "direct", "when": "trivial",
+        "command": "просто напиши задачу",
+        "title": "Мелкая ясная правка — без plan/goal",
+        "why": "Опечатка, лог-строка, переименование: если диф описывается одним предложением — plan/goal избыточны, только оверхед.",
+        "source": "https://code.claude.com/docs/en/best-practices"
+      },
+      {
+        "id": "plan", "when": "planning",
+        "command": "plan mode (Shift+Tab → Plan)",
+        "title": "Многофайловое / незнакомый код / неясен подход — plan mode",
+        "why": "Разведка и план ОТДЕЛЬНО от кода, чтобы не решить не ту задачу. Полезно, когда меняется несколько файлов или вы не уверены в подходе.",
+        "source": "https://code.claude.com/docs/en/permission-modes"
+      },
+      {
+        "id": "goal", "when": "goal",
+        "command": "/goal <условие с измеримым концом>",
+        "title": "Долгая работа до проверяемого результата — /goal",
+        "why": "Ставит условие завершения; после каждого хода быстрая модель проверяет, выполнено ли, и Claude продолжает сам, пока не выполнится (миграция до зелёных тестов, дизайн-док до всех критериев). Условие: измеримый конец + как проверить. Пара с auto mode — идёт без вас.",
+        "source": "https://code.claude.com/docs/en/goal"
+      },
+      {
+        "id": "loop", "when": "loop",
+        "command": "/loop",
+        "title": "Повтор по расписанию/интервалу — /loop",
+        "why": "Перезапускает промпт через интервал времени (nightly-тесты, утренний триаж), а не «до условия». Стоп — вручную или когда Claude решит, что готово.",
+        "source": "https://code.claude.com/docs/en/scheduled-tasks"
+      },
+      {
+        "id": "workflow", "when": "workflow",
+        "command": "«создай воркфлоу» / настройка ultracode",
+        "title": "Codebase-wide аудит/миграция с адверс-проверкой — dynamic workflow",
+        "why": "Оркестрирует десятки-сотни субагентов в одной сессии: аудит безопасности по всему сервису, миграция тысяч файлов, находки перепроверяют адверсариальные агенты. Дороже обычной сессии — начинайте со скоупа.",
+        "source": "https://code.claude.com/docs/en/workflows"
+      }
+    ]
+  }
+}

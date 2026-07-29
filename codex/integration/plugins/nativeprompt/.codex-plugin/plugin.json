@@ -1,0 +1,27 @@
+{
+  "name": "nativeprompt",
+  "version": "0.1.0",
+  "description": "Improve prompts for Codex with source-linked nativeprompt rules.",
+  "author": {
+    "name": "Edvard Grishin"
+  },
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "prompt",
+    "prompt-engineering"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "NativePrompt",
+    "shortDescription": "Improve Codex prompts with sourced rules",
+    "longDescription": "Runs the nativeprompt CLI, rewrites a prompt for Codex without inventing missing task details, and explains each material change with an official source link.",
+    "developerName": "Edvard Grishin",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Improve this prompt for Codex without inventing missing details.",
+      "Rewrite my task for Codex and explain the sourced changes."
+    ]
+  }
+}

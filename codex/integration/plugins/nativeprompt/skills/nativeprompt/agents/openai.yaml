@@ -1,0 +1,6 @@
+interface:
+  display_name: "NativePrompt"
+  short_description: "Улучшает промпты по правилам Codex"
+  default_prompt: "Используй $nativeprompt, чтобы улучшить этот промпт для Codex без додумывания: ‹промпт›"
+policy:
+  allow_implicit_invocation: true

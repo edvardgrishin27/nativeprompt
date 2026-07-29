@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""UserPromptSubmit-хук для Claude Code: на КАЖДЫЙ промпт подмешивает улучшенную
+версию + правила текущей модели (additionalContext). Сам текст промпта НЕ заменяет
+(ограничение Claude Code) — Claude видит рядом оригинал и улучшенную версию.
+
+Дизайн: молчит на коротких/хороших промптах (не засоряет). Любая ошибка → тихо
+ничего (никогда не ломает отправку промпта).
+
+Подключение: см. README-блок ниже / settings.json.
+"""
+
+import json
+import os
+import sys
+
+REPO = os.path.expanduser("~/Documents/nativeprompt")
+
+
+def main():
+    try:
+        raw = sys.stdin.read()
+        data = json.loads(raw) if raw.strip() else {}
+    except Exception:
+        return 0
+    prompt = (data.get("prompt") or data.get("user_prompt") or "").strip()
+    if len(prompt) < 15:
+        return 0
+
+    sys.path.insert(0, REPO)
+    try:
+        from nativeprompt.explain import build_report
+        rep = build_report(prompt)
+    except Exception:
+        return 0
+
+    if rep.get("error") or not rep.get("target", {}).get("family"):
+        return 0
+    findings = [f for f in rep.get("findings", []) if not f.get("always")]
+    if not findings:
+        return 0  # промпт и так по правилам — молчим
+
+    t = rep["target"]
+    lines = [
+        "[nativeprompt] Ваш промпт можно улучшить под %s (%s):"
+        % (t.get("cli"), t.get("model_id") or t.get("family"))
+    ]
+    for f in findings[:6]:
+        lines.append("- %s — %s" % (f["title"], f["source"]))
+    lines.append("\nУлучшенная версия промпта:\n%s" % rep["improved"])
+    h = rep.get("harness")
+    if h:
+        lines.append("\nКак запускать: %s — %s" % (h["command"], h["title"]))
+    lines.append("\n(Действуй по улучшенной версии; недостающее в ‹…› уточни у пользователя.)")
+
+    out = {
+        "hookSpecificOutput": {
+            "hookEventName": "UserPromptSubmit",
+            "additionalContext": "\n".join(lines),
+        }
+    }
+    print(json.dumps(out, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

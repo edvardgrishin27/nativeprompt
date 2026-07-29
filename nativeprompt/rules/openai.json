@@ -1,0 +1,135 @@
+{
+  "family": "openai",
+  "vendor": "OpenAI",
+  "display": "Codex",
+  "surface": "Codex CLI (агентный CLI). Правила — из Codex prompting + GPT-5 reasoning best-practices, НЕ из ChatGPT-чата.",
+  "rules_version": "2026-07-29",
+  "detect": {
+    "id_prefixes": ["gpt-", "gpt", "o1", "o3", "o4", "codex", "openai"],
+    "aliases": ["codex", "gpt", "openai", "chatgpt", "o1", "o3", "o4"]
+  },
+  "generations": {
+    "gpt-5.6": { "match": ["gpt-5.6", "gpt-5p6", "5.6", "sol", "terra", "luna"], "label": "GPT-5.6" },
+    "gpt-5":   { "match": ["gpt-5", "gpt5"], "label": "GPT-5.x" },
+    "codex":   { "match": ["codex"], "label": "Codex" }
+  },
+  "config_notes": [
+    "Постоянные правила проекта — в AGENTS.md (слитый из ~/.codex и каталогов от корня репо к текущему; глубже переопределяет), а не в каждом промпте.",
+    "В Codex задавайте глубину рассуждения через model_reasoning_effort (minimal|low|medium|high|xhigh, если модель поддерживает) и длину ответа через model_verbosity (low|medium|high), а не словами в промпте."
+  ],
+  "rules": [
+    {
+      "id": "codex-no-forced-cot",
+      "scope": "family",
+      "check": "forced_cot",
+      "action": "remove",
+      "title": "Убрать «думай пошагово» / не прописывать промежуточные шаги",
+      "why": "Reasoning-модели GPT-5.x рассуждают сами. Принудительное «think step by step» и прописанные шаги мешают: дайте цель, ограничения и формат результата — без предписания каждого шага.",
+      "source": "https://developers.openai.com/api/docs/guides/reasoning"
+    },
+    {
+      "id": "codex-outcome-contract",
+      "scope": "family",
+      "check": "missing_output_contract",
+      "action": "add",
+      "title": "Outcome-first: цель + формат результата + критерий «готово»",
+      "why": "GPT-5 лучше работает от результата: чёткая цель, жёсткие ограничения, явный контракт вывода и определение, что считается выполненным и как модель это проверит.",
+      "source": "https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide"
+    },
+    {
+      "id": "codex-lean",
+      "scope": "family",
+      "check": "repetition",
+      "action": "remove",
+      "title": "Убрать повторы — каждую инструкцию один раз",
+      "why": "На GPT-5.x лаконичный промпт выигрывает: удаление повторов и лишних примеров даёт ~+10–15% качества при −41–66% токенов. Повтор «сначала спроси» плодит лишние подтверждения.",
+      "source": "https://developers.openai.com/api/docs/guides/prompt-guidance"
+    },
+    {
+      "id": "codex-no-contradiction",
+      "scope": "family",
+      "check": "contradiction_hint",
+      "action": "warn",
+      "title": "Убрать противоречивые требования",
+      "why": "Противоречивые/размытые инструкции вредят GPT-5 сильнее прочих: он жжёт токены рассуждения, примиряя их. Приведите требования к согласованному виду.",
+      "source": "https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide"
+    },
+    {
+      "id": "codex-explicit-action",
+      "scope": "family",
+      "check": "vague_ask",
+      "action": "restructure",
+      "title": "Просить действие прямо",
+      "why": "Мягкое «не мог бы ты…» провоцирует ответ-рассуждение вместо действия. Сформулируйте как прямое поручение с ожидаемым результатом.",
+      "source": "https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide"
+    },
+    {
+      "id": "codex-dial-scaffold",
+      "scope": "family",
+      "check": "pushy_caps",
+      "action": "remove",
+      "title": "Снять давящий скаффолдинг и КАПС-императивы",
+      "why": "GPT-5 сам интроспективен и проактивен. «МАКСИМАЛЬНО пойми контекст» и КАПС-«ОБЯЗАТЕЛЬНО» из эпохи GPT-4.1 не помогают, иногда мешают.",
+      "source": "https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide"
+    },
+    {
+      "id": "codex-agents-md",
+      "scope": "family",
+      "check": "needs_agents_md",
+      "action": "warn",
+      "title": "Постоянные правила проекта — в AGENTS.md, не в промпте",
+      "why": "Повторяющиеся установки (стиль, команды, границы) выносите в AGENTS.md — Codex подхватывает его автоматически. Промпт тогда — только про конкретную задачу.",
+      "source": "https://developers.openai.com/codex/prompting"
+    },
+    {
+      "id": "codex-autonomy",
+      "scope": "family",
+      "check": "always",
+      "when_shapes": ["normal", "planning", "goal", "loop", "workflow"],
+      "action": "add",
+      "title": "Для большой задачи разрешить идти до конца",
+      "why": "Codex смещён к автономии: для крупной задачи явно разрешите довести до конца («не останавливайся на анализе или частичной правке; реализуй с разумными допущениями»), иначе остановится рано.",
+      "source": "https://developers.openai.com/codex/prompting"
+    }
+  ],
+  "harness": {
+    "cli": "Codex",
+    "commands": [
+      {
+        "id": "direct", "when": "trivial",
+        "command": "просто напиши задачу",
+        "title": "Мелкая ясная правка — без /plan и /goal",
+        "why": "Если правка описывается одним предложением — режимы plan/goal лишние.",
+        "source": "https://developers.openai.com/codex/prompting"
+      },
+      {
+        "id": "plan", "when": "planning",
+        "command": "/plan",
+        "title": "Неясен подход / многофайловое — /plan",
+        "why": "Codex сначала исследует и предлагает подход до правок кода — чтобы не решить не ту задачу.",
+        "source": "https://developers.openai.com/codex/prompting"
+      },
+      {
+        "id": "goal", "when": "goal",
+        "command": "/goal (Goal mode)",
+        "title": "Долгая сквозная реализация — /goal",
+        "why": "После плана «set a persistent goal» — включает end-to-end выполнение задачи до цели, без пошагового подталкивания.",
+        "source": "https://developers.openai.com/codex/prompting"
+      },
+      {
+        "id": "workflow", "when": "workflow",
+        "command": "делегировать в облачный чат (parallel) / non-interactive режим",
+        "title": "Очень большая реализация — делегировать и распараллелить",
+        "why": "У Codex паттерн: план локально, а долгую реализацию делегировать в облачный чат, который идёт параллельно, пока вы работаете дальше. Массовый прогон — non-interactive режим.",
+        "source": "https://developers.openai.com/codex/prompting"
+      },
+      {
+        "id": "loop", "when": "loop",
+        "command": "(в Codex нет /loop — используйте /goal или внешний планировщик)",
+        "title": "Повтор по расписанию",
+        "why": "Отдельной команды повтора-по-интервалу у Codex нет; для «до результата» берите /goal, для регулярного запуска — внешний планировщик/CI.",
+        "source": "https://developers.openai.com/codex/prompting"
+      }
+    ]
+  }
+}

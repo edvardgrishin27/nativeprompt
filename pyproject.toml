@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nativeprompt"
+version = "0.1.0"
+description = "Rewrite your prompt into the native dialect of the model you're actually using — by each vendor's OFFICIAL rules, and tell you why."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Edvard Grishin", email = "edvardgrishin001@gmail.com" }]
+keywords = ["prompt", "prompt-engineering", "llm", "claude", "openai", "codex", "prompt-optimizer"]
+dependencies = []  # zero runtime deps on purpose: stdlib only, offline, deterministic
+
+[project.urls]
+Homepage = "https://github.com/edvardgrishin27/nativeprompt"
+Source = "https://github.com/edvardgrishin27/nativeprompt"
+
+[project.scripts]
+nativeprompt = "nativeprompt.__main__:main"
+
+[tool.setuptools]
+packages = ["nativeprompt"]
+
+[tool.setuptools.package-data]
+nativeprompt = ["rules/*.json"]
