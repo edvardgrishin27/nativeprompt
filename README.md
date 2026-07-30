@@ -46,7 +46,10 @@ Plus: **zero runtime dependencies** (stdlib only), deterministic, works offline,
 
 ## Install
 
-`pipx install nativeprompt` / `pip install nativeprompt` — **coming soon**, the package is not on PyPI yet.
+```bash
+pipx install nativeprompt   # or: pip install nativeprompt
+```
+Published on PyPI. Zero runtime dependencies — stdlib only, works offline, no API key.
 
 Until then, install from a clone:
 

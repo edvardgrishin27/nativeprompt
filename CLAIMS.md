@@ -87,7 +87,7 @@ A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 
 
 **The CLI speaks Russian.** Interface strings, findings text and the meta-prompt are currently in Russian, even though the rules and their sources are English vendor docs. An English UI is not implemented.
 
-**Not published yet.** `pipx install nativeprompt` / `pip install nativeprompt` do **not** work — the package is not on PyPI and the repository is not pushed. Install from a clone (`pip install -e .`). Any GitHub URL in the metadata is a placeholder until then.
+**Published (2026-07-30).** `pip install nativeprompt` and `pipx install nativeprompt` work — verified by installing 0.1.0 from PyPI into a clean virtualenv and running the CLI. Repository: github.com/edvardgrishin27/nativeprompt. Released via PyPI Trusted Publishing from a workflow that runs the test suite first.
 
 **Hook limitation.** `hooks/nativeprompt_hook.py` (Claude Code `UserPromptSubmit`) cannot replace the prompt you typed — Claude Code allows only *adding* context, so the model sees the original next to the improved version. The hook stays silent on prompts under 15 characters and on prompts that trigger no findings, and swallows every error so it can never block a prompt from being sent. Its repo path is hardcoded to `~/Documents/nativeprompt`.
 
