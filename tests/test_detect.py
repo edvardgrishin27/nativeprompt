@@ -111,7 +111,7 @@ def test_claude_session_wins_over_conflicting_model_env(monkeypatch):
     ("claude-opus-5", "claude", "opus-5", False),
     ("sonnet[1m]", "claude", None, True),
     ("opusplan", "claude", None, False),
-    ("fable", "claude", None, False),
+    ("opusplan[1m]", "claude", None, True),   # офиц. валидный вариант
     ("best", "claude", None, False),
 ])
 def test_alias_and_1m_suffix(mid, fam, gen, ctx1m):
@@ -143,3 +143,40 @@ def test_project_settings_win_over_home(tmp_path, monkeypatch):
     model, where = detect._read_claude_settings()
     assert model == "claude-sonnet-5"
     assert "проект" in where
+
+
+def test_fable_resolves_deterministically():
+    """fable — единственный алиас с однозначным резолвингом (Claude Fable 5)."""
+    r = detect._build_result("fable", "тест")
+    assert r["family"] == "claude"
+    assert r["generation_source"] == "alias-fixed"
+
+
+def test_alias_override_env(monkeypatch):
+    """ANTHROPIC_DEFAULT_OPUS_MODEL перенаправляет алиас на конкретную модель."""
+    monkeypatch.setenv("ANTHROPIC_DEFAULT_OPUS_MODEL", "claude-opus-5")
+    r = detect._build_result("opus[1m]", "тест")
+    assert r["generation"] == "opus-5"
+    assert r["generation_source"] == "alias-override-env"
+    assert r["context_1m"] is True
+
+
+def test_codex_home_respected(tmp_path, monkeypatch):
+    """CODEX_HOME — официальная переменная, её использует и IDE-расширение."""
+    home = tmp_path / "custom-codex"
+    home.mkdir()
+    (home / "config.toml").write_text('model = "gpt-5.6-sol"\n', encoding="utf-8")
+    monkeypatch.setenv("CODEX_HOME", str(home))
+    monkeypatch.chdir(tmp_path)
+    assert detect._read_codex_config() == "gpt-5.6-sol"
+
+
+def test_codex_project_config_wins(tmp_path, monkeypatch):
+    """Проектный .codex/config.toml важнее пользовательского."""
+    home = tmp_path / "h"; home.mkdir()
+    (home / "config.toml").write_text('model = "gpt-5"\n', encoding="utf-8")
+    monkeypatch.setenv("CODEX_HOME", str(home))
+    proj = tmp_path / "proj" / ".codex"; proj.mkdir(parents=True)
+    (proj / "config.toml").write_text('model = "gpt-5.6-terra"\n', encoding="utf-8")
+    monkeypatch.chdir(tmp_path / "proj")
+    assert detect._read_codex_config() == "gpt-5.6-terra"

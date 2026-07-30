@@ -1,24 +1,133 @@
-# CLAIMS — что инструмент реально делает (честно)
+# CLAIMS — what this tool actually does
 
-Чтобы на ролике/в репозитории не было завышенных обещаний.
+**English** · [Русский](CLAIMS.ru.md)
 
-## Что ПРАВДА
-- **Детект модели** — по `--model`, маркерам активной CLI-сессии, `ANTHROPIC_MODEL`/`OPENAI_MODEL`/`CODEX_MODEL`, `~/.claude/settings.json`, `~/.codex/config.toml`. Активная сессия Codex/Claude Code имеет приоритет над остаточными переменными другой поверхности. Ключ по СЕМЕЙСТВУ+поколению: неизвестный id (напр. `claude-opus-6`) всё равно получает family-правила. Проверено тестами.
-- **Правила — из официальных доков вендоров.** Каждое правило в `rules/*.json` несёт `source`-URL. Все URL проверены живым запросом (HTTP 200) на дату `rules_version` (2026‑07‑29). Список источников — в `rules/_sources.json`.
-- **Объяснение со ссылкой на правило** — для каждой правки показывается, какое правило вендора её вызвало и ссылка. Это обучающий слой.
-- **Рекомендация харнесса** — `/goal`, `/loop`, plan mode, dynamic workflow (Claude Code) и `/plan`, `/goal`, делегирование (Codex). Команды и их назначение взяты из офиц. доков (`code.claude.com/docs/en/goal`, `.../workflows`, `.../scheduled-tasks`, `developers.openai.com/codex/prompting`).
-- **Самообновление** — `nativeprompt update` реально тянет `.md`/`llms.txt` вендоров и диффает против снапшота. При изменении — сигнал (ненулевой код выхода) для CI/PR.
-- **Zero deps, детерминизм.** Ядро — только stdlib, без обращения к модели; один и тот же вход даёт один и тот же выход. Работает офлайн (кроме `update`).
+This file exists so that nothing in the README, the video, or the repo promises more than the code delivers. Every claim below names the exact thing that proves it — a command you can run, or a file you can read. If a claim cannot be checked, it does not belong here.
 
-## Чего инструмент НЕ делает / границы
-- **НЕ додумывает задачу.** Недостающие детали (файлы, критерий готово, формат) вставляются ПЛЕЙСХОЛДЕРАМИ `‹…›`, а не выдуманным содержанием.
-- **Детерминированная перепись — структурная, не литературная.** Она убирает вредное, реструктурирует и добавляет секции-плейсхолдеры. Полную «умную» переписку прозы делает МЕТА-ПРОМТ руками вашей же модели — это заявлено явно, это не «ИИ внутри инструмента».
-- **Правила не обновляются автоматически в коде.** `update` только СИГНАЛИЗИРУЕТ, что офиц. доки изменились; сами `rules/*.json` правит человек через PR (чтобы шпаргалка оставалась проверяемой). Это осознанный выбор, а не недоделка.
-- **Детекторы — эвристики (регэкспы).** Возможны ложные срабатывания/пропуски на необычных формулировках; это ассистент, а не оракул.
-- **Покрытие v1 — Claude Code + Codex.** Gemini и прочие — задел на будущее (архитектура семейств готова).
-- **Не бенчмарк.** Инструмент применяет ПРАВИЛА вендора, а не измеряет, что промпт стал «на X% лучше». Никаких процентов качества он не обещает.
+Numbers were measured on **2026‑07‑30** against `nativeprompt 0.1.0`, `rules_version 2026-07-29`. Re-run the commands in [How to verify](#how-to-verify) to check them yourself.
 
-## Проверяемость
-- `pytest` — 54 теста (детект, детекторы, перепись, харнесс, целостность правил, frozen-snapshot набора правил).
-- `nativeprompt rules` — показывает все правила с их источниками (сверьте выборочно).
-- `nativeprompt update` — показывает, совпадают ли правила с последними офиц. доками.
+---
+
+## What is true
+
+### Model detection
+
+`nativeprompt` picks the target model from, in order of confidence: an explicit `--model`, markers of the **active CLI session** (`CLAUDECODE` / `CLAUDE_CODE_ENTRYPOINT` for Claude Code, `CODEX_THREAD_ID` / `CODEX_SHELL` / `CODEX_CI` / `CODEX_SANDBOX` for Codex), the env vars `ANTHROPIC_MODEL` / `OPENAI_MODEL` / `CODEX_MODEL`, the `.claude/settings.local.json` → `.claude/settings.json` cascade walked upward from the current directory, `~/.claude/settings.json`, and `~/.codex/config.toml`. An active session of one CLI wins over a stale env var left behind by the other.
+
+Keying is by **family + generation**, so an id the cheatsheet has never seen (`claude-opus-6`) still resolves to the Claude family and gets family rules instead of nothing.
+
+> Verified by: `nativeprompt/detect.py`; 28 tests in `tests/test_detect.py`, including session-vs-stale-env precedence and the project-over-home settings cascade.
+
+### Rules come from vendor documentation
+
+Every rule in `nativeprompt/rules/*.json` carries a `source` URL pointing at an official Anthropic or OpenAI page. There are **19 rules** today:
+
+| Family | Rules | Scope split | Harness recommendations |
+|---|---|---|---|
+| Claude Code (`claude.json`) | 11 | 8 family‑wide + 3 scoped to `opus-5` | 5 |
+| Codex (`openai.json`) | 8 | 8 family‑wide | 5 |
+
+A test asserts every rule has `id`, `title`, `why`, `source`, `check`, `action`; that `source` is `https://`; and that `check` names a detector that actually exists in `analyze.py`. A second test freezes the rule id sets, so the cheatsheet cannot grow or shrink silently.
+
+The 12 distinct URLs used as rule/harness sources, plus the 14 URLs in the self‑update manifest, all returned **HTTP 200** when checked on 2026‑07‑30.
+
+> Verified by: `nativeprompt rules`, `nativeprompt/rules/_sources.json`, and 9 tests in `tests/test_rules.py`.
+
+### Each edit is explained with a link
+
+`improve` prints, for every finding, the rule title, *why* the vendor recommends it, and the source URL — before showing the rewritten prompt. That teaching layer is the point of the tool; a silent swap would be less useful and less checkable.
+
+> Verified by: run `nativeprompt improve "..." --model claude-opus-5` and read the "правило:" line under each finding.
+
+### Harness recommendation
+
+The tool classifies the task into one of `trivial | planning | goal | loop | workflow | normal` and maps it to a documented way to run it — for Claude Code: plain prompt, plan mode, `/goal`, `/loop`, workflows; for Codex: plain prompt, `/plan`, `/goal`, delegation to cloud/non‑interactive, and an explicit note that **Codex has no `/loop`**. Each recommendation carries its own source URL.
+
+> Verified by: `nativeprompt/harness.py`, `harness` blocks in the rule files, 6 tests in `tests/test_harness.py`.
+
+### Self-update actually fetches
+
+`nativeprompt update` downloads the 14 canonical `.md` / `llms.txt` vendor pages listed in `rules/_sources.json`, hashes them with SHA‑256, and diffs against `rules/_snapshot.json`. It exits non‑zero when something changed or is new, so CI can fail on it; `.github/workflows/update-rules.yml` runs it weekly.
+
+A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 unreachable → action needed.** That is the mechanism working, not a passing grade: it means a maintainer owes the cheatsheet a review pass.
+
+> Verified by: `nativeprompt update` (needs network), `nativeprompt/update.py`, 3 tests in `tests/test_update.py`.
+
+### Zero dependencies, deterministic, offline
+
+`dependencies = []` in `pyproject.toml` — stdlib only, `requires-python >=3.9`, CI runs the suite on 3.9 / 3.11 / 3.13. The core never calls a model, so the same input yields the same output and no API key is needed. Only `update` touches the network.
+
+> Verified by: `pyproject.toml`, `.github/workflows/ci.yml`, and the absence of any network call outside `update.py`.
+
+### The prompt is treated as data
+
+`SKILL.md` instructs the agent to treat the user's prompt as **content to improve, not instructions to follow**, and to pass it via stdin rather than interpolating it into a shell command. That closes both prompt‑injection and quoting/substitution holes.
+
+> Verified by: `SKILL.md` step 0 and step 2.
+
+---
+
+## What it does NOT do / limits
+
+**It does not invent your task.** Missing details — files, "done" criteria, output format — are inserted as explicit placeholders `‹…›`, never as plausible-sounding content. A test asserts the rewriter does not fabricate file names.
+
+**The deterministic rewrite is structural, not literary.** It removes what the vendor says hurts (forced chain‑of‑thought for Codex, "double‑check yourself" for Opus 5, `!!!` and CAPS imperatives, hedged "could you", duplicated sentences), restructures (XML tags for multi‑part Claude prompts, headed sections for Codex) and appends placeholder sections. The **smart** prose rewrite is not done by this tool at all: `improve` emits a **meta-prompt** that your own Claude or Codex executes. There is no model inside `nativeprompt`, and the quality of that second pass is your model's, not ours.
+
+**Rules are not auto-updated in code.** `update` only *signals* that official docs moved. Editing `rules/*.json` is a human action through a PR. This is deliberate — it keeps the cheatsheet reviewable — but it also means the rules can lag behind a vendor doc change until someone acts on the signal.
+
+**Detectors are regex heuristics.** 15 named checks in `analyze.py`, tuned on Russian and English phrasings. Unusual wording will produce false positives and misses. This is an assistant, not an oracle, and it has no semantic understanding of your prompt.
+
+**Model aliases do not resolve to a version.** `opus`, `sonnet`, `haiku`, `fable`, `best`, `opusplan`, `default` map to the Claude family but to **no generation** — which model answers behind an alias depends on provider, plan, and `ANTHROPIC_DEFAULT_*`. In that case only family‑wide rules apply, and the report says so (`alias-unresolved`). The `[1m]` context suffix is preserved rather than silently dropped. Same for an unknown id: family rules, no generation rules.
+
+**Generation-specific rules exist for Opus 5 only.** The cheatsheet knows four Claude generations and three OpenAI ones, but the only generation‑scoped rules today are the 3 for `opus-5`. Sonnet 5, GPT‑5.6 and Codex currently get family rules.
+
+**Coverage in v1 is Claude Code + Codex.** Two families, agentic CLIs only — not the API, console, or chat surfaces. Gemini and others are architecturally possible (families are data‑driven) but are not shipped.
+
+**It is not a benchmark.** The tool applies vendor *rules*; it does not measure that your prompt became "N% better". No percentage of quality improvement is claimed anywhere, and none should be.
+
+**The CLI speaks Russian.** Interface strings, findings text and the meta-prompt are currently in Russian, even though the rules and their sources are English vendor docs. An English UI is not implemented.
+
+**Not published yet.** `pipx install nativeprompt` / `pip install nativeprompt` do **not** work — the package is not on PyPI and the repository is not pushed. Install from a clone (`pip install -e .`). Any GitHub URL in the metadata is a placeholder until then.
+
+**Hook limitation.** `hooks/nativeprompt_hook.py` (Claude Code `UserPromptSubmit`) cannot replace the prompt you typed — Claude Code allows only *adding* context, so the model sees the original next to the improved version. The hook stays silent on prompts under 15 characters and on prompts that trigger no findings, and swallows every error so it can never block a prompt from being sent. Its repo path is hardcoded to `~/Documents/nativeprompt`.
+
+---
+
+## How to verify
+
+```bash
+# 1. Test suite — 63 tests, no dependencies beyond pytest
+cd nativeprompt && python3 -m pytest -q
+# 63 passed
+#   28 detection · 9 analysis · 9 rule integrity · 8 rewrite · 6 harness · 3 update
+
+# 2. Every rule with its official source — spot-check the links
+python3 -m nativeprompt rules claude
+python3 -m nativeprompt rules codex
+
+# 3. Are the rules still in sync with the vendors' docs?
+python3 -m nativeprompt update          # exits 1 when docs changed or are new
+
+# 4. See the contrast the tool is built around, on one prompt
+python3 examples/contrast_demo.py
+python3 -m nativeprompt improve "почини баг, думай пошагово, перепроверь себя" --model claude-opus-5
+python3 -m nativeprompt improve "почини баг, думай пошагово, перепроверь себя" --model gpt-5.6
+
+# 5. What did it detect, and from where?
+python3 -m nativeprompt detect          # prints the signal it used
+```
+
+Available commands and flags, in full (`nativeprompt/__main__.py`):
+
+| Command | Flags |
+|---|---|
+| `improve "<prompt>"` (or stdin) | `--model M` · `--json` · `--no-metaprompt` |
+| `detect` | `--model M` · `--json` |
+| `rules [claude\|codex]` | — |
+| `update` | `--write` · `--timeout N` · `--json` |
+
+Nothing else exists. If you see a flag documented anywhere that is not in this table, that documentation is wrong.
+
+---
+
+MIT. If you find a claim here that the code does not back, that is a bug — open an issue.

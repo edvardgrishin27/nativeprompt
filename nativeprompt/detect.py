@@ -18,8 +18,18 @@ import re
 from . import catalog
 
 
-_CODEX_SESSION_ENV = ("CODEX_THREAD_ID", "CODEX_SHELL", "CODEX_CI", "CODEX_SANDBOX")
+# ⚠ Переменные сессии Codex НЕ документированы официально (эвристика).
+# CODEX_HOME — единственная официальная (её использует и IDE-расширение).
+_CODEX_SESSION_ENV = ("CODEX_HOME", "CODEX_THREAD_ID", "CODEX_SHELL", "CODEX_CI", "CODEX_SANDBOX")
+# CLAUDECODE=1 — официальный маркер (его ставят и IDE-расширения).
 _CLAUDE_SESSION_ENV = ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")
+
+# managed-настройки Claude Code: высший приоритет, перебивают пользовательские
+_MANAGED_SETTINGS_PATHS = (
+    "/Library/Application Support/ClaudeCode/managed-settings.json",  # macOS
+    "/etc/claude-code/managed-settings.json",                          # Linux/WSL
+    r"C:\Program Files\ClaudeCode\managed-settings.json",              # Windows
+)
 
 # Суффикс окна контекста 1M: "opus[1m]", "claude-opus-5[1m]".
 # Claude Code сам срезает его перед матчингом модели — делаем так же, но
@@ -29,7 +39,20 @@ _SUFFIX_1M = re.compile(r"^(?P<base>.+?)\[1m\]$", re.I)
 # Алиасы Claude Code, за которыми стоит НЕизвестная нам версия: какая именно
 # модель откликнется — зависит от провайдера, плана и ANTHROPIC_DEFAULT_*.
 # Поэтому поколение из них НЕ выводим (честнее, чем угадать).
-_UNRESOLVED_ALIASES = {"opus", "sonnet", "haiku", "fable", "best", "opusplan", "default"}
+# `fable` сюда НЕ входит: он резолвится детерминированно (Claude Fable 5).
+_UNRESOLVED_ALIASES = {"opus", "sonnet", "haiku", "best", "opusplan", "default"}
+
+# Алиасы с однозначным резолвингом по офиц. таблице model-config.
+_FIXED_ALIASES = {"fable": "fable-5"}
+
+# Эти переменные ПЕРЕНАПРАВЛЯЮТ алиас на конкретную модель — если они заданы,
+# алиас перестаёт быть «неизвестной версией».
+_ALIAS_OVERRIDE_ENV = {
+    "opus": "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "sonnet": "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "haiku": "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+    "fable": "ANTHROPIC_DEFAULT_FABLE_MODEL",
+}
 
 
 def _split_1m(model_id):
@@ -47,7 +70,7 @@ def _family_from_id(model_id):
         return None
     mid, _ = _split_1m(model_id)
     mid = mid.lower()
-    if mid in _UNRESOLVED_ALIASES:
+    if mid in _UNRESOLVED_ALIASES or mid in _FIXED_ALIASES:
         return "claude"  # все эти алиасы — из Claude Code
     for fam in catalog.available_families():
         data = catalog.load_family(fam)
@@ -69,7 +92,17 @@ def _build_result(model_id, source):
         return None
     base, ctx_1m = _split_1m(model_id)
     data = catalog.load_family(fam)
-    if base.lower() in _UNRESOLVED_ALIASES:
+    low = base.lower()
+    override = os.environ.get(_ALIAS_OVERRIDE_ENV.get(low, ""), "").strip()
+    if override:
+        # ANTHROPIC_DEFAULT_*_MODEL перенаправляет алиас на конкретную модель
+        ov_base, _ = _split_1m(override)
+        gen = catalog.generation_for(fam, ov_base)
+        gen_source = "alias-override-env" if gen else "unknown-id"
+    elif low in _FIXED_ALIASES:
+        gen = catalog.generation_for(fam, _FIXED_ALIASES[low]) or _FIXED_ALIASES[low]
+        gen_source = "alias-fixed"
+    elif low in _UNRESOLVED_ALIASES:
         gen, gen_source = None, "alias-unresolved"
     else:
         gen = catalog.generation_for(fam, base)
@@ -118,6 +151,12 @@ def _read_claude_settings():
     переменной ANTHROPIC_MODEL там нет, а пикер /model пишет модель в settings.
     Возвращает (model_id, откуда) или (None, None).
     """
+    # managed-настройки перебивают ВСЁ (enterprise) — проверяем первыми
+    for mpath in _MANAGED_SETTINGS_PATHS:
+        model = _model_from_settings_file(mpath)
+        if model:
+            return model, "managed-настройки (%s)" % os.path.basename(mpath)
+
     try:
         cur = os.path.abspath(os.getcwd())
     except OSError:
@@ -144,8 +183,7 @@ def _read_claude_settings():
     return None, None
 
 
-def _read_codex_config():
-    path = os.path.expanduser("~/.codex/config.toml")
+def _model_from_toml(path):
     if not os.path.exists(path):
         return None
     try:
@@ -155,6 +193,35 @@ def _read_codex_config():
         return None
     m = re.search(r'(?m)^\s*model\s*=\s*["\']([^"\']+)["\']', text)
     return m.group(1).strip() if m else None
+
+
+def _read_codex_config():
+    """Каскад конфигов Codex: проектный .codex/config.toml (ближайший к cwd
+    выигрывает) → $CODEX_HOME/config.toml (по умолчанию ~/.codex) → /etc/codex.
+    CODEX_HOME — единственная официальная переменная, которую использует и
+    IDE-расширение."""
+    try:
+        cur = os.path.abspath(os.getcwd())
+    except OSError:
+        cur = None
+    home_dir = os.path.expanduser("~")
+    seen = set()
+    while cur and cur not in seen:
+        seen.add(cur)
+        if cur == home_dir:
+            break
+        model = _model_from_toml(os.path.join(cur, ".codex", "config.toml"))
+        if model:
+            return model
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            break
+        cur = parent
+    codex_home = os.path.expanduser(os.environ.get("CODEX_HOME", "~/.codex"))
+    model = _model_from_toml(os.path.join(codex_home, "config.toml"))
+    if model:
+        return model
+    return _model_from_toml("/etc/codex/config.toml")
 
 
 def detect_model(explicit=None):

@@ -13,7 +13,29 @@ import json
 import os
 import sys
 
-REPO = os.path.expanduser("~/Documents/nativeprompt")
+
+def _find_package():
+    """Найти пакет nativeprompt, не завися от машины автора.
+
+    Порядок: уже установлен (pip/pipx) → каталог этого хука (клон репозитория) →
+    NATIVEPROMPT_HOME → CLAUDE_PROJECT_DIR. Хук должен работать у любого,
+    кто склонировал репозиторий куда угодно.
+    """
+    try:  # уже установлен в окружение
+        import nativeprompt  # noqa: F401
+        return None
+    except ImportError:
+        pass
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # <repo>/hooks/.. = <repo>
+    candidates = [
+        here,
+        os.environ.get("NATIVEPROMPT_HOME", ""),
+        os.environ.get("CLAUDE_PROJECT_DIR", ""),
+    ]
+    for c in candidates:
+        if c and os.path.isdir(os.path.join(os.path.expanduser(c), "nativeprompt")):
+            return os.path.expanduser(c)
+    return None
 
 
 def main():
@@ -26,7 +48,9 @@ def main():
     if len(prompt) < 15:
         return 0
 
-    sys.path.insert(0, REPO)
+    root = _find_package()
+    if root:
+        sys.path.insert(0, root)
     try:
         from nativeprompt.explain import build_report
         rep = build_report(prompt)
