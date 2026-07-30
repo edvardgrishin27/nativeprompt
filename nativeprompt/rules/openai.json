@@ -91,7 +91,7 @@
       "id": "codex-autonomy",
       "scope": "family",
       "check": "always",
-      "when_shapes": ["normal", "planning", "goal", "loop", "workflow"],
+      "when_shapes": ["planning", "goal", "loop", "workflow"],
       "action": "add",
       "title": "Для большой задачи разрешить идти до конца",
       "why": "Codex смещён к автономии: для крупной задачи явно разрешите довести до конца («не останавливайся на анализе или частичной правке; реализуй с разумными допущениями»), иначе остановится рано.",

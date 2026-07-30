@@ -123,7 +123,11 @@ def render_update(res):
     if s["action_needed"]:
         out.append(
             "→ Офиц. доки изменились. Сверьте правила rules/*.json с источником и "
-            "обновите их (при работе в CI — откроется PR). Затем: nativeprompt update --write."
+            "обновите их вручную. Затем зафиксируйте: nativeprompt update --write."
+        )
+        out.append(
+            "  (в CI эта команда возвращает ненулевой код — job падает и вы видите,"
+            " что пора сверяться)"
         )
     else:
         out.append("→ Правила соответствуют последним офиц. докам.")

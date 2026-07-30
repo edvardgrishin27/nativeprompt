@@ -16,7 +16,7 @@ Numbers were measured on **2026‑07‑30** against `nativeprompt 0.1.0`, `rules
 
 Keying is by **family + generation**, so an id the cheatsheet has never seen (`claude-opus-6`) still resolves to the Claude family and gets family rules instead of nothing.
 
-> Verified by: `nativeprompt/detect.py`; 28 tests in `tests/test_detect.py`, including session-vs-stale-env precedence and the project-over-home settings cascade.
+> Verified by: `nativeprompt/detect.py`; 32 tests in `tests/test_detect.py`, including session-vs-stale-env precedence and the project-over-home settings cascade.
 
 ### Rules come from vendor documentation
 
@@ -96,9 +96,9 @@ A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 
 ## How to verify
 
 ```bash
-# 1. Test suite — 63 tests, no dependencies beyond pytest
+# 1. Test suite — 67 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 63 passed
+# 67 passed
 #   28 detection · 9 analysis · 9 rule integrity · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links

@@ -1,4 +1,4 @@
-"""Детерминированная перепись + мета-промт + границы (не выдумываем)."""
+"""Детерминированная перепись + мета-промпт + границы (не выдумываем)."""
 
 from nativeprompt.analyze import analyze
 from nativeprompt.harness import recommend_harness

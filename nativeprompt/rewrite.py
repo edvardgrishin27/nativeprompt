@@ -4,7 +4,7 @@
   1. improved  — детерминированная структурная правка (убрать лишнее, добавить
      недостающие секции ПЛЕЙСХОЛДЕРАМИ ‹…›; задачу за автора НЕ додумываем).
   2. metaprompt — собранная инструкция под модель, которую выполняет ВАШ же
-     Claude/Codex для «умной» переписи (движок «разбор + мета-промт»).
+     Claude/Codex для «умной» переписи (движок «разбор + мета-промпт»).
 """
 
 import re
@@ -201,7 +201,7 @@ def _assemble(core, additions, family, ids):
     return "\n\n".join(blocks)
 
 
-# ── мета-промт для «умной» переписи руками вашей же модели ───────────
+# ── мета-промпт для «умной» переписи руками вашей же модели ───────────
 def build_metaprompt(prompt, target, findings, harness_rec=None):
     family = target.get("family")
     data = catalog.load_family(family) if family else {}

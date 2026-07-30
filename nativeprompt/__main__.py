@@ -107,7 +107,7 @@ def build_parser():
     pi.add_argument("prompt", nargs="?", help="текст промпта (или из stdin)")
     pi.add_argument("--model", help="целевая модель: claude-opus-5 / gpt-5.6 / codex …")
     pi.add_argument("--json", action="store_true", help="выдать отчёт как JSON")
-    pi.add_argument("--no-metaprompt", action="store_true", help="без блока мета-промта")
+    pi.add_argument("--no-metaprompt", action="store_true", help="без блока мета-промпта")
     pi.set_defaults(func=cmd_improve)
 
     pd = sub.add_parser("detect", help="показать, какая модель определилась")

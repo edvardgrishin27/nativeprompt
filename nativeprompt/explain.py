@@ -1,16 +1,29 @@
 """Сборка и рендер отчёта: было → стало + почему (со ссылкой на правило) +
 как запускать. Обучающий слой инструмента."""
 
+import textwrap
+
 from . import detect as _detect
 from .analyze import analyze, task_shape
 from .harness import recommend_harness
 from .rewrite import rewrite, build_metaprompt
 
 _ACTION_MARK = {"add": "[+]", "remove": "[-]", "restructure": "[~]", "warn": "[!]"}
+_WIDTH = 76  # переносим сами: терминал рвёт длинные строки посреди слова
+
+
+def _wrap(text, indent="   ", first=None):
+    """Перенести длинный текст по словам с отступом (для читаемости в кадре)."""
+    first = indent if first is None else first
+    return textwrap.fill(
+        str(text), width=_WIDTH,
+        initial_indent=first, subsequent_indent=indent,
+        break_long_words=False, break_on_hyphens=False,
+    )
 
 
 def build_report(prompt, model=None):
-    """Один вызов: детект модели → разбор → харнесс → перепись → мета-промт."""
+    """Один вызов: детект модели → разбор → харнесс → перепись → мета-промпт."""
     target = _detect.resolve(model)
     report = {"original": prompt, "target": target}
     if not target.get("family"):
@@ -74,14 +87,16 @@ def render_report(report, show_metaprompt=True):
         out.append("ЧТО УЛУЧШИТЬ (%d):" % len(findings))
         for i, f in enumerate(findings, 1):
             mark = _ACTION_MARK.get(f["action"], "[?]")
-            out.append("%d. %s %s" % (i, mark, f["title"]))
-            out.append("   почему: %s" % f["why"])
+            out.append(_wrap(f["title"], indent="      ",
+                             first="%d. %s " % (i, mark)))
+            out.append(_wrap(f["why"], indent="      ", first="   почему: "))
             out.append("   правило: %s" % f["source"])
     else:
         out.append("ЧТО УЛУЧШИТЬ: существенных правок правила не требуют.")
     for f in always:
         mark = _ACTION_MARK.get(f["action"], "[?]")
-        out.append("%s %s — %s" % (mark, f["title"], f["source"]))
+        out.append(_wrap(f["title"], indent="    ", first="%s " % mark))
+        out.append("    правило: %s" % f["source"])
 
     out.append("")
     out.append(bar)
@@ -95,14 +110,14 @@ def render_report(report, show_metaprompt=True):
         out.append("")
         out.append("КАК ЗАПУСКАТЬ (%s) — форма задачи: %s" % (h["cli"], h["shape"]))
         out.append("  → %s" % h["command"])
-        out.append("  %s" % h["title"])
-        out.append("  почему: %s" % h["why"])
+        out.append(_wrap(h["title"], indent="  "))
+        out.append(_wrap(h["why"], indent="  ", first="  почему: "))
         out.append("  правило: %s" % h["source"])
 
     if show_metaprompt:
         out.append("")
         out.append(bar)
-        out.append("МЕТА-ПРОМТ для «умной» переписи (вставьте своей же модели):")
+        out.append("МЕТА-ПРОМПТ для «умной» переписи (вставьте своей же модели):")
         out.append(bar)
         out.append(report["metaprompt"])
 
