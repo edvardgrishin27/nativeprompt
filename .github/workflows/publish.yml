@@ -1,0 +1,37 @@
+name: publish
+# Публикация в PyPI через Trusted Publishing (OIDC) — БЕЗ токенов и секретов.
+# Один раз настраивается на стороне PyPI: Publishing → Add a new pending publisher
+#   PyPI Project Name: nativeprompt
+#   Owner: edvardgrishin27   Repository: nativeprompt
+#   Workflow name: publish.yml   Environment: pypi
+# После этого публикация запускается созданием релиза на GitHub.
+# Никаких untrusted github.event.* в run: — инъекции невозможны.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write        # нужно для Trusted Publishing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Run tests before publishing
+        run: |
+          pip install pytest
+          python -m pytest -q
+      - name: Build
+        run: |
+          pip install build
+          python -m build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
