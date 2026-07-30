@@ -1,20 +1,70 @@
 name: update-rules
-# Раз в неделю сверяет офиц. доки вендоров с нашей шпаргалкой.
-# Если доки изменились — job падает (виден в Actions), мейнтейнер сверяет
-# rules/*.json с источником и обновляет через PR. Правила НЕ меняются автоматически.
-# Никаких untrusted github.event.* входов в run: — инъекции невозможны.
+# Раз в неделю: сверить офиц. доки вендоров и, если они изменились,
+# САМОМУ открыть Pull Request со снимками и точным diff в описании.
+# Правила rules/*.json НЕ переписываются автоматически — их правит человек
+# при ревью PR. Так шпаргалка остаётся проверяемой, но не устаревает.
+#
+# Безопасность: текст вендорских доков НИКОГДА не подставляется в run:.
+# Он пишется в файл и передаётся через --body-file. Инъекции невозможны.
 on:
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
-  check-docs:
+  check-and-propose:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Diff vendor prompting docs against snapshot
-        run: python -m nativeprompt update
+
+      - name: Check vendor docs and capture diff
+        id: check
+        run: |
+          set +e
+          python -m nativeprompt update --diff > /tmp/np-report.txt 2>&1
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+          cat /tmp/np-report.txt
+
+      - name: Refresh snapshots
+        if: steps.check.outputs.exit != '0'
+        run: python -m nativeprompt update --write
+
+      - name: Open pull request with the diff
+        if: steps.check.outputs.exit != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if git diff --quiet; then
+            echo "Снимки не изменились — PR не нужен."
+            exit 0
+          fi
+          BRANCH="rules-update-$(date +%Y%m%d)"
+          git config user.name  "nativeprompt-bot"
+          git config user.email "actions@github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "chore: официальные доки вендоров изменились"
+          git push -u origin "$BRANCH"
+          {
+            echo "Официальные доки вендоров изменились. Ниже — что именно поменялось."
+            echo
+            echo "**Что нужно сделать:** сверить затронутые правила в \`nativeprompt/rules/*.json\`"
+            echo "с новым текстом дока и поправить, если смысл правила изменился."
+            echo "Если изменение косметическое — просто влить PR: снимки уже обновлены."
+            echo
+            echo '```'
+            cat /tmp/np-report.txt
+            echo '```'
+          } > /tmp/np-body.md
+          gh pr create \
+            --title "Обновились официальные доки вендоров" \
+            --body-file /tmp/np-body.md \
+            --base main --head "$BRANCH"

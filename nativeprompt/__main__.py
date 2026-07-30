@@ -90,7 +90,7 @@ def cmd_update(args):
     if args.json:
         print(json.dumps(res, ensure_ascii=False, indent=2))
     else:
-        print(_update.render_update(res))
+        print(_update.render_update(res, show_diff=args.diff))
     # ненулевой код, если нужны действия (для CI)
     return 1 if res["summary"]["action_needed"] and not args.write else 0
 
@@ -120,7 +120,9 @@ def build_parser():
     pr.set_defaults(func=cmd_rules)
 
     pu = sub.add_parser("update", help="сверить свежесть офиц. доков (self-update)")
-    pu.add_argument("--write", action="store_true", help="записать снапшот хэшей (после ревью правил)")
+    pu.add_argument("--write", action="store_true", help="записать снимки (после ревью правил)")
+    pu.add_argument("--diff", action="store_true",
+                    help="показать, ЧТО именно изменилось в доке вендора (было → стало)")
     pu.add_argument("--timeout", type=int, default=20)
     pu.add_argument("--json", action="store_true")
     pu.set_defaults(func=cmd_update)
