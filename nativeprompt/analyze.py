@@ -207,9 +207,12 @@ def analyze(prompt, target):
     low = prompt.lower()
     shape = None
     findings = []
+    # поколение + те, чьи правила вендор объявил применимыми к нему (rules_of):
+    # Mythos 5 ключуется на страницу Fable 5, Opus 4.7 — на guidance Opus 4.8
+    scopes = catalog.scopes_for(family, target.get("generation"))
     for rule in data.get("rules", []):
         scope = rule.get("scope", "family")
-        if scope != "family" and scope != target.get("generation"):
+        if scope != "family" and scope not in scopes:
             continue
         allowed_shapes = rule.get("when_shapes")
         if allowed_shapes:

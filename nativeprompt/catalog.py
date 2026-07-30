@@ -63,6 +63,29 @@ def family_for(family_or_alias):
     return None
 
 
+def scopes_for(family, generation):
+    """Какие scope-ключи применимы к этому поколению.
+
+    Вендор иногда прямо пишет, что правила одной модели применимы к другой
+    (Mythos 5 ключуется на страницу Fable 5; guidance Opus 4.7 применим к 4.8).
+    Такие связи описаны полем "rules_of" в generations — здесь мы их
+    разворачиваем, чтобы правило с scope="fable-5" сработало и для mythos-5.
+    """
+    if not generation:
+        return set()
+    data = load_family(family)
+    gens = data.get("generations", {})
+    out, cur, guard = {generation}, generation, 0
+    while guard < 5:
+        parent = (gens.get(cur) or {}).get("rules_of")
+        if not parent or parent in out:
+            break
+        out.add(parent)
+        cur = parent
+        guard += 1
+    return out
+
+
 def generation_for(family, model_id):
     """По id/имени модели найти поколение внутри семейства (например 'opus-5')."""
     if not model_id:

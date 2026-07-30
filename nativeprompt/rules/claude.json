@@ -9,10 +9,29 @@
     "aliases": ["claude", "claude code", "claude-code", "anthropic", "opus", "sonnet", "haiku"]
   },
   "generations": {
-    "opus-5":   { "match": ["opus-5", "opus5", "claude-opus-5"],     "label": "Claude Opus 5" },
-    "sonnet-5": { "match": ["sonnet-5", "sonnet5", "claude-sonnet-5"], "label": "Claude Sonnet 5" },
-    "opus-4.8": { "match": ["opus-4-8", "opus-4.8", "opus48"],       "label": "Claude Opus 4.8" },
-    "haiku-4.5":{ "match": ["haiku-4-5", "haiku-4.5"],               "label": "Claude Haiku 4.5" }
+    "fable-5":   { "match": ["fable-5", "fable5", "claude-fable-5"],   "label": "Claude Fable 5",
+                   "doc": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5" },
+    "mythos-5":  { "match": ["mythos-5", "mythos5", "claude-mythos-5"], "label": "Claude Mythos 5",
+                   "rules_of": "fable-5",
+                   "note": "Те же веса и правила, что у Fable 5, но без safety-классификаторов; invite-only (Project Glasswing). Отдельной страницы промптинга нет — вендор ключует на Fable 5." },
+    "opus-5":    { "match": ["opus-5", "opus5", "claude-opus-5"],     "label": "Claude Opus 5",
+                   "doc": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5" },
+    "sonnet-5":  { "match": ["sonnet-5", "sonnet5", "claude-sonnet-5"], "label": "Claude Sonnet 5",
+                   "doc": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5" },
+    "opus-4.8":  { "match": ["opus-4-8", "opus-4.8", "opus48"],       "label": "Claude Opus 4.8",
+                   "doc": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-4-8" },
+    "opus-4.7":  { "match": ["opus-4-7", "opus-4.7"],   "label": "Claude Opus 4.7", "rules_of": "opus-4.8",
+                   "note": "Своей страницы нет; вендор пишет, что guidance для 4.7 применим и к 4.8." },
+    "opus-4.6":  { "match": ["opus-4-6", "opus-4.6"],   "label": "Claude Opus 4.6", "rules_of": "opus-4.8",
+                   "note": "Своей страницы нет — применяются правила линейки Opus 4.x и семейства." },
+    "opus-4.5":  { "match": ["opus-4-5", "opus-4.5"],   "label": "Claude Opus 4.5",
+                   "note": "Своей страницы нет. До-adaptive поколение: extended thinking через budget_tokens." },
+    "sonnet-4.6":{ "match": ["sonnet-4-6", "sonnet-4.6"], "label": "Claude Sonnet 4.6",
+                   "note": "Своей страницы нет; рекомендованный дефолт effort — medium." },
+    "sonnet-4.5":{ "match": ["sonnet-4-5", "sonnet-4.5"], "label": "Claude Sonnet 4.5",
+                   "note": "Своей страницы нет. До-adaptive поколение." },
+    "haiku-4.5": { "match": ["haiku-4-5", "haiku-4.5"],  "label": "Claude Haiku 4.5",
+                   "note": "Своей страницы промптинга НЕТ и effort не поддерживается — правила Opus/Sonnet 5 к ней не применять." }
   },
   "config_notes": [
     "Постоянные правила проекта держите в CLAUDE.md, коротко (для каждой строки: «убери — Claude начнёт ошибаться?»). Разовые знания — в скилле, не в каждом промпте.",
@@ -90,6 +109,35 @@
       "title": "Убрать давящие КАПС / «CRITICAL» / «ОБЯЗАТЕЛЬНО!!!»",
       "why": "На новых моделях агрессивные «КРИТИЧНО: ты ДОЛЖЕН…» вызывают пере-срабатывание. Достаточно обычного «Используй …, когда…».",
       "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5"
+    },
+    {
+      "id": "fable5-no-show-thinking",
+      "scope": "fable-5",
+      "check": "forced_cot",
+      "action": "remove",
+      "title": "Убрать «покажи ход мыслей» — на Fable 5 это триггер отказа",
+      "why": "Fable 5 не отдаёт сырое рассуждение. Просьбы «покажи ход мыслей / воспроизведи рассуждения» попадают в категорию отказа reasoning_extraction — модель вернёт refusal, и придётся откатываться на другую модель. Просите результат, а не рассуждение.",
+      "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5"
+    },
+    {
+      "id": "fable5-ground-progress",
+      "scope": "fable-5",
+      "check": "always",
+      "when_shapes": ["goal", "loop", "workflow", "planning"],
+      "action": "add",
+      "title": "Требовать привязки отчёта о прогрессе к результатам инструментов",
+      "why": "На длинных прогонах Fable 5 склонен рапортовать о сделанном без доказательств. Строка «прежде чем отчитываться, сверь каждое утверждение с результатом инструмента; что не проверено — так и скажи» почти убирает выдуманные отчёты.",
+      "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5"
+    },
+    {
+      "id": "opus48-encourage-subagents",
+      "scope": "opus-4.8",
+      "check": "always",
+      "when_shapes": ["goal", "workflow", "planning"],
+      "action": "add",
+      "title": "Явно разрешить субагентов (Opus 4.8 порождает их МЕНЬШЕ)",
+      "why": "Это противоположность Opus 5 и Fable 5, которых наоборот приходится ограничивать: Opus 4.8 предпочитает рассуждать сам и редко делегирует. Для веерных задач добавьте прямое разрешение порождать несколько субагентов за ход.",
+      "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-4-8"
     },
     {
       "id": "opus5-remove-verification",

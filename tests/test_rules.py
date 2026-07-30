@@ -13,6 +13,7 @@ FROZEN = {
         "claude-root-cause", "claude-output-contract", "claude-explicit-action",
         "claude-xml", "claude-dial-caps", "opus5-remove-verification",
         "opus5-concise", "opus5-report-all",
+        "fable5-no-show-thinking", "fable5-ground-progress", "opus48-encourage-subagents",
     },
     "openai": {
         "codex-no-forced-cot", "codex-outcome-contract", "codex-lean",
