@@ -199,7 +199,7 @@ What it does and doesn't do:
 - Any error is swallowed — it never blocks your prompt from being sent.
 - **Budget: 30 seconds.** `UserPromptSubmit` lowers the default hook timeout from 600 s to 30 s ([hooks](https://code.claude.com/docs/en/hooks)). This hook is deterministic and makes no network calls, so it fits comfortably — don't add network calls of your own there.
 - Matchers are not supported for this event and are silently ignored; it fires on every prompt.
-- The hook currently resolves the package from `~/Documents/nativeprompt` (the `REPO` constant at the top of the file). If you cloned elsewhere, edit that line or install the package so the import resolves normally.
+- The hook resolves the package on its own: an installed `nativeprompt` first, then its own repository directory, then `NATIVEPROMPT_HOME` / `CLAUDE_PROJECT_DIR`. No path editing required, and it stays silent rather than failing if nothing resolves.
 
 There is also a documented way to get the model *exactly*, which the hook does not use yet: only `SessionStart` hooks can receive a `model` field, and *"there is no `$CLAUDE_MODEL` environment variable"* ([hooks](https://code.claude.com/docs/en/hooks)). A `SessionStart` hook that caches that value would beat any settings-file read, because it also catches `--model` and the session-only `s` choice. Contributions welcome.
 

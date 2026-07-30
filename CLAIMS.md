@@ -89,7 +89,7 @@ A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 
 
 **Published (2026-07-30).** `pip install nativeprompt` and `pipx install nativeprompt` work — verified by installing 0.1.0 from PyPI into a clean virtualenv and running the CLI. Repository: github.com/edvardgrishin27/nativeprompt. Released via PyPI Trusted Publishing from a workflow that runs the test suite first.
 
-**Hook limitation.** `hooks/nativeprompt_hook.py` (Claude Code `UserPromptSubmit`) cannot replace the prompt you typed — Claude Code allows only *adding* context, so the model sees the original next to the improved version. The hook stays silent on prompts under 15 characters and on prompts that trigger no findings, and swallows every error so it can never block a prompt from being sent. Its repo path is hardcoded to `~/Documents/nativeprompt`.
+**Hook limitation.** `hooks/nativeprompt_hook.py` (Claude Code `UserPromptSubmit`) cannot replace the prompt you typed — Claude Code allows only *adding* context, so the model sees the original next to the improved version. The hook stays silent on prompts under 15 characters and on prompts that trigger no findings, and swallows every error so it can never block a prompt from being sent. It resolves the package on its own: installed package first, then its own repository directory, then `NATIVEPROMPT_HOME` / `CLAUDE_PROJECT_DIR` — no path editing required.
 
 ---
 
