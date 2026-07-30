@@ -71,6 +71,25 @@ def cmd_rules(args):
         print("%s — %s  (версия правил: %s)" % (data.get("display", family), data.get("vendor", ""), data.get("rules_version", "?")))
         print(data.get("surface", ""))
         print("=" * 66)
+
+        gens = data.get("generations", {})
+        if gens:
+            print("\nМОДЕЛИ, КОТОРЫЕ ИНСТРУМЕНТ ЗНАЕТ (%d):" % len(gens))
+            own = [g for g, v in gens.items() if v.get("doc")]
+            for gid, g in gens.items():
+                if g.get("doc"):
+                    mark, tail = "★", "своя страница правил у вендора"
+                elif g.get("rules_of"):
+                    mark, tail = "↳", "правила от %s (так решил вендор)" % g["rules_of"]
+                else:
+                    mark, tail = "·", "своей страницы нет — правила семейства"
+                print("  %s %-12s %-22s %s" % (mark, gid, g.get("label", ""), tail))
+            print("  ─ ★ %d из %d моделей имеют собственные правила; остальные работают"
+                  % (len(own), len(gens)))
+            print("    на правилах семейства — они НЕ выдуманы, их просто не публиковал вендор.")
+            print("    Незнакомая новая модель тоже получит правила семейства, а не откажет.")
+
+        print("\nПРАВИЛА:")
         for r in data.get("rules", []):
             scope = "" if r.get("scope") == "family" else ("  [%s]" % r["scope"])
             print("• %s%s" % (r["title"], scope))
