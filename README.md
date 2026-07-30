@@ -38,7 +38,7 @@ Both vendors ship a prompt improver, but only for their own model, closed, and f
 | **Auto-detects the model you're on** | n/a — Anthropic only | n/a — OpenAI only | you pick the target manually | yes — family + generation, from the live session, env, or settings files |
 | **Rules sourced from vendor docs** | implicit, not shown | implicit, not shown | usually hand-written folklore | every rule carries a `source` URL you can open |
 | **Explains each edit** | no — silent rewrite | no — silent rewrite | rarely | yes — rule title, rationale, and link per finding |
-| **Stays current** | ships when the vendor ships | ships when the vendor ships | goes stale | `update` diffs the vendors' own `.md` / `llms.txt` pages against a snapshot; weekly CI job |
+| **Stays current** | ships when the vendor ships | ships when the vendor ships | goes stale | `update --diff` shows the exact changed lines in the vendor's doc; weekly CI opens a PR with that diff |
 
 Plus: **zero runtime dependencies** (stdlib only), deterministic, works offline, no API key. The only command that touches the network is `update`.
 
@@ -120,7 +120,7 @@ More raw prompts to try are in [`examples/prompts.md`](examples/prompts.md).
 | `improve "<prompt>"` | `--model M`, `--json`, `--no-metaprompt` | detect → analyze → rewrite → harness advice → explain. Reads the prompt from stdin when the argument is omitted. |
 | `detect` | `--model M`, `--json` | shows the resolved model, family/CLI, and **which signal** it came from. Exit 1 if nothing resolved. |
 | `rules [claude\|codex]` | — | prints every rule with its source URL, plus the harness table. No argument = all families. |
-| `update` | `--write`, `--timeout N`, `--json` | fetches the vendors' canonical docs and diffs them against the snapshot. Non-zero exit when action is needed (CI signal). `--write` records the new snapshot after you've reviewed the rules. |
+| `update` | `--diff`, `--write`, `--timeout N`, `--json` | fetches the vendors' canonical docs and compares them with stored text snapshots. `--diff` prints the exact before/after lines. Non-zero exit when action is needed (CI signal). `--write` records the new snapshots after you've reviewed the rules. A weekly CI job opens a PR containing the diff — **rules themselves are always edited by a human** (see below). |
 
 `nativeprompt --version` prints the version.
 
@@ -289,6 +289,20 @@ If your rule needs a new `check`, add the detector to `analyze.py` with a test. 
 **Adding a vendor.** Drop a new `nativeprompt/rules/<family>.json` with `detect` (id prefixes + aliases), `generations`, `rules`, and a `harness` block describing that CLI's run modes; register its docs in `_sources.json`. `catalog.py` discovers families from the directory — no code change needed for a well-formed file.
 
 Other useful contributions, in rough priority order: English CLI output, managed-settings and `CODEX_HOME` support in `detect.py`, a `SessionStart` hook for exact model resolution, and detector precision on non-Russian, non-English prompts.
+
+## Why rules are not auto-merged
+
+The robot detects the change, fetches it, shows the exact diff and opens the PR.
+The last step — deciding whether a *rule* changes — stays human, on purpose:
+
+1. **A doc change is not a rule change.** Most edits are typos, rewordings, new examples.
+   Auto-applying would churn the rules for nothing.
+2. **A rule is a translation, not a copy.** The doc says, in prose, "Opus 5 verifies its own
+   work — remove explicit verification instructions". The rule is a detector plus a decision
+   about scope (whole family, or just this generation). That is judgement.
+3. **A wrong auto-update is worse than a stale rule.** It would hand you bad advice *carrying an
+   official source link* — that is, with maximum credibility. This package is installed by other
+   people; model-written changes should not merge themselves into it.
 
 ## License
 
