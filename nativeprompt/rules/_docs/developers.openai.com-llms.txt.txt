@@ -66,6 +66,7 @@ Each section links to Markdown twins under the product path (e.g., `/plugins/<sl
 - [Configuring workload identity federation for Microsoft Azure](https://developers.openai.com/api/docs/guides/workload-identity-federation/microsoft-azure.md): Configure Azure managed identity or AKS as a workload identity federation token provider.
 - [Configuring workload identity federation for Oracle Cloud Infrastructure](https://developers.openai.com/api/docs/guides/workload-identity-federation/oracle-cloud.md): Configure Oracle Cloud Infrastructure instance principals as a workload identity federation token provider.
 - [Configuring workload identity federation for SPIFFE](https://developers.openai.com/api/docs/guides/workload-identity-federation/spiffe.md): Configure SPIFFE JWT-SVIDs as workload identity federation subject tokens.
+- [Content provenance](https://developers.openai.com/api/docs/guides/content-provenance.md): Learn how to verify images and audio, interpret content credentials and watermarks, and use provenance results responsibly.
 - [Conversation state](https://developers.openai.com/api/docs/guides/conversation-state.md): Learn how to manage conversation state during a model interaction with the OpenAI API.
 - [Cost optimization](https://developers.openai.com/api/docs/guides/cost-optimization.md): Lower your OpenAI model costs by trying our tools and strategies.
 - [Counting tokens](https://developers.openai.com/api/docs/guides/token-counting.md): Use the Responses API to count input tokens for text, images, files, tools, and more—without estimation or tiktoken.
@@ -80,6 +81,7 @@ Each section links to Markdown twins under the product path (e.g., `/plugins/<sl
 - [Evaluate agent workflows](https://developers.openai.com/api/docs/guides/agent-evals.md): Learn how to evaluate agent workflows with traces, graders, datasets, and evaluation runs on the OpenAI platform.
 - [Evaluate external models](https://developers.openai.com/api/docs/guides/external-models.md): Learn how to run evals on non-OpenAI models, using the OpenAI platform.
 - [Evaluation best practices](https://developers.openai.com/api/docs/guides/evaluation-best-practices.md): Learn best practices for designing evals to test and improve model performance in production.
+- [Fast mode](https://developers.openai.com/api/docs/guides/fast-mode.md): Get up to 2.5× faster speeds in the API while retaining flexible pay-as-you-go pricing.
 - [File inputs](https://developers.openai.com/api/docs/guides/file-inputs.md): Learn how to use files as file inputs in the OpenAI API.
 - [File search](https://developers.openai.com/api/docs/guides/tools-file-search.md): Allow models to search your files for relevant information before generating a response.
 - [File transcription](https://developers.openai.com/api/docs/guides/speech-to-text.md): Learn how to transcribe recorded audio files, stream file transcripts, and use specialized speech-to-text features.
@@ -127,7 +129,6 @@ Each section links to Markdown twins under the product path (e.g., `/plugins/<sl
 - [Overview of OpenAI Crawlers](https://developers.openai.com/api/docs/bots.md)
 - [Predicted Outputs](https://developers.openai.com/api/docs/guides/predicted-outputs.md): Understand how to reduce latency for model responses where much of the response is known ahead of time.
 - [Pricing](https://developers.openai.com/api/docs/pricing.md): Pricing information for the OpenAI platform.
-- [Priority processing](https://developers.openai.com/api/docs/guides/priority-processing.md): Get faster processing in the API while retaining flexible pay-as-you-go pricing.
 - [Private Link](https://developers.openai.com/api/docs/guides/private-link.md): Configure Azure Private Link endpoints, DNS, health checks, and cross-region routing for the OpenAI API.
 - [Production best practices](https://developers.openai.com/api/docs/guides/production-best-practices.md): Explore best practices for transitioning your AI projects from prototype to production, including scaling, security, and cost management.
 - [Production notes on GPT Actions](https://developers.openai.com/api/docs/actions/production.md): Guidelines for deploying GPT Actions in a production environment, including rate limits, timeouts, and security measures.
@@ -696,7 +697,7 @@ Each section links to Markdown twins under the product path (e.g., `/plugins/<sl
 - [Image inputs](https://developers.openai.com/codex/image-inputs.md): Attach screenshots, diagrams, and visual references to ChatGPT prompts
 
 ## Codex — Import
-- [Import from another agent](https://developers.openai.com/codex/import.md): Bring supported setup and recent work from another agent into ChatGPT.
+- [Import from another agent](https://developers.openai.com/codex/import.md): Bring supported setup and recent work from another agent into ChatGPT or Codex.
 
 ## Codex — Integrated Terminal
 - [Integrated terminal](https://developers.openai.com/codex/integrated-terminal.md): Run commands and inspect output without leaving your chat
@@ -717,7 +718,7 @@ Each section links to Markdown twins under the product path (e.g., `/plugins/<sl
 - [Non-interactive mode](https://developers.openai.com/codex/non-interactive-mode.md): Use `codex exec` to run Codex in scripts and CI
 
 ## Codex — Notifications
-- [Notifications](https://developers.openai.com/codex/notifications.md): Choose how you are notified when work needs attention
+- [Notifications](https://developers.openai.com/codex/notifications.md): Choose how ChatGPT notifies you when work needs attention
 
 ## Codex — Open Source
 - [Open Source](https://developers.openai.com/codex/open-source.md): Open-source components of Codex and where to collaborate
@@ -785,6 +786,7 @@ Each section links to Markdown twins under the product path (e.g., `/plugins/<sl
 - [Run bulk security scans](https://developers.openai.com/codex/security/cli/bulk-scans.md): Discover GitHub repositories or run resumable security scans from a CSV inventory.
 - [Run Codex Security in CI](https://developers.openai.com/codex/security/cli/ci.md): Scan pull-request changes, preserve structured results, upload SARIF, and set a severity policy.
 - [Triage a backlog](https://developers.openai.com/codex/security/plugin/triage-backlog.md): Review existing security findings against a repository and order follow-up work.
+- [Use the Codex Security workbench](https://developers.openai.com/codex/security/plugin/workbench.md): Start security scans, review findings, and inspect repository history in the Codex desktop app.
 - [Write vulnerability reports](https://developers.openai.com/codex/security/plugin/vulnerability-reports.md): Turn findings, disclosure notes, source, and proof-of-concept material into polished, source-backed vulnerability reports.
 
 ## Codex — Security Administration
@@ -802,7 +804,7 @@ Each section links to Markdown twins under the product path (e.g., `/plugins/<sl
 - [Use Codex in Slack](https://developers.openai.com/codex/third-party/slack.md): Ask Codex to work from Slack channels and threads
 
 ## Codex — Use Chatgpt
-- [Use ChatGPT](https://developers.openai.com/codex/use-chatgpt.md): Learn how to ask for what you need, add useful context, and refine the result.
+- [Use ChatGPT](https://developers.openai.com/codex/use-chatgpt.md): Choose Chat, ChatGPT Work, or Codex, add useful context, and refine the result.
 
 ## Codex — Videos
 - [Videos](https://developers.openai.com/codex/videos.md): Learn how to use Codex with demos, walkthroughs, and talks
