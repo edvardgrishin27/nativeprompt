@@ -935,6 +935,12 @@ For sandbox and approval keys (`approval_policy`, `sandbox_mode`, and `sandbox_w
         "Whether that provider supports the Responses API WebSocket transport.",
     },
     {
+      key: "model_providers.<id>.supports_standalone_web_search",
+      type: "boolean",
+      description:
+        "Advertise support for a compatible standalone web search endpoint (default: false). Standalone search remains under development and off by default; provider compatibility alone doesn't enable it.",
+    },
+    {
       key: "model_providers.<id>.auth",
       type: "table",
       description:
@@ -1018,25 +1024,31 @@ For sandbox and approval keys (`approval_policy`, `sandbox_mode`, and `sandbox_w
       key: "shell_environment_policy.ignore_default_excludes",
       type: "boolean",
       description:
-        "Keep variables containing KEY/SECRET/TOKEN before other filters run.",
+        "Keep variables containing KEY, SECRET, or TOKEN before other filters run (default: true). Set to false to apply automatic secret-name exclusions.",
+    },
+    {
+      key: "shell_environment_policy.filters",
+      type: "map<string, include | exclude>",
+      description:
+        "Canonical case-insensitive environment-variable pattern filters. Include entries create an allowlist and can't restore excluded values. Explicit `set` values apply after exclusions. Don't combine filters with legacy `exclude` or `include_only` arrays in the same layer.",
     },
     {
       key: "shell_environment_policy.exclude",
       type: "array<string>",
       description:
-        "Glob patterns for removing environment variables after the defaults.",
+        "Legacy environment-variable exclusion patterns. Use `shell_environment_policy.filters` for new configuration; don't combine both forms in the same layer.",
     },
     {
       key: "shell_environment_policy.include_only",
       type: "array<string>",
       description:
-        "Whitelist of patterns; when set only matching variables are kept.",
+        "Legacy allowlist of environment-variable patterns. Use `shell_environment_policy.filters` for new configuration; don't combine both forms in the same layer.",
     },
     {
       key: "shell_environment_policy.set",
       type: "map<string,string>",
       description:
-        "Explicit environment overrides injected into every subprocess.",
+        "Explicit environment values injected after exclusions; include filters can still remove them.",
     },
     {
       key: "shell_environment_policy.experimental_use_profile",
