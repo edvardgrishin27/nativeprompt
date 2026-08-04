@@ -6,6 +6,9 @@
   "https://developers.openai.com/api/docs/guides/reasoning.md": "ffed5869f64228eb8225eb02523f1cf035c49837ec4f3f61dde8d936312ab790",
   "https://developers.openai.com/codex/prompting.md": "37492b2b7ce5a1d91a8099ba8f04f6bf99784070345750c453311fc41f607935",
   "https://developers.openai.com/llms.txt": "d62a1e8e62eef9098fe2a120bf1b0413b7b014b2f1fa3e0109e63f32140bd5be",
+  "https://docs.x.ai/build/features/project-rules.md": "1077d4bf3497f8c2a9022d82c251876e091f621e98f85e0b1c4eb1d5fceab383",
+  "https://docs.x.ai/build/modes-and-commands.md": "fefacec415606018d857162d665af5b70f4d1e7b08c7dce15b02f997b87c3c15",
+  "https://docs.x.ai/llms.txt": "6d259212652e9dfaf7dd3956b8a24615bd057683d037ac8c6ab1903bf2ba2fc1",
   "https://learn.chatgpt.com/docs/agent-configuration/agents-md.md": "9d1f87a2d1cb55b4782b95abe710692b35b9659789c2db31a22c7074a3383e8e",
   "https://learn.chatgpt.com/docs/build-skills.md": "190e29385af1d57d22fad85fe41a1676f6fe60c562b5234efc37d929c2d79009",
   "https://learn.chatgpt.com/docs/config-file/config-reference.md": "ca65be0c295a96050c13abdc8e7a15199708edc016b3d222e1971643e72ece24",
@@ -17,5 +20,9 @@
   "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5.md": "e0bb46d295279f5cda448a475e6fca4b4030d86e690d9b88166534514c8237d1",
   "https://platform.claude.com/llms.txt": "af826275b4e884b3619d96440d6142b9074c33570a5a94529c2ae6ffd26e5a9f",
   "https://raw.githubusercontent.com/MoonshotAI/kimi-cli/main/docs/en/reference/slash-commands.md": "4981127a26ee4d81b251bfb931855d6053977a1604935f94b4cefb582468f567",
-  "https://raw.githubusercontent.com/QwenLM/qwen-code/main/docs/users/features/commands.md": "224f72316c7b2f4e2599ee53b5ee5ce1070c18096e46faff75f6f61758e1b0e4"
+  "https://raw.githubusercontent.com/QwenLM/qwen-code/main/docs/users/features/commands.md": "224f72316c7b2f4e2599ee53b5ee5ce1070c18096e46faff75f6f61758e1b0e4",
+  "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/cli/cli-reference.md": "ec376db5857fe8dda715ce38575370c33aa03390925b2d7024f0642021525545",
+  "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/cli/gemini-md.md": "d00eeaef22453de4756a9862d8467750f772e239c4ee9b6f755709429b47c2cf",
+  "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/cli/plan-mode.md": "e05986bb6c7e6e93e63c2317715ea31ce7e0ac535e39a0c4527a6642e3ebe37b",
+  "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/core/subagents.md": "1a1b38993a2f5c6e16afda1914974a86274e73fac90e3ab62334d45e34bf7849"
 }

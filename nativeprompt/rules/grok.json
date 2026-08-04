@@ -1,0 +1,101 @@
+{
+  "family": "grok",
+  "vendor": "xAI",
+  "display": "Grok Build",
+  "surface": "Grok Build (терминальный агент xAI, команда `grok`). Правила — из доки самого CLI, НЕ из чата Grok.",
+  "context_file": "AGENTS.md",
+  "rules_version": "2026-08-04",
+  "vendor_publishes_model_rules": false,
+  "coverage_note": "xAI НЕ публикует страницы правил промптинга под конкретную модель — нет документа уровня «на этой модели не пиши X», как у Anthropic и OpenAI. Зато подробно документирован сам харнесс: режимы, команды, права, субагенты. Поэтому здесь только задокументированное. Выдумывать правила и подписывать их вендором нельзя — вся ценность в том, что каждая находка со ссылкой.",
+  "detect": {
+    "id_prefixes": ["grok", "xai"],
+    "aliases": ["grok", "grok-build", "xai", "spacexai"]
+  },
+  "generations": {
+    "grok": {
+      "match": ["grok"],
+      "label": "Grok (модель не указана)",
+      "note": "Grok Build ходит на кодовую модель xAI. Своей страницы правил промптинга у поколений нет — применяются правила семейства и рекомендации по харнессу."
+    }
+  },
+  "rules": [
+    {
+      "id": "grok-context-file",
+      "scope": "family",
+      "check": "needs_agents_md",
+      "action": "warn",
+      "title": "Постоянные правила проекта — в правила проекта, не в промпт",
+      "why": "Повторяющиеся установки (стиль, команды, границы) выносите в правила проекта — Grok Build подхватывает их как контекст. Промпт тогда — только про конкретную задачу.",
+      "source": "https://docs.x.ai/build/features/project-rules"
+    }
+  ],
+  "harness": {
+    "cli": "Grok Build",
+    "commands": [
+      {
+        "id": "direct",
+        "when": "trivial",
+        "command": "просто напиши задачу",
+        "title": "Мелкая ясная правка — без режима плана",
+        "why": "Если правка описывается одним предложением, режим плана лишний: он добавляет круг согласования там, где решать нечего.",
+        "source": "https://docs.x.ai/build/modes-and-commands"
+      },
+      {
+        "id": "plan",
+        "when": "planning",
+        "command": "/plan <описание>  (или Shift+Tab)",
+        "title": "Неясен подход / многофайловое — режим плана",
+        "why": "Дословно из доки: в режиме плана до вашего утверждения редактируется только файл плана сессии, и этот запрет на правку файлов не зависит от режима прав. Вернуться к плану — /view-plan.",
+        "source": "https://docs.x.ai/build/modes-and-commands"
+      },
+      {
+        "id": "goal",
+        "when": "goal",
+        "command": "(в Grok Build нет /goal — критерий готовности пишите в промпте)",
+        "title": "Условие «пока не сойдётся» — команды нет",
+        "why": "Отдельной команды «крути до выполнения условия» у Grok Build нет. Сформулируйте критерий готовности прямо в задаче и попросите прогнать проверку самому; ход длинной работы смотрите через /tasks.",
+        "source": "https://docs.x.ai/build/modes-and-commands"
+      },
+      {
+        "id": "loop",
+        "when": "loop",
+        "command": "/loop [интервал] <промпт>",
+        "title": "Задача повторяется по расписанию — /loop",
+        "why": "Дословно из доки: «Run a prompt on a recurring interval». Встроенная команда, внешний планировщик не нужен.",
+        "source": "https://docs.x.ai/build/modes-and-commands"
+      },
+      {
+        "id": "tasks",
+        "when": "workflow",
+        "command": "/tasks",
+        "title": "Большая работа с параллельными шагами — /tasks",
+        "why": "Дословно из доки: «List background tasks, subagents, and scheduled tasks». Состояние долгой работы и субагентов видно отсюда, а не из переписки.",
+        "source": "https://docs.x.ai/build/modes-and-commands"
+      },
+      {
+        "id": "effort",
+        "when": "anytime",
+        "command": "/effort",
+        "title": "Задача тяжёлая — поднять усилие через /effort",
+        "why": "Дословно из доки: «Set reasoning effort for the current model». Просить «думай усерднее» словами не нужно — это переключатель.",
+        "source": "https://docs.x.ai/build/modes-and-commands"
+      },
+      {
+        "id": "rewind",
+        "when": "anytime",
+        "command": "/rewind",
+        "title": "Свернули не туда — /rewind, а не переписка поверх",
+        "why": "Дословно из доки: «Rewind to a previous turn». Откатиться и переформулировать дешевле, чем спорить с агентом поверх испорченного контекста.",
+        "source": "https://docs.x.ai/build/modes-and-commands"
+      },
+      {
+        "id": "import-claude",
+        "when": "anytime",
+        "command": "/import-claude",
+        "title": "Переходите с Claude Code — /import-claude",
+        "why": "Дословно из доки: «Open the Claude settings import modal». Настройки переносятся, а не набиваются заново.",
+        "source": "https://docs.x.ai/build/modes-and-commands"
+      }
+    ]
+  }
+}

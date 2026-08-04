@@ -1,0 +1,93 @@
+{
+  "family": "gemini",
+  "vendor": "Google",
+  "display": "Gemini CLI",
+  "surface": "Gemini CLI (открытый агентный CLI). Правила — из доки самого CLI, НЕ из веб-чата Gemini и не из AI Studio.",
+  "context_file": "GEMINI.md",
+  "rules_version": "2026-08-04",
+  "vendor_publishes_model_rules": false,
+  "coverage_note": "Google НЕ публикует страницы правил промптинга под конкретную модель для этого харнесса — нет документа уровня «на этой модели не пиши X», как у Anthropic и OpenAI. Документация Gemini CLI описывает возможности (режим плана, субагенты, навыки, память), а не грамматику промпта. Поэтому здесь только задокументированное.",
+  "detect": {
+    "id_prefixes": ["gemini", "gemma", "google"],
+    "aliases": ["gemini", "gemini-cli", "google", "gemma"]
+  },
+  "generations": {
+    "gemini": {
+      "match": ["gemini"],
+      "label": "Gemini (модель не указана)",
+      "note": "Gemini CLI умеет маршрутизировать запрос между моделями сам (model routing). Своей страницы правил промптинга у поколений нет — применяются правила семейства и рекомендации по харнессу."
+    }
+  },
+  "rules": [
+    {
+      "id": "gemini-context-file",
+      "scope": "family",
+      "check": "needs_agents_md",
+      "action": "warn",
+      "title": "Постоянные правила проекта — в GEMINI.md, не в промпте",
+      "why": "Повторяющиеся установки (стиль, команды, границы) выносите в GEMINI.md — Gemini CLI подхватывает его как контекст. Промпт тогда — только про конкретную задачу.",
+      "source": "https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/gemini-md.md"
+    }
+  ],
+  "harness": {
+    "cli": "Gemini CLI",
+    "commands": [
+      {
+        "id": "direct",
+        "when": "trivial",
+        "command": "просто напиши задачу",
+        "title": "Мелкая ясная правка — без режима плана",
+        "why": "Если правка описывается одним предложением, режим плана лишний: он добавляет круг согласования там, где решать нечего.",
+        "source": "https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/plan-mode.md"
+      },
+      {
+        "id": "plan",
+        "when": "planning",
+        "command": "/plan <цель>  (или Shift+Tab)",
+        "title": "Неясен подход / многофайловое — режим плана",
+        "why": "Дословно из доки: команда «/plan [goal]» переключает в режим плана, цель необязательна. Агент сначала разбирается и предлагает подход, план можно править вместе с ним до утверждения.",
+        "source": "https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/plan-mode.md"
+      },
+      {
+        "id": "goal",
+        "when": "goal",
+        "command": "(в Gemini CLI нет /goal — критерий готовности пишите в промпте)",
+        "title": "Условие «пока не сойдётся» — команды нет",
+        "why": "Отдельной команды «крути до выполнения условия» у Gemini CLI нет. Сформулируйте критерий готовности прямо в задаче и попросите прогнать проверку самому.",
+        "source": "https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/cli-reference.md"
+      },
+      {
+        "id": "loop",
+        "when": "loop",
+        "command": "(в Gemini CLI нет /loop — внешний планировщик)",
+        "title": "Повтор по расписанию — команды нет",
+        "why": "Команды повтора-по-интервалу у Gemini CLI нет. Для регулярного запуска берите внешний планировщик или CI; безголовый режим для этого есть.",
+        "source": "https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/headless.md"
+      },
+      {
+        "id": "subagents",
+        "when": "workflow",
+        "command": "субагенты (.gemini/agents/*.md)",
+        "title": "Большая работа с параллельными шагами — субагенты",
+        "why": "Дословно из доки: главный агент вызывает инструмент и делегирует задачу субагенту. Свои субагенты кладутся в .gemini/agents/ — на уровне проекта (общие с командой) или пользователя.",
+        "source": "https://github.com/google-gemini/gemini-cli/blob/main/docs/core/subagents.md"
+      },
+      {
+        "id": "rewind",
+        "when": "anytime",
+        "command": "/rewind",
+        "title": "Свернули не туда — /rewind, а не переписка поверх",
+        "why": "Откатиться к прошлому ходу и переформулировать дешевле, чем спорить с агентом поверх испорченного контекста.",
+        "source": "https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/rewind.md"
+      },
+      {
+        "id": "memory",
+        "when": "anytime",
+        "command": "/memory reload",
+        "title": "Правили GEMINI.md по ходу — /memory reload",
+        "why": "Дословно из доки: «Reload context files (for example, GEMINI.md)». Без перезагрузки агент продолжит работать по старому контексту.",
+        "source": "https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/cli-reference.md"
+      }
+    ]
+  }
+}
