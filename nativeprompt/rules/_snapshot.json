@@ -15,5 +15,7 @@
   "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-4-8.md": "f713d54e3dfbfcf077f4b784ffbde44ed56c7fae873aff980bbc261715b6c6bf",
   "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5.md": "ddf68607d4e2247460b280b3ab51164fd3fe231db9fb0ed08c9e9b6566ed88b0",
   "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5.md": "e0bb46d295279f5cda448a475e6fca4b4030d86e690d9b88166534514c8237d1",
-  "https://platform.claude.com/llms.txt": "af826275b4e884b3619d96440d6142b9074c33570a5a94529c2ae6ffd26e5a9f"
+  "https://platform.claude.com/llms.txt": "af826275b4e884b3619d96440d6142b9074c33570a5a94529c2ae6ffd26e5a9f",
+  "https://raw.githubusercontent.com/MoonshotAI/kimi-cli/main/docs/en/reference/slash-commands.md": "4981127a26ee4d81b251bfb931855d6053977a1604935f94b4cefb582468f567",
+  "https://raw.githubusercontent.com/QwenLM/qwen-code/main/docs/users/features/commands.md": "224f72316c7b2f4e2599ee53b5ee5ce1070c18096e46faff75f6f61758e1b0e4"
 }

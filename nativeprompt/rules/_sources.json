@@ -25,6 +25,16 @@
         "https://learn.chatgpt.com/docs/build-skills.md"
       ],
       "index": "https://developers.openai.com/llms.txt"
+    },
+    "qwen": {
+      "docs": [
+        "https://raw.githubusercontent.com/QwenLM/qwen-code/main/docs/users/features/commands.md"
+      ]
+    },
+    "kimi": {
+      "docs": [
+        "https://raw.githubusercontent.com/MoonshotAI/kimi-cli/main/docs/en/reference/slash-commands.md"
+      ]
     }
   }
 }

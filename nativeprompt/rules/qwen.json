@@ -1,0 +1,105 @@
+{
+  "family": "qwen",
+  "vendor": "Alibaba (QwenLM)",
+  "display": "Qwen Code",
+  "surface": "Qwen Code (открытый агентный CLI). Правила — из доки самого CLI, НЕ из чата Qwen.",
+  "context_file": "QWEN.md",
+  "rules_version": "2026-08-04",
+  "vendor_publishes_model_rules": false,
+  "coverage_note": "Вендор НЕ публикует правил промптинга под конкретную модель — нет страницы уровня «на этой модели не пиши X», как у Anthropic или OpenAI. Поэтому здесь только то, что задокументировано: команды харнесса и контекстный файл. Выдумывать правила и подписывать их вендором нельзя — вся ценность инструмента в том, что каждая правка со ссылкой на источник.",
+  "detect": {
+    "id_prefixes": [
+      "qwen",
+      "qwen3",
+      "qwen2",
+      "qwen-"
+    ],
+    "aliases": [
+      "qwen",
+      "qwen-code",
+      "qwencode",
+      "qwenlm"
+    ]
+  },
+  "generations": {
+    "qwen": {
+      "match": [
+        "qwen"
+      ],
+      "label": "Qwen (модель не указана)",
+      "note": "Qwen Code работает с моделями Qwen и совместимыми по OpenAI-протоколу. Своей страницы правил промптинга у поколений нет — применяются правила семейства и рекомендации по харнессу."
+    }
+  },
+  "rules": [
+    {
+      "id": "qwen-context-file",
+      "scope": "family",
+      "check": "needs_agents_md",
+      "action": "warn",
+      "title": "Постоянные правила проекта — в QWEN.md, не в промпте",
+      "why": "Повторяющиеся установки (стиль, команды, границы) выносите в QWEN.md — Qwen Code подхватывает его как контекст. Промпт тогда — только про конкретную задачу. Файл создаётся командой /init.",
+      "source": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/commands.md"
+    }
+  ],
+  "harness": {
+    "cli": "Qwen Code",
+    "commands": [
+      {
+        "id": "direct",
+        "when": "trivial",
+        "command": "просто напиши задачу",
+        "title": "Мелкая ясная правка — без /plan и /goal",
+        "why": "Если правка описывается одним предложением, режимы планирования лишние: они добавляют круг согласования там, где решать нечего.",
+        "source": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/commands.md"
+      },
+      {
+        "id": "plan",
+        "when": "planning",
+        "command": "/plan",
+        "title": "Неясен подход / многофайловое — /plan",
+        "why": "Дословно из доки: «Switch to plan mode or exit plan mode». Агент сначала разбирается и предлагает подход, а не правит вслепую.",
+        "source": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/commands.md"
+      },
+      {
+        "id": "goal",
+        "when": "goal",
+        "command": "/goal",
+        "title": "Есть проверяемое условие готовности — /goal",
+        "why": "Дословно из доки: «Set a goal — keep working until condition met». Задаёте условие, агент крутит до его выполнения. Формулировки вида «пока все тесты не пройдут» — это ровно оно.",
+        "source": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/commands.md"
+      },
+      {
+        "id": "loop",
+        "when": "loop",
+        "command": "/loop",
+        "title": "Задача повторяется по расписанию — /loop",
+        "why": "Дословно из доки: «Run a prompt on a recurring schedule». В отличие от Codex, где такой команды нет вовсе, здесь она встроенная.",
+        "source": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/commands.md"
+      },
+      {
+        "id": "effort",
+        "when": "anytime",
+        "command": "/effort",
+        "title": "Задача тяжёлая — поднять усилие через /effort",
+        "why": "Дословно из доки: «Set reasoning effort for thinking-capable models», шкала low/medium/high/xhigh/max. Та же шкала, что у Claude Code — просить «думай усерднее» словами не нужно.",
+        "source": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/commands.md"
+      },
+      {
+        "id": "init",
+        "when": "anytime",
+        "command": "/init",
+        "title": "Новый проект — сначала /init",
+        "why": "Дословно из доки: «Analyze current directory and create initial context file». Создаёт QWEN.md, после чего постоянные правила проекта живут там, а не в каждом промпте.",
+        "source": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/commands.md"
+      },
+      {
+        "id": "workflows",
+        "when": "workflow",
+        "command": "/workflows",
+        "title": "Широкий обход по файлам — смотреть через /workflows",
+        "why": "Дословно из доки: «Inspect workflow runs». Для задач, разложенных на много параллельных шагов, состояние видно отсюда, а не из переписки.",
+        "source": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/commands.md"
+      }
+    ]
+  }
+}
