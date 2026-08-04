@@ -10,7 +10,13 @@
 
 **English** | [Русский](README.ru.md)
 
-Scope: the **agentic CLIs** — Claude Code and Codex. Not the API, not the web chat.
+Scope: the **agentic CLIs** — Claude Code, Codex, Qwen Code and Kimi CLI. Not the API, not the web chat.
+
+Coverage differs by vendor, and the tool says so out loud. Anthropic and OpenAI publish
+model-specific prompting rules, so for Claude Code and Codex you get both halves: what to
+change in the prompt *and* which command to launch with. Alibaba and Moonshot publish no
+such rules — for Qwen Code and Kimi CLI you get the harness half only. Inventing rules and
+attributing them to a vendor would defeat the point: every finding here cites a source.
 
 ---
 

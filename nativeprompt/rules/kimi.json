@@ -1,0 +1,128 @@
+{
+  "family": "kimi",
+  "vendor": "Moonshot AI",
+  "display": "Kimi CLI",
+  "surface": "Kimi Code CLI (открытый агентный CLI). Правила — из доки самого CLI, НЕ из чата Kimi.",
+  "context_file": "AGENTS.md",
+  "rules_version": "2026-08-04",
+  "vendor_publishes_model_rules": false,
+  "coverage_note": "Вендор НЕ публикует правил промптинга под конкретную модель — страница «Best Practices for Prompts» описывает настройку API, а не что писать и чего не писать. Поэтому здесь только задокументированное: команды харнесса и контекстный файл. Выдумывать правила и подписывать их вендором нельзя.",
+  "detect": {
+    "id_prefixes": [
+      "kimi",
+      "moonshot",
+      "kimi-k"
+    ],
+    "aliases": [
+      "kimi",
+      "kimi-cli",
+      "kimi-code",
+      "moonshot"
+    ]
+  },
+  "generations": {
+    "kimi-k3": {
+      "match": [
+        "kimi-k3",
+        "k3"
+      ],
+      "label": "Kimi K3",
+      "note": "Флагман, длинные задачи по коду и работа со знаниями, нативное понимание изображений. Уровень усилия задаётся полем reasoning_effort (low/high/max, по умолчанию max)."
+    },
+    "kimi-k2": {
+      "match": [
+        "kimi-k2",
+        "k2"
+      ],
+      "label": "Kimi K2.x",
+      "note": "Текст, изображения, видео; режимы с рассуждением и без. Своей страницы правил промптинга нет — применяются правила семейства."
+    },
+    "kimi": {
+      "match": [
+        "kimi"
+      ],
+      "label": "Kimi (модель не указана)",
+      "note": "Незнакомая модель получает правила семейства, а не отказ."
+    }
+  },
+  "rules": [
+    {
+      "id": "kimi-context-file",
+      "scope": "family",
+      "check": "needs_agents_md",
+      "action": "warn",
+      "title": "Постоянные правила проекта — в AGENTS.md, не в промпте",
+      "why": "Повторяющиеся установки (стиль, команды, границы) выносите в AGENTS.md — Kimi CLI читает его как контекст проекта. Промпт тогда — только про конкретную задачу.",
+      "source": "https://github.com/MoonshotAI/kimi-cli/blob/main/docs/en/reference/slash-commands.md"
+    }
+  ],
+  "harness": {
+    "cli": "Kimi CLI",
+    "commands": [
+      {
+        "id": "direct",
+        "when": "trivial",
+        "command": "просто напиши задачу",
+        "title": "Мелкая ясная правка — без /plan",
+        "why": "Если правка описывается одним предложением, режим планирования лишний: он добавляет круг согласования там, где решать нечего.",
+        "source": "https://github.com/MoonshotAI/kimi-cli/blob/main/docs/en/reference/slash-commands.md"
+      },
+      {
+        "id": "plan",
+        "when": "planning",
+        "command": "/plan",
+        "title": "Неясен подход / многофайловое — /plan",
+        "why": "Дословно из доки: в режиме плана агент пользуется только инструментами чтения, пишет план в файл и отдаёт его вам на утверждение. Правки кода до утверждения не происходят.",
+        "source": "https://github.com/MoonshotAI/kimi-cli/blob/main/docs/en/reference/slash-commands.md"
+      },
+      {
+        "id": "task",
+        "when": "workflow",
+        "command": "/task",
+        "title": "Длинная работа в фоне — /task",
+        "why": "Дословно из доки: «Open the interactive task browser to view, monitor, and manage background tasks». Долгие задачи не держат сессию занятой.",
+        "source": "https://github.com/MoonshotAI/kimi-cli/blob/main/docs/en/reference/slash-commands.md"
+      },
+      {
+        "id": "goal",
+        "when": "goal",
+        "command": "(в Kimi CLI нет /goal — критерий готовности пишите в промпте)",
+        "title": "Условие «пока не сойдётся» — команды нет",
+        "why": "Отдельной команды «крути до выполнения условия» у Kimi CLI нет. Сформулируйте критерий готовности прямо в задаче и попросите прогнать проверку самому; ход длинной работы смотрите через /task.",
+        "source": "https://github.com/MoonshotAI/kimi-cli/blob/main/docs/en/reference/slash-commands.md"
+      },
+      {
+        "id": "loop",
+        "when": "loop",
+        "command": "(в Kimi CLI нет /loop — внешний планировщик)",
+        "title": "Повтор по расписанию — команды нет",
+        "why": "Команды повтора-по-интервалу у Kimi CLI нет. Для регулярного запуска берите внешний планировщик или CI; headless-режим для этого есть.",
+        "source": "https://github.com/MoonshotAI/kimi-cli/blob/main/docs/en/reference/slash-commands.md"
+      },
+      {
+        "id": "afk",
+        "when": "anytime",
+        "command": "/afk",
+        "title": "Уходите от компьютера — /afk, а не /yolo",
+        "why": "Это РАЗНЫЕ вещи, и их путают. /yolo снимает только подтверждения инструментов — агент всё ещё может задать вам вопрос и будет ждать ответа. /afk дополнительно гасит вопросы, и агент решает сам. Уходя, нужен именно /afk, иначе задача встанет на первом же вопросе.",
+        "source": "https://github.com/MoonshotAI/kimi-cli/blob/main/docs/en/reference/slash-commands.md"
+      },
+      {
+        "id": "fork",
+        "when": "anytime",
+        "command": "/fork",
+        "title": "Попробовать другой путь, не теряя текущий — /fork",
+        "why": "Дословно из доки: форкает сессию со всей историей, исходная остаётся нетронутой. Не нужно начинать с нуля ради проверки альтернативы.",
+        "source": "https://github.com/MoonshotAI/kimi-cli/blob/main/docs/en/reference/slash-commands.md"
+      },
+      {
+        "id": "undo",
+        "when": "anytime",
+        "command": "/undo",
+        "title": "Свернули не туда — /undo, а не переписка поверх",
+        "why": "Дословно из доки: откатывает к выбранному ходу, форкает сессию с историей ДО него и подставляет ваше сообщение в поле ввода для переформулировки. Исходная сессия сохраняется. Лучше, чем спорить с агентом поверх испорченного контекста.",
+        "source": "https://github.com/MoonshotAI/kimi-cli/blob/main/docs/en/reference/slash-commands.md"
+      }
+    ]
+  }
+}

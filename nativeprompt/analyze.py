@@ -162,7 +162,14 @@ def _c_contradiction_hint(p, low, t):
 
 
 def _c_needs_agents_md(p, low, t):
-    if t.get("family") != "openai":
+    """Постоянные правила проекта просятся в контекстный файл, а не в промпт.
+
+    Раньше проверка была прибита к семейству `openai` и его AGENTS.md. Но такой
+    файл есть у каждого агентного CLI, просто называется по-разному: AGENTS.md
+    у Codex и Kimi, QWEN.md у Qwen Code. Имя берём из семейства (`context_file`),
+    а не зашиваем — иначе каждый новый вендор требует правки кода.
+    """
+    if not t.get("context_file"):
         return False
     return bool(
         re.search(
@@ -204,6 +211,10 @@ def analyze(prompt, target):
     if not family:
         return []
     data = catalog.load_family(family)
+    # Детекторам нужны не только family/generation, но и свойства семейства —
+    # например имя контекстного файла (AGENTS.md / QWEN.md). Пробрасываем их
+    # копией, чтобы не мутировать target вызывающей стороны.
+    target = dict(target, context_file=data.get("context_file"))
     low = prompt.lower()
     shape = None
     findings = []

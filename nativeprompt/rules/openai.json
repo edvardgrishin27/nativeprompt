@@ -3,25 +3,54 @@
   "vendor": "OpenAI",
   "display": "Codex",
   "surface": "Codex CLI (агентный CLI). Правила — из Codex prompting + GPT-5 reasoning best-practices, НЕ из ChatGPT-чата.",
+  "context_file": "AGENTS.md",
   "rules_version": "2026-07-29",
   "detect": {
-    "id_prefixes": ["gpt-", "gpt", "o1", "o3", "o4", "codex", "openai"],
-    "aliases": ["codex", "gpt", "openai", "chatgpt", "o1", "o3", "o4"]
+    "id_prefixes": [
+      "gpt-",
+      "gpt",
+      "o1",
+      "o3",
+      "o4",
+      "codex",
+      "openai"
+    ],
+    "aliases": [
+      "codex",
+      "gpt",
+      "openai",
+      "chatgpt",
+      "o1",
+      "o3",
+      "o4"
+    ]
   },
   "generations": {
     "gpt-5.6": {
-      "match": ["gpt-5.6", "gpt-5p6", "5.6", "sol", "terra", "luna"],
+      "match": [
+        "gpt-5.6",
+        "gpt-5p6",
+        "5.6",
+        "sol",
+        "terra",
+        "luna"
+      ],
       "label": "GPT-5.6 (sol/terra/luna)",
       "doc": "https://developers.openai.com/api/docs/guides/prompt-guidance",
       "note": "sol / terra / luna — ТРИ РАЗНЫЕ модели одного поколения (уровни цены и потолка качества), а не режимы. Алиас gpt-5.6 ведёт на sol. Гайд промптинга у них ОБЩИЙ — отдельные правила под варианты вендор не публикует, поэтому и мы их не заводим. Различаются только выбор модели и рантайм-параметры."
     },
     "gpt-5": {
-      "match": ["gpt-5", "gpt5"],
+      "match": [
+        "gpt-5",
+        "gpt5"
+      ],
       "label": "GPT-5.x (5.0–5.5)",
       "note": "Ещё доступны, но вендор рекомендует переходить на 5.6. Своей страницы промптинга нет — применяются правила семейства."
     },
     "codex": {
-      "match": ["codex"],
+      "match": [
+        "codex"
+      ],
       "label": "Codex (модель не указана)",
       "note": "Codex-специфичных моделей как отдельной линейки больше нет — Codex ходит на общие модели 5.6. Ключ остаётся для случая, когда известен только CLI, но не модель."
     }
@@ -104,7 +133,12 @@
       "id": "codex-autonomy",
       "scope": "family",
       "check": "always",
-      "when_shapes": ["planning", "goal", "loop", "workflow"],
+      "when_shapes": [
+        "planning",
+        "goal",
+        "loop",
+        "workflow"
+      ],
       "action": "add",
       "title": "Для большой задачи разрешить идти до конца",
       "why": "Codex смещён к автономии: для крупной задачи явно разрешите довести до конца («не останавливайся на анализе или частичной правке; реализуй с разумными допущениями»), иначе остановится рано.",
@@ -115,35 +149,40 @@
     "cli": "Codex",
     "commands": [
       {
-        "id": "direct", "when": "trivial",
+        "id": "direct",
+        "when": "trivial",
         "command": "просто напиши задачу",
         "title": "Мелкая ясная правка — без /plan и /goal",
         "why": "Если правка описывается одним предложением — режимы plan/goal лишние.",
         "source": "https://learn.chatgpt.com/docs/prompting"
       },
       {
-        "id": "plan", "when": "planning",
+        "id": "plan",
+        "when": "planning",
         "command": "/plan",
         "title": "Неясен подход / многофайловое — /plan",
         "why": "Codex сначала исследует и предлагает подход до правок кода — чтобы не решить не ту задачу.",
         "source": "https://learn.chatgpt.com/docs/prompting"
       },
       {
-        "id": "goal", "when": "goal",
+        "id": "goal",
+        "when": "goal",
         "command": "/goal (Goal mode)",
         "title": "Долгая сквозная реализация — /goal",
         "why": "После плана задаётся постоянная цель — Codex ведёт задачу до конца сам, без пошагового подталкивания.",
         "source": "https://learn.chatgpt.com/docs/prompting"
       },
       {
-        "id": "workflow", "when": "workflow",
+        "id": "workflow",
+        "when": "workflow",
         "command": "делегировать в облачный чат (parallel) / non-interactive режим",
         "title": "Очень большая реализация — делегировать и распараллелить",
         "why": "У Codex паттерн: план локально, а долгую реализацию делегировать в облачный чат, который идёт параллельно, пока вы работаете дальше. Массовый прогон — non-interactive режим.",
         "source": "https://learn.chatgpt.com/docs/prompting"
       },
       {
-        "id": "loop", "when": "loop",
+        "id": "loop",
+        "when": "loop",
         "command": "(в Codex нет /loop — используйте /goal или внешний планировщик)",
         "title": "Повтор по расписанию",
         "why": "Отдельной команды повтора-по-интервалу у Codex нет; для «до результата» берите /goal, для регулярного запуска — внешний планировщик/CI.",
