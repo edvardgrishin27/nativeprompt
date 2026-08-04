@@ -35,6 +35,21 @@
       "docs": [
         "https://raw.githubusercontent.com/MoonshotAI/kimi-cli/main/docs/en/reference/slash-commands.md"
       ]
+    },
+    "grok": {
+      "docs": [
+        "https://docs.x.ai/build/modes-and-commands.md",
+        "https://docs.x.ai/build/features/project-rules.md"
+      ],
+      "note": "llms.txt у xAI НЕ отслеживаем намеренно: он содержит примеры \"apiKey\": \"xai-...\", и push-protection GitHub справедливо блокирует такой снимок. Отличить пример от настоящего ключа сканер не может. Две .md-страницы ниже покрывают всё, что мы цитируем, и точнее для диффа."
+    },
+    "gemini": {
+      "docs": [
+        "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/cli/plan-mode.md",
+        "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/cli/cli-reference.md",
+        "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/cli/gemini-md.md",
+        "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/core/subagents.md"
+      ]
     }
   }
 }
