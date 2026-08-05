@@ -38,7 +38,24 @@ def _find_package():
     return None
 
 
+def _force_utf8_stdio():
+    """Claude Code шлёт хуку UTF-8; на Windows stdin/stdout берут ANSI-кодовую
+    страницу (cp1251 на русской локали). Без этого русский промпт приходит
+    мохибейком, регулярки-детекторы по нему не срабатывают, и хук молча
+    возвращает пустоту — то есть выглядит рабочим, ничего не делая.
+    """
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            pass
+
+
 def main():
+    _force_utf8_stdio()
     try:
         raw = sys.stdin.read()
         data = json.loads(raw) if raw.strip() else {}
