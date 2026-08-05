@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import re
+import ssl
 import urllib.error
 import urllib.request
 
@@ -84,10 +85,27 @@ def _save_snapshot(snap):
         f.write("\n")
 
 
+def _ssl_context():
+    """CA-бандл certifi, если он есть в окружении, иначе — системный.
+
+    Зависимостью не становится: только опциональный импорт. На машинах, где в
+    хранилище ОС протух корневой сертификат, системная проверка валит половину
+    доков вендоров на CERTIFICATE_VERIFY_FAILED, хотя сами доки доступны.
+    """
+    try:
+        import certifi
+    except ImportError:
+        return None
+    try:
+        return ssl.create_default_context(cafile=certifi.where())
+    except (OSError, ssl.SSLError):
+        return None
+
+
 def _fetch(url, timeout=20):
     req = urllib.request.Request(url, headers={"User-Agent": _UA})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with urllib.request.urlopen(req, timeout=timeout, context=_ssl_context()) as resp:
             data = resp.read()
         return True, data
     except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError) as e:
