@@ -81,7 +81,19 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _force_utf8_stdio() -> None:
+    """The report is UTF-8 JSON; Windows stdio would otherwise use the ANSI codepage."""
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            try:
+                reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _force_utf8_stdio()
     args = _parser().parse_args(argv)
     prompt = sys.stdin.read()
     if not prompt.strip():
@@ -105,6 +117,8 @@ def main(argv: list[str] | None = None) -> int:
             ],
             input=prompt,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             capture_output=True,
             cwd=cwd,
             env=environment,

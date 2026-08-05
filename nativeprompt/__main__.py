@@ -15,6 +15,23 @@ from .explain import build_report, render_report
 from . import update as _update
 
 
+def _force_utf8_stdio():
+    """Промпты и отчёты — UTF-8 на любой ОС.
+
+    На Windows sys.stdin/stdout по умолчанию берут ANSI-кодовую страницу (cp1251
+    у русской локали), поэтому `improve --json > file` выдавал невалидный UTF-8,
+    и любой потребитель отчёта (навык Codex, Claude Code) получал мусор.
+    """
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            pass
+
+
 def _read_prompt(arg):
     if arg:
         return arg
@@ -150,6 +167,7 @@ def build_parser():
 
 
 def main(argv=None):
+    _force_utf8_stdio()
     parser = build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "command", None):
