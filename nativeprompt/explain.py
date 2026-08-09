@@ -4,7 +4,7 @@
 import textwrap
 
 from . import catalog, detect as _detect
-from .analyze import analyze, task_shape
+from .analyze import analyze, mask_code, task_shape
 from .harness import recommend_harness
 from .rewrite import rewrite, build_metaprompt
 
@@ -29,9 +29,14 @@ def build_report(prompt, model=None):
     if not target.get("family"):
         report["error"] = "model_unknown"
         return report
-    shape = task_shape(prompt)
+    # Форму считаем по тому же тексту, что видят детекторы: с замаскированным
+    # кодом. Иначе отчёт противоречит сам себе — `analyze` уже маскировал, а
+    # `task_shape` здесь читал сырой текст, и один вызов выдавал одновременно
+    # «форма: trivial» и правила, которые на trivial не срабатывают.
+    masked = mask_code(prompt)
+    shape = task_shape(masked)
     findings = analyze(prompt, target)
-    harness_rec = recommend_harness(prompt, target, shape)
+    harness_rec = recommend_harness(masked, target, shape)
     rw = rewrite(prompt, target, findings, shape)
     report.update(
         {
@@ -112,7 +117,14 @@ def render_report(report, show_metaprompt=True):
         out.append("  → %s" % h["command"])
         out.append(_wrap(h["title"], indent="  "))
         out.append(_wrap(h["why"], indent="  ", first="  почему: "))
-        out.append("  правило: %s" % h["source"])
+        if h.get("source"):
+            out.append("  правило: %s" % h["source"])
+        for extra in h.get("anytime") or []:
+            out.append("")
+            out.append("  в любой момент: %s" % extra["command"])
+            out.append(_wrap(extra["title"], indent="  "))
+            if extra.get("source"):
+                out.append("  правило: %s" % extra["source"])
 
     if show_metaprompt:
         out.append("")

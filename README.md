@@ -5,7 +5,7 @@
 ![MIT](https://img.shields.io/badge/license-MIT-black)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![92 tests](https://img.shields.io/badge/tests-109%20passing-brightgreen)
+![120 tests](https://img.shields.io/badge/tests-120%20passing-brightgreen)
 ![offline](https://img.shields.io/badge/core-deterministic%20%C2%B7%20offline-lightgrey)
 
 **English** | [Русский](README.ru.md)
@@ -27,7 +27,7 @@ The two vendors do not agree on what a good prompt looks like. Their own docs sa
 | Same phrase in your prompt | Claude Code | Codex / GPT‑5.x |
 |---|---|---|
 | "think step by step" | acceptable scaffolding | **remove it** — reasoning models plan internally, and prescribed intermediate steps get in the way ([reasoning guide](https://developers.openai.com/api/docs/guides/reasoning)) |
-| "double-check yourself" | **remove it on Opus 5** — the model already verifies, so the reminder buys over-verification, tokens and latency ([Opus 5 prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5)) | harmless, but usually redundant |
+| "double-check yourself" | **warned about on Opus 5** — the model already verifies, so the reminder buys over-verification, tokens and latency; the tool flags the phrase but does not cut it ([Opus 5 prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5)) | harmless, but usually redundant |
 | "only report the important stuff" | **rephrase** — Opus 5 follows constraints literally and will genuinely hide the rest; ask for everything, filter in a second pass ([Opus 5 prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5)) | same direction, weaker effect |
 | repeated instructions, extra examples | tolerated | **cut them** — lean prompts win on GPT‑5.x ([prompt guidance](https://developers.openai.com/api/docs/guides/prompt-guidance)) |
 | mixed instructions + data + examples | **wrap in XML tags** so the model doesn't blend them ([XML tags](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/use-xml-tags)) | not a documented Codex practice |
@@ -112,7 +112,7 @@ Real output (trimmed to the findings and the harness advice):
   → просто напиши задачу
 ```
 
-The exact same prompt against Claude Opus 5 produces a *different* set: `think step by step` survives, `double-check yourself` is removed, and scope / verification / output-format placeholders are added. Markers: `[+]` add, `[-]` remove, `[~]` restructure, `[!]` warning.
+The exact same prompt against Claude Opus 5 produces a *different* set: `think step by step` survives, `double-check yourself` is flagged but left in place, and scope / verification / output-format placeholders are added. Markers: `[+]` add, `[-]` remove, `[~]` restructure, `[!]` warning.
 
 See both side by side in one command:
 
@@ -276,7 +276,7 @@ Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 Verify first:
 
 ```bash
-python3 -m pytest -q          # 109 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
+python3 -m pytest -q          # 120 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
 ```
 
 **Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:
@@ -286,7 +286,7 @@ python3 -m pytest -q          # 109 tests: detection, detectors, rewrite, harnes
   "id": "opus5-remove-verification",
   "scope": "opus-5",                 // "family" or a generation key
   "check": "verification_demand",    // a detector in analyze.py
-  "action": "remove",                // add | remove | restructure | warn
+  "action": "warn",                  // add | remove | restructure | warn
   "title": "short imperative",
   "why": "one or two sentences, concrete",
   "source": "https://…"              // official vendor doc, must return 200

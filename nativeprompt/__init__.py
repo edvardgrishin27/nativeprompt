@@ -1,11 +1,11 @@
 """nativeprompt — перепиши промпт на РОДНОЙ диалект той модели/CLI, которой ты
-реально пользуешься (Claude Code / Codex), строго по ОФИЦИАЛЬНЫМ правилам вендора,
+реально пользуешься (Claude Code, Codex, Gemini CLI, Grok, Kimi, Qwen), строго по ОФИЦИАЛЬНЫМ правилам вендора,
 и объясни почему.
 
 Zero-deps, stdlib-only, детерминированное ядро. См. README.md.
 """
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 from .catalog import load_family, available_families, RulesError
 from .detect import detect_model

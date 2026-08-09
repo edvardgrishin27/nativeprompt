@@ -82,7 +82,7 @@ A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 
 - The run-mode advice was the same for almost everything. Shape `normal` is the catch-all bucket for any prompt without keywords, and it routed to the `trivial` branch — so a large research task got a confident "small clear edit, no plan/goal". The bucket now has its own branch that says outright that the shape could not be determined.
 - Shape influenced nothing at all: no detector consulted it. A one-line edit was told to scope the task and add a test run, at an honest `shape: trivial`.
 - Triviality was decided by string length. "Write a JSON parser" is under 90 characters, therefore trivial. That heuristic is gone: the signal is what the task means, not how long it is.
-- The "drop self-verification" rule cut meaning. From "check yourself: name a source for every figure" it removed the requested deliverable; from "make sure the marker shows up. If it does not — admit the method is leaky" it removed the middle clause, leaving a condition that referred to nothing. The rule now fires only on a BARE request, with no deliverable verb and no consequence next to it.
+- The "drop self-verification" rule cut meaning. From "check yourself: name a source for every figure" it removed the requested deliverable; from "make sure the marker shows up. If it does not — admit the method is leaky" it removed the middle clause, leaving a condition that referred to nothing. Narrowing the detector was not enough: the third version of the knife deleted a whole sentence, «run the linter, and also make sure there are no warnings» — the verification itself. The rule is now a warning: the tool flags, the human cuts. Deletion is left only where nothing can be confused with the task. It fires only on a BARE request, with no deliverable verb and no consequence next to it.
 - Cleaning the form corrupted the text. All newlines were collapsed, so a prompt with headings and a numbered list came back as one paragraph; the word "ВАЖНО" was deleted along with the paragraph's structure; and a "split glued sentences" heuristic inserted a period before any capitalised word — "планировщик. Windows", "в. России". That heuristic is gone, cleaning is line-by-line, and shouting caps are lowercased rather than removed.
 - `--json` was not UTF-8. On Windows it was written in the system ANSI codepage, which violates the JSON spec; characters outside cp1251 — the arrow, the angle quotes used in placeholders — crashed the command outright.
 
@@ -109,9 +109,9 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 109 tests, no dependencies beyond pytest
+# 1. Test suite — 120 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 109 passed
+# 120 passed
 #   28 detection · 9 analysis · 9 rule integrity · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links

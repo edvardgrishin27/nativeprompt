@@ -47,19 +47,19 @@ def recommend_harness(prompt, target, shape=None):
     if shape is None:
         shape = task_shape(prompt)
     when = _SHAPE_TO_WHEN.get(shape, "normal")
-    commands = {c.get("when"): c for c in harness.get("commands", [])}
-    cmd = commands.get(when)
-    if cmd is None and when == "normal":
-        # Ветку `normal` описали только два семейства из шести. Раньше здесь стоял
-        # откат на `trivial`, и остальные четыре продолжали выдавать уверенное
-        # «мелкая ясная правка» на любой неопознанный промпт — тот же дефект, только
-        # у другого вендора. Дефолт для неопознанной формы теперь в КОДЕ и одинаков
-        # для всех: сказать, что форму определить не удалось, честнее, чем угадать.
-        cmd = _UNKNOWN_SHAPE
-    if cmd is None:
-        cmd = commands.get("trivial")
-    if not cmd:
-        return None
+    all_cmds = harness.get("commands", [])
+    # `anytime` — советы, не привязанные к форме задачи (/rewind, /effort и т. п.).
+    # Раньше они пропадали дважды: словарь ниже схлопывал одинаковые `when`, оставляя
+    # последний, а сама ветка `anytime` из `_SHAPE_TO_WHEN` недостижима. То есть у
+    # четырёх семейств по два-три сорсенных совета вендора не показывались никогда.
+    anytime = [c for c in all_cmds if c.get("when") == "anytime"]
+    commands = {c.get("when"): c for c in all_cmds if c.get("when") != "anytime"}
+    # Нет ветки под эту форму — говорим, что форму не определили. Раньше здесь
+    # стоял откат на `trivial`, и семейства без ветки `normal` выдавали уверенное
+    # «мелкая ясная правка» на любой неопознанный промпт. Откат убран целиком:
+    # недостающая ветка не должна превращаться в уверенный совет ни при каких
+    # условиях, включая семейство, которого сегодня ещё нет в наборе.
+    cmd = commands.get(when) or _UNKNOWN_SHAPE
     return {
         "shape": shape,
         "cli": harness.get("cli", data.get("display", family)),
@@ -67,4 +67,9 @@ def recommend_harness(prompt, target, shape=None):
         "title": cmd.get("title", ""),
         "why": cmd.get("why", ""),
         "source": cmd.get("source", ""),
+        "anytime": [
+            {"command": c.get("command", ""), "title": c.get("title", ""),
+             "source": c.get("source", "")}
+            for c in anytime
+        ],
     }
