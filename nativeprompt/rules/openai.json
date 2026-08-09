@@ -157,6 +157,13 @@
         "source": "https://learn.chatgpt.com/docs/prompting"
       },
       {
+        "when": "normal",
+        "command": "начните обычным запуском; при первой же неясности — /plan",
+        "title": "Форма задачи по тексту не определилась",
+        "why": "Задача не выглядит ни мелкой правкой, ни явным планированием. Режим выбирайте по объёму: одна понятная правка — просто напишите, несколько файлов или неясный подход — /plan.",
+        "source": "https://learn.chatgpt.com/docs/prompting"
+      },
+      {
         "id": "plan",
         "when": "planning",
         "command": "/plan",

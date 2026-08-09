@@ -17,27 +17,58 @@ _PLACEHOLDER = "‹уточните: %s›"
 
 # ── чистки (removals / softenings) ──────────────────────────────────
 def _soften_caps(text):
+    """Снять крик, не тронув смысл и структуру.
+
+    Раньше слова-усилители вырезались целиком. Но «ВАЖНО» в начале строки — это чаще
+    заголовок раздела, а не крик: удаление обезглавливало абзац, и человек получал
+    текст, из которого пропал кусок. Правило было про КАПС как форму давления, поэтому
+    правильная реакция — понизить регистр, а не удалить слово.
+    """
     text = re.sub(r"!!!+", ".", text)
     text = re.sub(r"\b(ты|вы|you)\s+(ДОЛЖЕН|ДОЛЖНЫ|ОБЯЗАН|MUST)\b", "нужно", text)
-    text = re.sub(r"\b(КРИТИЧНО|ВАЖНО|СРОЧНО|CRITICAL|IMPORTANT|ALWAYS|NEVER)\b[:：]?\s*", "", text)
+    text = re.sub(
+        r"\b(КРИТИЧНО|ВАЖНО|СРОЧНО|CRITICAL|IMPORTANT|ALWAYS|NEVER)\b",
+        lambda m: m.group(1)[0] + m.group(1)[1:].lower(),
+        text,
+    )
     text = re.sub(r"\bОБЯЗАТЕЛЬНО\b", "нужно", text)
-    text = re.sub(r"\bMUST\b\s*", "", text)
+    text = re.sub(r"\bMUST\b", "", text)
     return text
 
 
 def _tidy(text):
-    """Прибрать шов после вырезаний: висящие запятые/союзы, двойные пробелы,
-    слипшиеся предложения. Иначе выдача выглядит небрежно (это же демо на камеру)."""
-    text = re.sub(r"\s+([,.;:!?])", r"\1", text)          # пробел перед знаком
-    text = re.sub(r"[ \t]{2,}", " ", text)
-    text = re.sub(r"(?i)(^|[.!?]\s*)(и|а|но)\s+", r"\1", text)  # висящий союз в начале фразы
-    text = re.sub(r",\s*([.!?])", r"\1", text)             # ", ." → "."
-    text = re.sub(r"([а-яa-z0-9])\s+([А-ЯA-Z][а-яa-z])", r"\1. \2", text)  # слипшиеся фразы
-    text = re.sub(r"\s+", " ", text).strip()
-    if text and text[0].islower():
-        text = text[0].upper() + text[1:]
-    if text and text[-1] not in ".!?":
-        text += "."
+    """Прибрать шов после вырезаний, НЕ трогая разметку исходника.
+
+    Две ошибки, которые здесь стояли и портили живые промпты.
+
+    Первая: `re.sub(r"\\s+", " ", text)` схлопывал переводы строк вместе с пробелами.
+    Промпт с заголовками и нумерованным списком возвращался одним абзацем — нумерация
+    и переносы исчезали. Теперь чистка идёт ПОСТРОЧНО, разметка переживает правку.
+
+    Вторая: `([а-яa-z0-9])\\s+([А-ЯA-Z][а-яa-z])` → `\\1. \\2` — попытка развести
+    слипшиеся после вырезания предложения. Отличить склейку от имени собственного
+    так нельзя: «планировщик Windows» превращался в «планировщик. Windows», «в России»
+    в «в. России». Эвристика удалена целиком — тихо ломать текст хуже, чем оставить
+    шов. Незакрытую строку добиваем точкой в конце, этого достаточно.
+    """
+    lines = text.split("\n")
+    out = []
+    for line in lines:
+        s = re.sub(r"[ \t]+([,.;:!?])", r"\1", line)        # пробел перед знаком
+        s = re.sub(r"[ \t]{2,}", " ", s)
+        s = re.sub(r"(?i)(^|[.!?]\s*)(и|а|но)\s+", r"\1", s)  # висящий союз
+        s = re.sub(r",\s*([.!?])", r"\1", s)                  # ", ." → "."
+        out.append(s.rstrip())
+    text = "\n".join(out).strip("\n")
+
+    # Заглавная в начале и точка в конце — только у сплошного текста. У списка и
+    # заголовков это чужая пунктуация: точка после «1. Первый пункт» не нужна.
+    if "\n" not in text:
+        text = text.strip()
+        if text and text[0].islower():
+            text = text[0].upper() + text[1:]
+        if text and text[-1] not in ".!?:":
+            text += "."
     return text
 
 
@@ -84,17 +115,25 @@ def _report_all(text):
 
 
 def _dedupe_sentences(text):
-    parts = re.split(r"(?<=[.!?\n])\s+", text)
+    """Убрать дословные повторы, сохранив разбивку на строки.
+
+    Раньше результат склеивался через `" ".join(...)` — то есть дедуп заодно
+    уничтожал переводы строк, даже когда ни одного повтора не нашлось.
+    """
     seen = set()
-    out = []
-    for p in parts:
-        key = p.strip().lower()
-        if len(key) > 12 and key in seen:
-            continue
-        if len(key) > 12:
-            seen.add(key)
-        out.append(p)
-    return " ".join(out)
+    out_lines = []
+    for line in text.split("\n"):
+        parts = re.split(r"(?<=[.!?])\s+", line)
+        kept = []
+        for p in parts:
+            key = p.strip().lower()
+            if len(key) > 12:
+                if key in seen:
+                    continue
+                seen.add(key)
+            kept.append(p)
+        out_lines.append(" ".join(kept))
+    return "\n".join(out_lines)
 
 
 def rewrite(prompt, target, findings, shape=None):

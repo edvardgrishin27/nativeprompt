@@ -15,6 +15,25 @@ from .explain import build_report, render_report
 from . import update as _update
 
 
+def _force_utf8_io():
+    """Вывод всегда в UTF-8, независимо от системной кодировки консоли.
+
+    На Windows stdout по умолчанию идёт в системной ANSI (у русской локали cp1251).
+    Из-за этого `--json` нарушал спецификацию JSON, которая требует UTF-8, и обычный
+    разбор падал. Хуже: символы вне cp1251 — стрелка «→», угловые кавычки «‹›» из
+    плейсхолдеров — роняли команду целиком с UnicodeEncodeError, а не портили текст.
+
+    `errors="replace"` оставлен намеренно: даже на экзотической консоли команда обязана
+    доработать до конца, а не упасть на одном символе.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):      # поток подменён или не поддерживает
+                pass
+
+
 def _read_prompt(arg):
     if arg:
         return arg
@@ -150,6 +169,7 @@ def build_parser():
 
 
 def main(argv=None):
+    _force_utf8_io()
     parser = build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "command", None):

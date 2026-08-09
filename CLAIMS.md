@@ -77,6 +77,19 @@ A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 
 
 **Detectors are regex heuristics.** 15 named checks in `analyze.py`, tuned on Russian and English phrasings. Unusual wording will produce false positives and misses. This is an assistant, not an oracle, and it has no semantic understanding of your prompt.
 
+**What that cost in practice (0.1.1).** The first external report — Windows, Claude Code, opus-5 — found six defects, and all six reproduced on the first try. They are listed plainly because they show the PRICE of the paragraph above rather than contradicting it:
+
+- The run-mode advice was the same for almost everything. Shape `normal` is the catch-all bucket for any prompt without keywords, and it routed to the `trivial` branch — so a large research task got a confident "small clear edit, no plan/goal". The bucket now has its own branch that says outright that the shape could not be determined.
+- Shape influenced nothing at all: no detector consulted it. A one-line edit was told to scope the task and add a test run, at an honest `shape: trivial`.
+- Triviality was decided by string length. "Write a JSON parser" is under 90 characters, therefore trivial. That heuristic is gone: the signal is what the task means, not how long it is.
+- The "drop self-verification" rule cut meaning. From "check yourself: name a source for every figure" it removed the requested deliverable; from "make sure the marker shows up. If it does not — admit the method is leaky" it removed the middle clause, leaving a condition that referred to nothing. The rule now fires only on a BARE request, with no deliverable verb and no consequence next to it.
+- Cleaning the form corrupted the text. All newlines were collapsed, so a prompt with headings and a numbered list came back as one paragraph; the word "ВАЖНО" was deleted along with the paragraph's structure; and a "split glued sentences" heuristic inserted a period before any capitalised word — "планировщик. Windows", "в. России". That heuristic is gone, cleaning is line-by-line, and shouting caps are lowercased rather than removed.
+- `--json` was not UTF-8. On Windows it was written in the system ANSI codepage, which violates the JSON spec; characters outside cp1251 — the arrow, the angle quotes used in placeholders — crashed the command outright.
+
+The reporter's overall diagnosis is accurate and worth recording: the decision to apply a rule was made from surface features of the text — capital letters, the word "file", polite phrasing — and you cannot tell from form that a task is missing meaning. The fixes above narrowed the crudest misses; they did not change the tool's nature. It is still regexes.
+
+Separately, on why the project's own tests missed all of this. There were 63 and they all passed. Every input was a single line, with no markup and no proper nouns; they asserted that unwanted text was REMOVED and never that the rest SURVIVED. `_tidy`, the function holding both text-corruption bugs, had no direct test at all. An author cannot invent an inconvenient input for themselves — they test what they meant. The regressions are pinned in `tests/test_regressions_windows.py`.
+
 **Model aliases do not resolve to a version.** `opus`, `sonnet`, `haiku`, `fable`, `best`, `opusplan`, `default` map to the Claude family but to **no generation** — which model answers behind an alias depends on provider, plan, and `ANTHROPIC_DEFAULT_*`. In that case only family‑wide rules apply, and the report says so (`alias-unresolved`). The `[1m]` context suffix is preserved rather than silently dropped. Same for an unknown id: family rules, no generation rules.
 
 **Generation-specific rules exist for Opus 5 only.** The cheatsheet knows four Claude generations and three OpenAI ones, but the only generation‑scoped rules today are the 3 for `opus-5`. Sonnet 5, GPT‑5.6 and Codex currently get family rules.
@@ -96,7 +109,7 @@ A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 
 ## How to verify
 
 ```bash
-# 1. Test suite — 67 tests, no dependencies beyond pytest
+# 1. Test suite — 82 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
 # 67 passed
 #   28 detection · 9 analysis · 9 rule integrity · 8 rewrite · 6 harness · 3 update

@@ -22,7 +22,7 @@ FROZEN = {
     },
 }
 
-VALID_WHEN = {"trivial", "planning", "goal", "loop", "workflow"}
+VALID_WHEN = {"trivial", "normal", "planning", "goal", "loop", "workflow"}
 VALID_SHAPES = VALID_WHEN | {"normal"}
 
 

@@ -5,33 +5,117 @@
   "surface": "Claude Code (агентный CLI). Правила — из best-practices Claude Code, НЕ из API/консоли.",
   "rules_version": "2026-07-29",
   "detect": {
-    "id_prefixes": ["claude-", "claude"],
-    "aliases": ["claude", "claude code", "claude-code", "anthropic", "opus", "sonnet", "haiku"]
+    "id_prefixes": [
+      "claude-",
+      "claude"
+    ],
+    "aliases": [
+      "claude",
+      "claude code",
+      "claude-code",
+      "anthropic",
+      "opus",
+      "sonnet",
+      "haiku"
+    ]
   },
   "generations": {
-    "fable-5":   { "match": ["fable-5", "fable5", "claude-fable-5"],   "label": "Claude Fable 5",
-                   "doc": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5" },
-    "mythos-5":  { "match": ["mythos-5", "mythos5", "claude-mythos-5"], "label": "Claude Mythos 5",
-                   "rules_of": "fable-5",
-                   "note": "Те же веса и правила, что у Fable 5, но без safety-классификаторов; invite-only (Project Glasswing). Отдельной страницы промптинга нет — вендор ключует на Fable 5." },
-    "opus-5":    { "match": ["opus-5", "opus5", "claude-opus-5"],     "label": "Claude Opus 5",
-                   "doc": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5" },
-    "sonnet-5":  { "match": ["sonnet-5", "sonnet5", "claude-sonnet-5"], "label": "Claude Sonnet 5",
-                   "doc": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5" },
-    "opus-4.8":  { "match": ["opus-4-8", "opus-4.8", "opus48"],       "label": "Claude Opus 4.8",
-                   "doc": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-4-8" },
-    "opus-4.7":  { "match": ["opus-4-7", "opus-4.7"],   "label": "Claude Opus 4.7", "rules_of": "opus-4.8",
-                   "note": "Своей страницы нет; вендор пишет, что guidance для 4.7 применим и к 4.8." },
-    "opus-4.6":  { "match": ["opus-4-6", "opus-4.6"],   "label": "Claude Opus 4.6", "rules_of": "opus-4.8",
-                   "note": "Своей страницы нет — применяются правила линейки Opus 4.x и семейства." },
-    "opus-4.5":  { "match": ["opus-4-5", "opus-4.5"],   "label": "Claude Opus 4.5",
-                   "note": "Своей страницы нет. До-adaptive поколение: extended thinking через budget_tokens." },
-    "sonnet-4.6":{ "match": ["sonnet-4-6", "sonnet-4.6"], "label": "Claude Sonnet 4.6",
-                   "note": "Своей страницы нет; рекомендованный дефолт effort — medium." },
-    "sonnet-4.5":{ "match": ["sonnet-4-5", "sonnet-4.5"], "label": "Claude Sonnet 4.5",
-                   "note": "Своей страницы нет. До-adaptive поколение." },
-    "haiku-4.5": { "match": ["haiku-4-5", "haiku-4.5"],  "label": "Claude Haiku 4.5",
-                   "note": "Своей страницы промптинга НЕТ и effort не поддерживается — правила Opus/Sonnet 5 к ней не применять." }
+    "fable-5": {
+      "match": [
+        "fable-5",
+        "fable5",
+        "claude-fable-5"
+      ],
+      "label": "Claude Fable 5",
+      "doc": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5"
+    },
+    "mythos-5": {
+      "match": [
+        "mythos-5",
+        "mythos5",
+        "claude-mythos-5"
+      ],
+      "label": "Claude Mythos 5",
+      "rules_of": "fable-5",
+      "note": "Те же веса и правила, что у Fable 5, но без safety-классификаторов; invite-only (Project Glasswing). Отдельной страницы промптинга нет — вендор ключует на Fable 5."
+    },
+    "opus-5": {
+      "match": [
+        "opus-5",
+        "opus5",
+        "claude-opus-5"
+      ],
+      "label": "Claude Opus 5",
+      "doc": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5"
+    },
+    "sonnet-5": {
+      "match": [
+        "sonnet-5",
+        "sonnet5",
+        "claude-sonnet-5"
+      ],
+      "label": "Claude Sonnet 5",
+      "doc": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5"
+    },
+    "opus-4.8": {
+      "match": [
+        "opus-4-8",
+        "opus-4.8",
+        "opus48"
+      ],
+      "label": "Claude Opus 4.8",
+      "doc": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-4-8"
+    },
+    "opus-4.7": {
+      "match": [
+        "opus-4-7",
+        "opus-4.7"
+      ],
+      "label": "Claude Opus 4.7",
+      "rules_of": "opus-4.8",
+      "note": "Своей страницы нет; вендор пишет, что guidance для 4.7 применим и к 4.8."
+    },
+    "opus-4.6": {
+      "match": [
+        "opus-4-6",
+        "opus-4.6"
+      ],
+      "label": "Claude Opus 4.6",
+      "rules_of": "opus-4.8",
+      "note": "Своей страницы нет — применяются правила линейки Opus 4.x и семейства."
+    },
+    "opus-4.5": {
+      "match": [
+        "opus-4-5",
+        "opus-4.5"
+      ],
+      "label": "Claude Opus 4.5",
+      "note": "Своей страницы нет. До-adaptive поколение: extended thinking через budget_tokens."
+    },
+    "sonnet-4.6": {
+      "match": [
+        "sonnet-4-6",
+        "sonnet-4.6"
+      ],
+      "label": "Claude Sonnet 4.6",
+      "note": "Своей страницы нет; рекомендованный дефолт effort — medium."
+    },
+    "sonnet-4.5": {
+      "match": [
+        "sonnet-4-5",
+        "sonnet-4.5"
+      ],
+      "label": "Claude Sonnet 4.5",
+      "note": "Своей страницы нет. До-adaptive поколение."
+    },
+    "haiku-4.5": {
+      "match": [
+        "haiku-4-5",
+        "haiku-4.5"
+      ],
+      "label": "Claude Haiku 4.5",
+      "note": "Своей страницы промптинга НЕТ и effort не поддерживается — правила Opus/Sonnet 5 к ней не применять."
+    }
   },
   "config_notes": [
     "Постоянные правила проекта держите в CLAUDE.md, коротко (для каждой строки: «убери — Claude начнёт ошибаться?»). Разовые знания — в скилле, не в каждом промпте.",
@@ -123,7 +207,12 @@
       "id": "fable5-ground-progress",
       "scope": "fable-5",
       "check": "always",
-      "when_shapes": ["goal", "loop", "workflow", "planning"],
+      "when_shapes": [
+        "goal",
+        "loop",
+        "workflow",
+        "planning"
+      ],
       "action": "add",
       "title": "Требовать привязки отчёта о прогрессе к результатам инструментов",
       "why": "На длинных прогонах Fable 5 склонен рапортовать о сделанном без доказательств. Строка «прежде чем отчитываться, сверь каждое утверждение с результатом инструмента; что не проверено — так и скажи» почти убирает выдуманные отчёты.",
@@ -133,7 +222,11 @@
       "id": "opus48-encourage-subagents",
       "scope": "opus-4.8",
       "check": "always",
-      "when_shapes": ["goal", "workflow", "planning"],
+      "when_shapes": [
+        "goal",
+        "workflow",
+        "planning"
+      ],
       "action": "add",
       "title": "Явно разрешить субагентов (Opus 4.8 порождает их МЕНЬШЕ)",
       "why": "Это противоположность Opus 5 и Fable 5, которых наоборот приходится ограничивать: Opus 4.8 предпочитает рассуждать сам и редко делегирует. Для веерных задач добавьте прямое разрешение порождать несколько субагентов за ход.",
@@ -171,35 +264,47 @@
     "cli": "Claude Code",
     "commands": [
       {
-        "id": "direct", "when": "trivial",
+        "id": "direct",
+        "when": "trivial",
         "command": "просто напиши задачу",
         "title": "Мелкая ясная правка — без plan/goal",
         "why": "Опечатка, лог-строка, переименование: если диф описывается одним предложением — plan/goal избыточны, только оверхед.",
         "source": "https://code.claude.com/docs/en/best-practices"
       },
       {
-        "id": "plan", "when": "planning",
+        "when": "normal",
+        "command": "начните обычным запуском; при первой же неясности — plan mode",
+        "title": "Форма задачи по тексту не определилась",
+        "why": "Задача не выглядит ни мелкой правкой, ни явным планированием, ни работой до измеримого условия. Режим выбирайте по объёму: одна понятная правка — просто напишите, несколько файлов или неясный подход — plan mode.",
+        "source": "https://code.claude.com/docs/en/best-practices"
+      },
+      {
+        "id": "plan",
+        "when": "planning",
         "command": "plan mode (Shift+Tab → Plan)",
         "title": "Многофайловое / незнакомый код / неясен подход — plan mode",
         "why": "Разведка и план ОТДЕЛЬНО от кода, чтобы не решить не ту задачу. Полезно, когда меняется несколько файлов или вы не уверены в подходе.",
         "source": "https://code.claude.com/docs/en/permission-modes"
       },
       {
-        "id": "goal", "when": "goal",
+        "id": "goal",
+        "when": "goal",
         "command": "/goal <условие с измеримым концом>",
         "title": "Долгая работа до проверяемого результата — /goal",
         "why": "Ставит условие завершения; после каждого хода быстрая модель проверяет, выполнено ли, и Claude продолжает сам, пока не выполнится (миграция до зелёных тестов, дизайн-док до всех критериев). Условие: измеримый конец + как проверить. Пара с auto mode — идёт без вас.",
         "source": "https://code.claude.com/docs/en/goal"
       },
       {
-        "id": "loop", "when": "loop",
+        "id": "loop",
+        "when": "loop",
         "command": "/loop",
         "title": "Повтор по расписанию/интервалу — /loop",
         "why": "Перезапускает промпт через интервал времени (nightly-тесты, утренний триаж), а не «до условия». Стоп — вручную или когда Claude решит, что готово.",
         "source": "https://code.claude.com/docs/en/scheduled-tasks"
       },
       {
-        "id": "workflow", "when": "workflow",
+        "id": "workflow",
+        "when": "workflow",
         "command": "«создай воркфлоу» / настройка ultracode",
         "title": "Аудит или миграция по всему проекту, с перепроверкой находок — dynamic workflow",
         "why": "Оркестрирует десятки-сотни субагентов в одной сессии: аудит безопасности по всему сервису, миграция тысяч файлов, находки перепроверяют отдельные агенты, которым велено их опровергнуть. Дороже обычной сессии — начинайте со скоупа.",
