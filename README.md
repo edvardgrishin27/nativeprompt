@@ -5,7 +5,7 @@
 ![MIT](https://img.shields.io/badge/license-MIT-black)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![150 tests](https://img.shields.io/badge/tests-150%20passing-brightgreen)
+![186 tests](https://img.shields.io/badge/tests-186%20passing-brightgreen)
 ![offline](https://img.shields.io/badge/core-deterministic%20%C2%B7%20offline-lightgrey)
 
 **English** | [Русский](README.ru.md)
@@ -102,14 +102,13 @@ Real output (trimmed to the findings and the harness advice):
 ЧТО УЛУЧШИТЬ (3):
 1. [-] Убрать «думай пошагово» / не прописывать промежуточные шаги
    правило: https://developers.openai.com/api/docs/guides/reasoning
-2. [+] Outcome-first: цель + формат результата + критерий «готово»
+2. [+] Сначала результат: цель, формат ответа и что считается «готово»
    правило: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
 3. [~] Просить действие прямо
    правило: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
-[+] Для большой задачи разрешить идти до конца — https://learn.chatgpt.com/docs/prompting
 
 КАК ЗАПУСКАТЬ (Codex) — форма задачи: normal
-  → просто напиши задачу
+  → начните обычным запуском; при первой же неясности — /plan
 ```
 
 The exact same prompt against Claude Opus 5 produces a *different* set: `think step by step` survives, `double-check yourself` is flagged but left in place, and scope / verification / output-format placeholders are added. Markers: `[+]` add, `[-]` remove, `[~]` restructure, `[!]` warning.
@@ -276,7 +275,7 @@ Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 Verify first:
 
 ```bash
-python3 -m pytest -q          # 150 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
+python3 -m pytest -q          # 186 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
 ```
 
 **Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:

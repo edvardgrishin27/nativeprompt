@@ -495,6 +495,25 @@ def test_флагманский_пример_readme_совпадает_с_жив
         первая = отчёт["improved"].split("\n")[0].strip()
         assert первая in текст, "README разошёлся с живым выводом: %r" % первая[:70]
 
+    # И заголовки находок: расхождение пять кругов подряд пряталось именно в них
+    # («Outcome-first» в доке против «Сначала результат» в выводе), а проверка
+    # «первая строка совпала» его не видела. У каждого README свой промпт —
+    # сверяем каждый со своим, иначе тест ловит несуществующее расхождение.
+    англ = ("Could you please FIX the login bug, think step by step and "
+            "double-check yourself. Only report the most important things.")
+    пары = (
+        ("README.ru.md", build_report(p, "claude-opus-5")),
+        ("README.md", build_report(англ, "gpt-5.6")),
+    )
+    for файл, отчёт in пары:
+        текст = io.open(os.path.join(корень, файл), encoding="utf-8").read()
+        for f in отчёт["findings"]:
+            if f["always"]:
+                continue
+            assert f["title"][:34] in текст, (
+                "%s: заголовок находки %r в доке отсутствует" % (файл, f["title"][:50])
+            )
+
 
 # ── находки четвёртого круга: ножи, безопасные по построению ────────
 def test_softcaps_только_понижает_регистр():
@@ -595,5 +614,63 @@ def test_предмет_обзора_не_путается_с_предметом
 def test_сильный_признак_пустяка_уступает_второму_делу():
     """«переименуй колонку … и напиши миграцию» — уже не опечатка."""
     assert task_shape("Переименуй колонку user_id в account_id в БД и напиши миграцию") == "normal"
+    # Дословно из отчёта: прошлый пин был написан на удлинённой строке, которая
+    # переползала порог длины, — то есть подогнан под фикс, а не под жалобу.
+    assert task_shape("добавь логирование с ротацией и маскированием PII") == "normal"
     assert task_shape("Добавь логирование всех запросов с ротацией и маскированием PII") == "normal"
     assert task_shape("Переименуй переменную old в new") == "trivial"
+
+
+def test_чистка_шва_действительно_вызывается():
+    """Мутация «снять вызов `_tidy` из пайплайна» проходила все тесты зелёной."""
+    from nativeprompt.explain import build_report
+
+    out = build_report("Реализуй парсер в @a.py , думай пошагово , прогони тесты",
+                       "gpt-5.6")["improved"]
+    assert " ," not in out, out
+
+
+def test_чистка_не_съедает_пробел_перед_инлайн_кодом():
+    """`outside_code` кормит чистку обрезками, кончающимися посреди строки.
+
+    Прежний `rstrip()` съедал пробел на таком краю, и слово слипалось с кодом.
+    Фикс защиты кода сам породил новую порчу того же класса.
+    """
+    from nativeprompt.explain import build_report
+
+    out = build_report("СРОЧНО почини `run_all()` и прогони тесты в @b.py", "claude-opus-5")
+    assert "почини `run_all()`" in out["improved"], out["improved"]
+
+
+def test_чистка_не_переформатирует_данные_пользователя():
+    """Схлопывание двойных пробелов — не шов, а вкусовщина, и оно портило данные."""
+    from nativeprompt.rewrite import _tidy
+
+    assert '"строку 1  2"' in _tidy('ОБЯЗАТЕЛЬНО заменить "строку 1  2"')
+
+
+def test_регистр_не_лезет_в_ссылки_и_имена_файлов():
+    """«Регистр не может сломать смысл» — верно до первого регистрозависимого токена."""
+    from nativeprompt.rewrite import _soften_caps
+
+    assert _soften_caps("см. https://EXAMPLE.com/MUST-READ") == "см. https://EXAMPLE.com/MUST-READ"
+    assert _soften_caps("открой MUST-README.md") == "открой MUST-README.md"
+    # А обычное слово по-прежнему понижается.
+    assert _soften_caps("Tests MUST pass") == "Tests must pass"
+
+
+def test_разрешение_не_превращается_в_запрет():
+    """«Можешь не трогать прод» → «Не трогать прод» меняло смысл на обратный."""
+    from nativeprompt.rewrite import _strip_vague
+
+    src = "Можешь не трогать прод, а почини @a.py"
+    assert _strip_vague(src) == src
+    # Вежливая обёртка без отрицания снимается как прежде.
+    assert _strip_vague("Можешь починить @a.py").startswith("Починить")
+
+
+def test_восклицание_не_превращается_в_точку():
+    """«Почини!!! баг» → «Почини. баг» меняло тип предложения посреди фразы."""
+    from nativeprompt.rewrite import _soften_caps
+
+    assert _soften_caps("Почини!!! баг") == "Почини! баг"

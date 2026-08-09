@@ -126,3 +126,39 @@ def test_каждое_удаляющее_правило_имеет_ветку_в
             if rule.get("action") == "remove" and '"%s"' % rule["id"] not in src:
                 без_ножа.append("%s/%s" % (family, rule["id"]))
     assert not без_ножа, "обещают удаление, но ветки в rewrite нет: %s" % без_ножа
+
+
+#: Промпты, на которых проверяется, что детектор не обещает больше, чем режет нож.
+КОРПУС_ДЛЯ_НОЖЕЙ = [
+    "Explain the release process step by step for @docs/release.md",
+    "Use chain of thought when fixing @a.py",
+    "Реализуй парсер в @a.py, думай пошагово",
+    "Опиши пошагово процесс деплоя в @docs/deploy.md",
+    "Почини @a.py, покажи ход мыслей и прогони тесты",
+    "Распиши рассуждения о рисках миграции и почини @db.py",
+    "Report only the most important findings for @a.py",
+    "Покажи только самое важное по @a.py",
+    "Не мог бы ты починить @a.py",
+    "ОБЯЗАТЕЛЬНО почини @a.py",
+]
+
+
+@pytest.mark.parametrize("prompt", КОРПУС_ДЛЯ_НОЖЕЙ)
+@pytest.mark.parametrize("model", ["claude-opus-5", "claude-fable-5", "gpt-5.6"])
+def test_детектор_не_обещает_больше_чем_режет_нож(prompt, model):
+    """Класс «отчёт обещает правку, которой нет» — проверкой, а не комментарием.
+
+    Дважды получалось так: детектор ловил шире, чем умеет нож, и отчёт печатал
+    «[-] Убрать», пока текст оставался прежним. Grep по исходнику этого не видит —
+    ветка есть, а срабатывания на конкретной фразе нет. Поэтому проверяем на
+    корпусе: если правило с `action: remove` сработало, текст обязан измениться.
+    """
+    from nativeprompt.explain import build_report
+
+    r = build_report(prompt, model)
+    удаляющие = [f for f in r["findings"] if f.get("action") == "remove" and not f["always"]]
+    if удаляющие and r["original"].strip() == r["improved"].split("\n")[0].strip():
+        pytest.fail(
+            "правила %s обещали удаление, текст не изменился: %r"
+            % ([f["id"] for f in удаляющие], prompt)
+        )
