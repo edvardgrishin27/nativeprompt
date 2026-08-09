@@ -8,6 +8,9 @@
 
 from __future__ import annotations
 
+import io
+import os
+
 import json
 import os
 import subprocess
@@ -18,6 +21,18 @@ from nativeprompt.harness import recommend_harness
 from nativeprompt.rewrite import _dedupe_sentences, _soften_caps, _tidy
 
 CLAUDE = {"family": "claude", "generation": "opus-5"}
+
+
+def ids_for(prompt, model):
+    """Идентификаторы сработавших правил для произвольной модели."""
+    from nativeprompt.explain import build_report
+
+    return {f["id"] for f in build_report(prompt, model)["findings"] if not f["always"]}
+
+
+def _код(prompt):
+    """Сработали ли правила, требующие контекста/проверки, — признак кодовой задачи."""
+    return bool({"claude-scope", "claude-verification"} & ids(prompt))
 
 
 def ids(prompt):
@@ -470,3 +485,115 @@ def test_флагманский_пример_readme_совпадает_с_жив
     # У Codex ровно наоборот: цепочку рассуждений вырезаем, фразу не трогаем.
     assert "думай пошагово" not in codex["improved"]
     assert "перепроверь себя" in codex["improved"]
+
+    # И дословная сверка: первая строка переписанного промпта обязана
+    # присутствовать в README. Доки расходились с кодом четыре круга подряд —
+    # проверка «фраза где-то есть» этого не ловила, нужна именно дословная.
+    корень = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for файл, отчёт in (("README.ru.md", claude), ("README.ru.md", codex)):
+        текст = io.open(os.path.join(корень, файл), encoding="utf-8").read()
+        первая = отчёт["improved"].split("\n")[0].strip()
+        assert первая in текст, "README разошёлся с живым выводом: %r" % первая[:70]
+
+
+# ── находки четвёртого круга: ножи, безопасные по построению ────────
+def test_softcaps_только_понижает_регистр():
+    """Единственная операция, которая не может сломать смысл, — регистр.
+
+    Всё остальное здесь уже пробовали и всё ломалось: удаление слова
+    обезглавливало абзац, удаление MUST превращало требование в утверждение
+    факта («Tests MUST pass» → «Tests pass»), подстановка вставляла русское
+    «нужно» в английский текст и давала аграмматичное «нужно почини».
+    """
+    from nativeprompt.rewrite import _soften_caps
+
+    assert _soften_caps("Tests MUST pass") == "Tests must pass"
+    assert _soften_caps("you MUST run the linter") == "you must run the linter"
+    assert _soften_caps("ОБЯЗАТЕЛЬНО почини") == "Обязательно почини"
+    assert _soften_caps("ВАЖНО: соблюдай рамки") == "Важно: соблюдай рамки"
+    assert _soften_caps("Ты ДОЛЖЕН починить") == "Ты должен починить"
+    # Ни одно слово не пропало и не заменилось на другое.
+    for src in ("Tests MUST pass", "ОБЯЗАТЕЛЬНО почини", "ВАЖНО: рамки"):
+        assert len(_soften_caps(src).split()) == len(src.split()), src
+
+
+def test_report_all_не_подставляет_предложение_вместо_прилагательного():
+    """«выведи только важные строки лога» → нож ломал грамматику и смысл."""
+    from nativeprompt.rewrite import _report_all
+
+    assert _report_all("выведи только важные строки лога") == "выведи только важные строки лога"
+    assert "всё" in _report_all("Покажи только самое важное.")
+
+
+def test_strip_cot_не_склеивает_предложения():
+    """Точка в голове шаблона съедала границу, и дополнение шло к чужому глаголу."""
+    from nativeprompt.rewrite import _strip_cot
+
+    src = "Реализуй кэш в @src/cache.py. Думай пошагово о конкурентных сценариях и прогони тесты."
+    assert _strip_cot(src) == src, "фраза с зависимым хвостом вырезана"
+    assert _strip_cot("Напиши парсер, думай пошагово") == "Напиши парсер"
+
+
+def test_чистка_не_давит_код_ни_в_каком_виде():
+    """У `_tidy` был свой список защищённого, и он разошёлся с общей картой кода."""
+    from nativeprompt.explain import build_report
+
+    r = build_report("ОБЯЗАТЕЛЬНО почини баг в @src/a.py и прогони тесты.\n"
+                     "~~~python\nx  =  1\n~~~", "claude-opus-5")
+    assert "x  =  1" in r["improved"], "код в ~~~ схлопнут"
+    r2 = build_report("ОБЯЗАТЕЛЬНО почини `x  =  1` в @src/a.py и прогони тесты",
+                      "claude-opus-5")
+    assert "`x  =  1`" in r2["improved"], "инлайн-код схлопнут"
+
+
+def test_дедуп_не_ест_повторённый_шаг_процедуры():
+    """Прогон тестов до и после — это два шага, а не повтор-нытьё."""
+    from nativeprompt.rewrite import _dedupe_sentences
+
+    src = "- Прогони тесты и линтер.\n- Поправь найденные места.\n- Прогони тесты и линтер."
+    assert _dedupe_sentences(src) == src
+    # Подряд идущий дубль по-прежнему схлопывается.
+    assert _dedupe_sentences("Сделай бэкап базы. Сделай бэкап базы.").count("бэкап") == 1
+
+
+def test_вежливость_снимается_только_в_начале():
+    """`_strip_vague` не имел ни одного пина, а он тоже меняет текст."""
+    from nativeprompt.rewrite import _strip_vague
+
+    assert _strip_vague("Не мог бы ты починить @a.py") == "Починить @a.py"
+    # В середине фразы оборот не трогаем: там он может быть частью смысла.
+    src = "Спроси у команды, можешь ли ты трогать прод"
+    assert _strip_vague(src) == src
+
+
+def test_детектор_цепочки_не_шире_ножа():
+    """Отчёт печатал «[-] Убрать» на «Опиши пошагово», хотя нож её не трогает."""
+    assert "codex-no-forced-cot" not in ids_for("Опиши пошагово процесс деплоя в @docs/deploy.md",
+                                                "gpt-5.6")
+    assert "codex-no-forced-cot" in ids_for("Реализуй парсер, думай пошагово", "gpt-5.6")
+
+
+def test_правило_fable_действительно_вырезает_то_что_обещает():
+    """`fable5-no-show-thinking` печатало «[-] Убрать», не трогая текст."""
+    from nativeprompt.explain import build_report
+
+    r = build_report("Почини баг в @a.py, покажи ход мыслей и прогони тесты", "claude-fable-5")
+    assert "fable5-no-show-thinking" in {f["id"] for f in r["findings"]}
+    assert "ход мыслей" not in r["improved"]
+    # А «думай пошагово» для Fable не триггер отказа — это просьба думать.
+    r2 = build_report("Почини баг в @a.py, думай пошагово", "claude-fable-5")
+    assert "fable5-no-show-thinking" not in {f["id"] for f in r2["findings"]}
+
+
+def test_предмет_обзора_не_путается_с_предметом_работы():
+    """«обзор рынка API-шлюзов» — исследование, «создай скрипт» — работа."""
+    assert not _код("Сделай обзор рынка API-шлюзов и сравни цены на тарифы")
+    assert not _код("Проведи анализ рынка парсеров логов и добавь выводы в конспект")
+    assert _код("Сделай обзор рынка и создай скрипт сбора цен конкурентов")
+
+
+def test_сильный_признак_пустяка_уступает_второму_делу():
+    """«переименуй колонку … и напиши миграцию» — уже не опечатка."""
+    assert task_shape("Переименуй колонку user_id в account_id в БД и напиши миграцию") == "normal"
+    assert task_shape("Добавь логирование всех запросов с ротацией и маскированием PII") == "normal"
+    assert task_shape("Переименуй переменную old в new") == "trivial"

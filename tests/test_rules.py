@@ -104,3 +104,25 @@ def test_codex_config_notes_separate_cli_and_api_layers():
     # у заметок есть источники
     srcs = data.get("config_notes_sources", [])
     assert srcs and all(u.startswith("https://") for u in srcs)
+
+
+def test_каждое_удаляющее_правило_имеет_ветку_в_переписчике():
+    """Класс «отчёт обещает правку, которой нет».
+
+    `fable5-no-show-thinking` стоял с `action: remove`, ветки под него в rewrite
+    не было, и отчёт печатал «[-] Убрать», пока текст оставался прежним. Пин на
+    одно правило класс не закрывает — проверяем ВСЕ семейства разом.
+    """
+    import io
+    import os
+
+    корень = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    src = io.open(
+        os.path.join(корень, "nativeprompt", "rewrite.py"), encoding="utf-8"
+    ).read()
+    без_ножа = []
+    for family in ВСЕ_СЕМЕЙСТВА:
+        for rule in catalog.load_family(family)["rules"]:
+            if rule.get("action") == "remove" and '"%s"' % rule["id"] not in src:
+                без_ножа.append("%s/%s" % (family, rule["id"]))
+    assert not без_ножа, "обещают удаление, но ветки в rewrite нет: %s" % без_ножа

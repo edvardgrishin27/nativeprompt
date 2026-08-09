@@ -24,12 +24,16 @@ Every rule in `nativeprompt/rules/*.json` carries a `source` URL pointing at an 
 
 | Family | Rules | Scope split | Harness recommendations |
 |---|---|---|---|
-| Claude Code (`claude.json`) | 11 | 8 family‑wide + 3 scoped to `opus-5` | 5 |
-| Codex (`openai.json`) | 8 | 8 family‑wide | 5 |
+| Claude Code (`claude.json`) | 14 | 8 family-wide + 6 pinned to a generation (`opus-5`, `fable-5`, `opus-4.8`) | 6 |
+| Codex (`openai.json`) | 8 | 8 family-wide | 6 |
+| Gemini CLI, Grok, Kimi, Qwen | 1 each | family-wide | 7–8 |
+
+The imbalance is stated plainly: the last four are stubs carrying a run-mode
+recommendation, not full sets. Claiming the same depth for them would be false.
 
 A test asserts every rule has `id`, `title`, `why`, `source`, `check`, `action`; that `source` is `https://`; and that `check` names a detector that actually exists in `analyze.py`. A second test freezes the rule id sets, so the cheatsheet cannot grow or shrink silently.
 
-The 12 distinct URLs used as rule/harness sources, plus the 14 URLs in the self‑update manifest, all returned **HTTP 200** when checked on 2026‑07‑30.
+The 25 distinct URLs used as rule, harness and generation-page sources, plus the 22 URLs in the self-update manifest, all returned **HTTP 200** when checked on 2026‑07‑30.
 
 > Verified by: `nativeprompt rules`, `nativeprompt/rules/_sources.json`, and 9 tests in `tests/test_rules.py`.
 
@@ -109,9 +113,9 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 120 tests, no dependencies beyond pytest
+# 1. Test suite — 150 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 120 passed
+# 150 passed
 #   28 detection · 9 analysis · 9 rule integrity · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
