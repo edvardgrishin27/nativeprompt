@@ -674,3 +674,120 @@ def test_восклицание_не_превращается_в_точку():
     from nativeprompt.rewrite import _soften_caps
 
     assert _soften_caps("Почини!!! баг") == "Почини! баг"
+
+
+# ── шестой круг: гарды перевёрнуты с чёрного списка на белый ────────
+def test_режем_только_при_доказуемо_безопасном_хвосте():
+    """Пять кругов гард был перечислением опасных предлогов, и каждый круг
+    находился предлог, до которого список не дотянулся: «по поводу», «насчёт»,
+    «над», «for», «through». Перечислить все способы прицепить дополнение
+    нельзя — это открытое множество. Поэтому режем только при безопасном хвосте.
+    """
+    from nativeprompt.rewrite import _strip_cot, _strip_show_thinking
+
+    целые = [
+        "Почини @db.py, распиши рассуждения по поводу рисков миграции и прогони тесты",
+        "Fix @a.py, show your reasoning for each change, run tests",
+        "Почини @api.py, покажи ход мыслей насчёт выбора БД",
+        "Реализуй @c.py, думай пошагово над инвариантами",
+        "Fix @a.py, let's think through the design, run tests",
+        "Почини @a.py, думай пошагово касательно блокировок",
+    ]
+    for src in целые:
+        assert _strip_show_thinking(_strip_cot(src)) == src, src
+
+    # А безопасный хвост по-прежнему режется.
+    assert _strip_cot("Напиши парсер, думай пошагово") == "Напиши парсер"
+    assert _strip_cot("Explain it, think step by step") == "Explain it"
+
+
+def test_разделитель_после_вырезания_остаётся_один():
+    """«почини баг, думай пошагово, перепроверь себя» → съедались обе запятые,
+    и два разных поручения слипались без пунктуации."""
+    from nativeprompt.rewrite import _strip_cot
+
+    assert _strip_cot("почини баг, думай пошагово, перепроверь себя") == \
+        "почини баг, перепроверь себя"
+    assert _strip_cot("Напиши парсер. Думай пошагово. Прогони тесты") == \
+        "Напиши парсер. Прогони тесты"
+
+
+def test_регистр_понижается_только_при_пустых_соседях():
+    """Чёрный список «/._-» пробивался знаком `=` и кавычками."""
+    from nativeprompt.rewrite import _soften_caps
+
+    целые = [
+        "https://api.example.com/v1?level=CRITICAL",
+        "MODE=NEVER",
+        'грепни по слову "MUST"',
+        "MUST-README.md",
+    ]
+    for src in целые:
+        assert _soften_caps(src) == src, src
+    assert _soften_caps("Tests MUST pass") == "Tests must pass"
+    assert _soften_caps("ВАЖНО: рамки") == "Важно: рамки"
+
+
+def test_разрешение_не_ломается_наречием():
+    """Гард на одно соседнее слово не ловил «Можешь ПОКА не деплоить»."""
+    from nativeprompt.rewrite import _strip_vague
+
+    for src in ("Можешь пока не деплоить, сначала почини @a.py",
+                "Можешь вообще не трогать тесты",
+                "Можешь и не чинить это"):
+        assert _strip_vague(src) == src, src
+    # Обычная вежливость по-прежнему снимается, включая саму формулу «не мог бы».
+    assert _strip_vague("Можешь починить @a.py").startswith("Починить")
+    assert _strip_vague("Не мог бы ты починить @a.py").startswith("Починить")
+
+
+def test_данные_в_кавычках_не_правятся():
+    """`замени "x ; y" на "x; y"` превращалось в тождество."""
+    from nativeprompt.explain import build_report
+
+    out = build_report('ОБЯЗАТЕЛЬНО замени "x ; y" на "x; y" в @a.py', "claude-opus-5")["improved"]
+    assert '"x ; y"' in out, out
+
+
+def test_дедуп_не_нормализует_строку_без_повторов():
+    """Сборка через join меняла пробелы даже когда дедуп ничего не нашёл."""
+    from nativeprompt.rewrite import _dedupe_sentences
+
+    assert _dedupe_sentences('замени "a.  b" на "c"') == 'замени "a.  b" на "c"'
+    assert _dedupe_sentences("Сделай бэкап базы. Сделай бэкап базы.") == "Сделай бэкап базы."
+
+
+def test_детектор_повторов_не_шире_ножа():
+    """«Обязательно почини @a.py. Обязательно прогони тесты.» — повтор СЛОВА,
+    который нож не убирает, а отчёт обещал «[-] Убрать повторы»."""
+    assert "codex-lean" not in ids_for(
+        "Обязательно почини баг в @a.py. Обязательно прогони тесты.", "gpt-5.6")
+    assert "codex-lean" in ids_for("Сделай бэкап базы. Сделай бэкап базы.", "gpt-5.6")
+
+
+def test_голова_выреза_снимает_присоединённый_союз():
+    """Мутация «снять голова-гард» проходила зелёной — у нового кода не было пина."""
+    from nativeprompt.rewrite import _strip_cot
+
+    assert _strip_cot("Реализуй @a.py и обязательно думай пошагово") == "Реализуй @a.py"
+    assert _strip_cot("Реализуй @a.py, а также думай пошагово") == "Реализуй @a.py"
+    # У `_SHOW_THINKING` своей головы нет — она целиком на общем гарде.
+    from nativeprompt.rewrite import _strip_show_thinking
+
+    assert _strip_show_thinking("Почини @a.py и обязательно покажи ход мыслей") == "Почини @a.py"
+
+
+def test_заглавная_после_переноса_строки():
+    """Фикс мёртвой ветки из прошлого круга не был запинен."""
+    from nativeprompt.rewrite import _soften_caps
+
+    assert _soften_caps("# ЗАДАЧА\nОБЯЗАТЕЛЬНО почини") == "# ЗАДАЧА\nОбязательно почини"
+
+
+def test_дедуп_помнит_через_короткое_предложение_дословно():
+    """Прошлый пин был написан на длинной средней фразе, которая сбрасывала
+    память и в старой логике, — то есть дефект он не ловил."""
+    from nativeprompt.rewrite import _dedupe_sentences
+
+    assert _dedupe_sentences("Прогони тесты. Поправь. Прогони тесты.") == \
+        "Прогони тесты. Поправь. Прогони тесты."

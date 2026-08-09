@@ -35,7 +35,7 @@ A test asserts every rule has `id`, `title`, `why`, `source`, `check`, `action`;
 
 The 25 distinct URLs used as rule, harness and generation-page sources, plus the 22 URLs in the self-update manifest, all returned **HTTP 200** when checked on 2026‑07‑30.
 
-> Verified by: `nativeprompt rules`, `nativeprompt/rules/_sources.json`, and 9 tests in `tests/test_rules.py`.
+> Verified by: `nativeprompt rules`, `nativeprompt/rules/_sources.json`, and 52 tests in `tests/test_rules.py`.
 
 ### Each edit is explained with a link
 
@@ -51,7 +51,7 @@ The tool classifies the task into one of `trivial | planning | goal | loop | wor
 
 ### Self-update actually fetches
 
-`nativeprompt update` downloads the 14 canonical `.md` / `llms.txt` vendor pages listed in `rules/_sources.json`, hashes them with SHA‑256, and diffs against `rules/_snapshot.json`. It exits non‑zero when something changed or is new, so CI can fail on it; `.github/workflows/update-rules.yml` runs it weekly.
+`nativeprompt update` downloads the 22 canonical `.md` / `llms.txt` vendor pages listed in `rules/_sources.json`, hashes them with SHA‑256, and diffs against `rules/_snapshot.json`. It exits non‑zero when something changed or is new, so CI can fail on it; `.github/workflows/update-rules.yml` runs it weekly.
 
 A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 unreachable → action needed.** That is the mechanism working, not a passing grade: it means a maintainer owes the cheatsheet a review pass.
 
@@ -96,7 +96,7 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 
 **Model aliases do not resolve to a version.** `opus`, `sonnet`, `haiku`, `fable`, `best`, `opusplan`, `default` map to the Claude family but to **no generation** — which model answers behind an alias depends on provider, plan, and `ANTHROPIC_DEFAULT_*`. In that case only family‑wide rules apply, and the report says so (`alias-unresolved`). The `[1m]` context suffix is preserved rather than silently dropped. Same for an unknown id: family rules, no generation rules.
 
-**Generation-specific rules exist for Opus 5 only.** The cheatsheet knows four Claude generations and three OpenAI ones, but the only generation‑scoped rules today are the 3 for `opus-5`. Sonnet 5, GPT‑5.6 and Codex currently get family rules.
+**There are few generation-scoped rules, and all of them are Claude's.** The cheatsheet knows eleven Claude generations and three OpenAI ones, but only six rules are pinned to a generation — three for `opus-5`, two for `fable-5`, one for `opus-4.8`. Every other generation gets family rules: those are not invented, the vendor simply did not publish a page for them.
 
 **Coverage is six families, agentic CLIs only:** Claude Code, Codex, Gemini CLI, Grok, Kimi, Qwen. Not the API, console, or chat surfaces. Rule counts are very uneven: claude 14, openai 8, and one apiece for the other four — those are stubs carrying a run-mode recommendation, not full sets. Claiming the same depth for them would be false.
 
@@ -113,10 +113,10 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 186 tests, no dependencies beyond pytest
+# 1. Test suite — 206 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 186 passed
-#   57 regressions · 52 rule integrity · 32 detection · 19 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
+# 206 passed
+#   67 regressions · 62 rule integrity · 32 detection · 19 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
 python3 -m nativeprompt rules claude

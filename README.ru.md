@@ -5,7 +5,7 @@
 ![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-lightgrey.svg)
-![Tests](https://img.shields.io/badge/tests-186%20passed-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-206%20passed-brightgreen.svg)
 
 [English](README.md) | **Русский**
 
@@ -309,7 +309,7 @@ $nativeprompt улучши этот промпт для Codex: ‹промпт�
 [новое]            openai  https://learn.chatgpt.com/docs/prompting.md
 [без изменений]    claude  https://code.claude.com/docs/en/best-practices.md
 ...
-Итог: изменилось 1, новых 4, без изменений 9, недоступно 0 (из 14).
+Итог: изменилось 1, новых 4, без изменений 17, недоступно 0 (из 22).
 → Офиц. доки изменились. Сверьте правила rules/*.json с источником и обновите их
   (при работе в CI — откроется PR). Затем: nativeprompt update --write.
 ```
@@ -329,7 +329,7 @@ $nativeprompt улучши этот промпт для Codex: ‹промпт�
 - **Покрытие v1 — Claude Code и Codex.** Архитектура семейств готова к другим вендорам, но правил для них пока нет.
 - **Это не бенчмарк.** Инструмент применяет правила вендора, а не измеряет, что промпт стал «на X% лучше». Никаких процентов улучшения он не обещает.
 
-Проверяемость: `python -m pytest -q` — 186 тестов (детект, детекторы, перепись, харнесс, целостность правил, frozen-снапшот набора правил). `nativeprompt rules` показывает все правила с источниками — сверьте выборочно сами.
+Проверяемость: `python -m pytest -q` — 206 тестов (детект, детекторы, перепись, харнесс, целостность правил, frozen-снапшот набора правил). `nativeprompt rules` показывает все правила с источниками — сверьте выборочно сами.
 
 ## Как внести вклад
 
