@@ -555,11 +555,19 @@ def tail_inside_code(text):
     Считаем по той же маске, что видят детекторы: `mask_code` сохраняет длину,
     поэтому достаточно сравнить последний непробельный символ.
     """
-    masked = mask_code(text)
-    i = len(text) - 1
-    while i >= 0 and text[i].isspace():
-        i -= 1
-    return i >= 0 and masked[i] != text[i]
+    хвост = text.rstrip()
+    последний = None
+    for m in CODE_SPAN.finditer(хвост):
+        последний = m
+    if последний is None or последний.end() != len(хвост):
+        return False
+    кусок = последний.group(0)
+    # Инлайн-код и кавычки закрыты по построению матча: `[^`\n]+` не бывает
+    # незакрытым. Отвечает только фенс — и только тогда, когда пары нет.
+    маркер = кусок[:3]
+    if маркер not in ("```", "~~~"):
+        return False
+    return кусок.count(маркер) < 2
 
 
 def analyze(prompt, target):

@@ -155,6 +155,9 @@ def rewrite(prompt, target, findings, shape=None):
 
     core = prompt.strip()
     applied = []
+    # Промпт, оборванный на незакрытом ```-блоке, дописывать НЕЛЬЗЯ ничем:
+    # ни секцией, ни заметкой, ни точкой (см. tail_inside_code).
+    в_коде = tail_inside_code(prompt)
 
     if "claude-explicit-action" in ids or "codex-explicit-action" in ids:
         # НЕ через outside_code: та режет текст на сегменты по код-спанам, и
@@ -182,7 +185,11 @@ def rewrite(prompt, target, findings, shape=None):
     # форме слов нельзя — открытая задача разбора языка, а не недоделанная
     # регулярка. Инструмент теперь только ПОКАЗЫВАЕТ находку, режет человек.
 
-    if applied:  # прибираем шов только если что-то реально вырезали/смягчили
+    if applied and not в_коде:  # шов прибираем, только если правили И есть куда
+        # `в_коде` гейтит и точку: на промпте «допиши ```python» она
+        # приклеивалась к info-string незакрытого фенса, и язык блока
+        # становился «python.». Точка — тоже добавка, и правило для неё
+        # то же самое: в чужой код не пишем.
         core = _tidy(core)
     else:
         # Ничего не вырезали — значит и прибирать нечего. Раньше здесь всё равно
@@ -194,9 +201,6 @@ def rewrite(prompt, target, findings, shape=None):
         core = core.strip()
 
     # ── добавления (плейсхолдеры, не выдумываем содержание) ──────────
-    # Промпт, оборванный на незакрытом ```-блоке, дописывать НЕЛЬЗЯ ни чем:
-    # секция окажется внутри чужого кода (см. tail_inside_code).
-    в_коде = tail_inside_code(prompt)
     additions = []  # (tag, label, content)
     def add(rule_id, tag, label, content):
         if rule_id in ids and not в_коде:
