@@ -88,7 +88,7 @@ A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 
 
 The reporter's overall diagnosis is accurate and worth recording: the decision to apply a rule was made from surface features of the text — capital letters, the word "file", polite phrasing — and you cannot tell from form that a task is missing meaning. The fixes above narrowed the crudest misses; they did not change the tool's nature. It is still regexes.
 
-Separately, on why the project's own tests missed all of this. There were 63 and they all passed. Every input was a single line, with no markup and no proper nouns; they asserted that unwanted text was REMOVED and never that the rest SURVIVED. `_tidy`, the function holding both text-corruption bugs, had no direct test at all. An author cannot invent an inconvenient input for themselves — they test what they meant. The regressions are pinned in `tests/test_regressions_windows.py`.
+Separately, on why the project's own tests missed all of this. There were 67 and they all passed. Every input was a single line, with no markup and no proper nouns; they asserted that unwanted text was REMOVED and never that the rest SURVIVED. `_tidy`, the function holding both text-corruption bugs, had no direct test at all. An author cannot invent an inconvenient input for themselves — they test what they meant. The regressions are pinned in `tests/test_regressions_windows.py`.
 
 **Model aliases do not resolve to a version.** `opus`, `sonnet`, `haiku`, `fable`, `best`, `opusplan`, `default` map to the Claude family but to **no generation** — which model answers behind an alias depends on provider, plan, and `ANTHROPIC_DEFAULT_*`. In that case only family‑wide rules apply, and the report says so (`alias-unresolved`). The `[1m]` context suffix is preserved rather than silently dropped. Same for an unknown id: family rules, no generation rules.
 
@@ -109,9 +109,9 @@ Separately, on why the project's own tests missed all of this. There were 63 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 82 tests, no dependencies beyond pytest
+# 1. Test suite — 92 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 67 passed
+# 92 passed
 #   28 detection · 9 analysis · 9 rule integrity · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links

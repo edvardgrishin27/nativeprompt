@@ -16,6 +16,17 @@ _PLACEHOLDER = "‹уточните: %s›"
 
 
 # ── чистки (removals / softenings) ──────────────────────────────────
+def outside_code(fn, text):
+    """Применить чистку ко всему, КРОМЕ блоков кода в тройных кавычках.
+
+    Промпт часто несёт кусок кода как данные. Чистка формы не должна туда лезть:
+    `print("ВАЖНО: не трогать")` превращался в `print("Важно: не трогать")` —
+    инструмент молча правил строковый литерал чужой программы.
+    """
+    parts = re.split(r"(```.*?```|~~~.*?~~~)", text, flags=re.S)
+    return "".join(p if i % 2 else fn(p) for i, p in enumerate(parts))
+
+
 def _soften_caps(text):
     """Снять крик, не тронув смысл и структуру.
 
@@ -50,15 +61,38 @@ def _tidy(text):
     так нельзя: «планировщик Windows» превращался в «планировщик. Windows», «в России»
     в «в. России». Эвристика удалена целиком — тихо ломать текст хуже, чем оставить
     шов. Незакрытую строку добиваем точкой в конце, этого достаточно.
+
+    Третья вылезла уже у построчной версии: правило «висящий союз» писалось для ШВА
+    после вырезания, а построчно стало срабатывать на начале каждой строки — и
+    осмысленное «Но не трогай конфиг прода» теряло противопоставление. Убрано вслед
+    за склейками, по той же причине: правка вдали от места вырезания недопустима.
+
+    Чего чистка не касается вовсе: блоков кода в тройных кавычках, строк с
+    отступом и строк markdown-таблиц. Там пробелы значимы, а «лишний» двойной
+    пробел — это выравнивание, а не небрежность.
     """
     lines = text.split("\n")
     out = []
+    in_fence = False
     for line in lines:
-        s = re.sub(r"[ \t]+([,.;:!?])", r"\1", line)        # пробел перед знаком
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            out.append(line)
+            continue
+        protected = (
+            in_fence
+            or line.startswith(("    ", "\t"))          # блок кода отступом
+            or line.lstrip().startswith("|")            # строка таблицы
+        )
+        if protected:
+            out.append(line)
+            continue
+        indent = re.match(r"[ \t]*", line).group(0)
+        s = line[len(indent):]
+        s = re.sub(r"[ \t]+([,.;:!?])", r"\1", s)          # пробел перед знаком
         s = re.sub(r"[ \t]{2,}", " ", s)
-        s = re.sub(r"(?i)(^|[.!?]\s*)(и|а|но)\s+", r"\1", s)  # висящий союз
-        s = re.sub(r",\s*([.!?])", r"\1", s)                  # ", ." → "."
-        out.append(s.rstrip())
+        s = re.sub(r",\s*([.!?])", r"\1", s)               # ", ." → "."
+        out.append((indent + s).rstrip())
     text = "\n".join(out).strip("\n")
 
     # Заглавная в начале и точка в конце — только у сплошного текста. У списка и
@@ -83,13 +117,24 @@ def _strip_cot(text):
 
 
 def _strip_verification_demand(text):
-    return re.sub(
-        r"(?i)[,.;]?\s*(и\s+)?(обязательно\s+)?(перепроверь( себя| ещё раз)?|"
-        r"убедись,?\s+что[^.,\n]*|дважды проверь[^.,\n]*|double.?check[^.,\n]*|"
-        r"re-?verify[^.,\n]*|проверь себя|make sure you[^.,\n]*)[.,]?",
-        "",
-        text,
-    )
+    """Вырезать только ГОЛЫЕ просьбы перепроверить себя.
+
+    Спаны считает `analyze.bare_verification_spans` — тот же код, что решает,
+    срабатывать ли правилу. Раньше здесь стояла своя глобальная регулярка, и она
+    не знала про исключения детектора: на промпте, где рядом защищённая и голая
+    фразы, вырезались обе.
+    """
+    from .analyze import bare_verification_spans
+
+    out, prev = [], 0
+    for start, end in bare_verification_spans(text):
+        out.append(text[prev:start])
+        prev = end
+        # Съесть знак препинания, оставшийся висеть сразу после вырезанного.
+        while prev < len(text) and text[prev] in ".,;":
+            prev += 1
+    out.append(text[prev:])
+    return "".join(out)
 
 
 def _strip_vague(text):
@@ -132,7 +177,12 @@ def _dedupe_sentences(text):
                     continue
                 seen.add(key)
             kept.append(p)
-        out_lines.append(" ".join(kept))
+        line_out = " ".join(kept)
+        # От строки списка мог остаться один маркер: «2. Сделай бэкап» → «2.».
+        # Такой огрызок выглядит как потерянный пункт — убираем строку целиком.
+        if kept and not re.sub(r"^\s*(\d+[.)]|[-*•])\s*", "", line_out).strip():
+            continue
+        out_lines.append(line_out)
     return "\n".join(out_lines)
 
 
@@ -147,28 +197,28 @@ def rewrite(prompt, target, findings, shape=None):
     applied = []
 
     if "claude-explicit-action" in ids or "codex-explicit-action" in ids:
-        new = _strip_vague(core)
+        new = outside_code(_strip_vague, core)
         if new != core:
             core, _ = new, applied.append("claude-explicit-action" if "claude-explicit-action" in ids else "codex-explicit-action")
     if "claude-dial-caps" in ids or "codex-dial-scaffold" in ids:
-        new = _soften_caps(core)
+        new = outside_code(_soften_caps, core)
         if new != core:
             core = new
             applied.append("claude-dial-caps" if "claude-dial-caps" in ids else "codex-dial-scaffold")
     if "codex-no-forced-cot" in ids:
-        new = _strip_cot(core)
+        new = outside_code(_strip_cot, core)
         if new != core:
             core, _ = new, applied.append("codex-no-forced-cot")
     if "opus5-remove-verification" in ids:
-        new = _strip_verification_demand(core)
+        new = outside_code(_strip_verification_demand, core)
         if new != core:
             core, _ = new, applied.append("opus5-remove-verification")
     if "opus5-report-all" in ids:
-        new = _report_all(core)
+        new = outside_code(_report_all, core)
         if new != core:
             core, _ = new, applied.append("opus5-report-all")
     if "codex-lean" in ids:
-        new = _dedupe_sentences(core)
+        new = outside_code(_dedupe_sentences, core)
         if new != core:
             core, _ = new, applied.append("codex-lean")
 

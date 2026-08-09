@@ -5,7 +5,7 @@
 ![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-lightgrey.svg)
-![Tests](https://img.shields.io/badge/tests-63%20passed-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-92%20passed-brightgreen.svg)
 
 [English](README.md) | **Русский**
 
@@ -331,7 +331,7 @@ $nativeprompt улучши этот промпт для Codex: ‹промпт�
 - **Покрытие v1 — Claude Code и Codex.** Архитектура семейств готова к другим вендорам, но правил для них пока нет.
 - **Это не бенчмарк.** Инструмент применяет правила вендора, а не измеряет, что промпт стал «на X% лучше». Никаких процентов улучшения он не обещает.
 
-Проверяемость: `python -m pytest -q` — 67 тестов (детект, детекторы, перепись, харнесс, целостность правил, frozen-снапшот набора правил). `nativeprompt rules` показывает все правила с источниками — сверьте выборочно сами.
+Проверяемость: `python -m pytest -q` — 92 теста (детект, детекторы, перепись, харнесс, целостность правил, frozen-снапшот набора правил). `nativeprompt rules` показывает все правила с источниками — сверьте выборочно сами.
 
 ## Как внести вклад
 
