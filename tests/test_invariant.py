@@ -785,3 +785,58 @@ def test_знак_не_притронулся_не_совпадает_со_зн�
     from nativeprompt.explain import _ACTION_MARK, _UNTOUCHED_MARK
     действия = {k: v for k, v in _ACTION_MARK.items() if k != "warn"}
     assert _UNTOUCHED_MARK not in действия.values(), действия
+
+
+# ── инвариант №6: повторный прогон не копит добавки ───────────────────
+#
+# Четырнадцатый круг: `improve` от уже улучшенного промпта дописывал вторую
+# «(Краткость: Ответь кратко.)», а промпт, который сам кончался «Ответь
+# кратко.», получал её же копией. Договор этого не запрещал, но человек
+# гоняет инструмент дважды постоянно — скопировал результат, добавил деталь,
+# прогнал снова, — и получал мусор, накопленный нами же.
+@pytest.mark.parametrize("модель", МОДЕЛИ)
+@pytest.mark.parametrize("промпт,_", КОРПУС, ids=_ИМЕНА_КОРПУСА)
+def test_второй_прогон_ничего_не_дописывает_повторно(промпт, _, модель):
+    первый = build_report(промпт, модель)["improved"]
+    второй = build_report(первый, модель)["improved"]
+    for заметка in ("(Краткость: Ответь кратко.)", "(Автономность:"):
+        assert второй.count(заметка) <= 1, "%s задвоилась" % заметка
+
+
+def test_готовая_просьба_о_краткости_не_дублируется():
+    """Дословный вход из отчёта круга 14."""
+    r = build_report("Проанализируй @src/ и почини утечки. Ответь кратко.",
+                     "claude-opus-5")
+    assert "Ответь кратко." in r["improved"]
+    assert r["improved"].count("Ответь кратко.") == 1, r["improved"]
+    assert "opus5-concise" not in {f["id"] for f in r["findings"]}
+    # А без такой просьбы совет по-прежнему даётся.
+    без = build_report("Проанализируй @src/ и почини утечки.", "claude-opus-5")
+    assert "opus5-concise" in {f["id"] for f in без["findings"]}
+
+
+def test_просьба_о_краткости_внутри_кода_не_считается():
+    """`low` — текст с ЗАМАСКИРОВАННЫМ кодом: «кратко» в примере не просьба."""
+    r = build_report('Почини @a.py:\n```python\nprint("ответь кратко")\n```',
+                     "claude-opus-5")
+    assert "opus5-concise" in {f["id"] for f in r["findings"]}
+
+
+def test_в_незакрытый_блок_кода_ничего_не_вписывается():
+    """Дословный вход из корпуса: промпт обрывается на ```python.
+
+    Инструмент вклеивал в тело функции три плейсхолдера и «(Краткость: Ответь
+    кратко.)» — исполнитель прочитал бы их как код. Четырнадцать кругов этого
+    не заметили: слова не терялись, а инвариант следит именно за словами.
+    """
+    src = "ОБЯЗАТЕЛЬНО почини баг:\n```python\ndef f(x):\n    if x:\n        return 1"
+    r = build_report(src, "claude-opus-5")
+    assert "Контекст:" not in r["improved"], r["improved"]
+    assert "Ответь кратко" not in r["improved"], r["improved"]
+    assert not r["improved"].startswith("<instructions>")
+    assert r["improved"].endswith("return 1"), r["improved"]
+    # Находки при этом никуда не делись — человеку показать надо.
+    assert {"claude-scope", "claude-verification"} <= {f["id"] for f in r["findings"]}
+    # Тот же промпт с ЗАКРЫТЫМ блоком добавки получает.
+    ок = build_report(src + "\n```\nи прогони тесты", "claude-opus-5")
+    assert "Контекст:" in ок["improved"]

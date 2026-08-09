@@ -908,3 +908,22 @@ def test_гард_соседей_держит_русский_капс_в_пут�
         assert _soften_caps(src) == src, src
     # А тот же КАПС отдельным словом по-прежнему понижается.
     assert _soften_caps("ВАЖНО почини") == "Важно почини"
+
+
+def test_промпт_из_одних_пробелов_не_доходит_до_отчёта(monkeypatch):
+    """Аргумент из пробелов truthy — и CLI печатал «улучшенный промпт»,
+    состоящий из одной нашей добавки. Из stdin то же самое отсеивалось.
+
+    stdin подменяем терминалом: иначе `_read_prompt` пойдёт читать поток,
+    а под pytest чтение stdin запрещено — тест упал бы не по делу.
+    """
+    import io as _io
+    from nativeprompt.__main__ import main
+
+    class _Терминал(_io.StringIO):
+        def isatty(self):
+            return True
+
+    monkeypatch.setattr("sys.stdin", _Терминал())
+    assert main(["improve", "   \t  ", "--model", "claude-opus-5"]) == 2
+    assert main(["improve", "", "--model", "claude-opus-5"]) == 2

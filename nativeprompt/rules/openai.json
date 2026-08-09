@@ -133,6 +133,7 @@
       "id": "codex-autonomy",
       "scope": "family",
       "check": "always",
+      "skip_if_present": "(до конца|не останавливайся|не останавливайтесь|доведи|доведите|автономн|run to completion|don't stop|do not stop|keep going)",
       "when_shapes": [
         "planning",
         "goal",

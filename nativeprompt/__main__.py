@@ -35,7 +35,11 @@ def _force_utf8_io():
 
 
 def _read_prompt(arg):
-    if arg:
+    # `arg.strip()`, а не `arg`: аргумент из одних пробелов — truthy, и такой
+    # вызов доходил до отчёта. Промпта в нём нет, а на выходе получался
+    # «улучшенный промпт», состоящий из одной нашей же добавки. Из stdin то же
+    # самое отсеивалось всегда — теперь обе двери одинаковые.
+    if arg and arg.strip():
         return arg
     if not sys.stdin.isatty():
         data = sys.stdin.read().strip()

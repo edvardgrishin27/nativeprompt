@@ -245,6 +245,7 @@
       "id": "opus5-concise",
       "scope": "opus-5",
       "check": "always",
+      "skip_if_present": "(кратк|лаконичн|сжато|коротко|в двух словах|concise|briefly|be brief|keep it short)",
       "action": "add",
       "title": "Просить краткость явно (Opus 5 отвечает длинно)",
       "why": "У Opus 5 ответы по умолчанию длиннее, и effort не укорачивает видимый вывод — попросите краткость прямо, если она нужна.",

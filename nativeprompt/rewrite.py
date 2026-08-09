@@ -14,7 +14,8 @@ from . import catalog
 #: переписчика. Держать здесь свою копию нельзя: две регулярки под одним именем
 #: уже расходились — `rewrite` знал про незакрытый блок кода, `analyze` нет;
 #: `_soften_caps` знал про давящие слова, `_c_pushy_caps` нет.
-from .analyze import CODE_SPAN as _CODE_SPAN, CAPS_WORD as _CAPS_WORD, has_safe_neighbors, task_shape
+from .analyze import (CODE_SPAN as _CODE_SPAN, CAPS_WORD as _CAPS_WORD,
+                      has_safe_neighbors, tail_inside_code, task_shape)
 
 _PLACEHOLDER = "‹уточните: %s›"
 
@@ -193,9 +194,12 @@ def rewrite(prompt, target, findings, shape=None):
         core = core.strip()
 
     # ── добавления (плейсхолдеры, не выдумываем содержание) ──────────
+    # Промпт, оборванный на незакрытом ```-блоке, дописывать НЕЛЬЗЯ ни чем:
+    # секция окажется внутри чужого кода (см. tail_inside_code).
+    в_коде = tail_inside_code(prompt)
     additions = []  # (tag, label, content)
     def add(rule_id, tag, label, content):
-        if rule_id in ids:
+        if rule_id in ids and not в_коде:
             additions.append((tag, label, content))
             applied.append(rule_id)
 
@@ -222,12 +226,12 @@ def rewrite(prompt, target, findings, shape=None):
     # нечего — исполнитель прочитает его как ещё одно поручение.
 
     # always-добавления
-    if "opus5-concise" in ids:
+    if "opus5-concise" in ids and not в_коде:
         additions.append(("note", "Краткость", "Ответь кратко."))
         applied.append("opus5-concise")
     # политика «для каких форм задачи» живёт в rules/*.json (when_shapes) —
     # analyze уже отфильтровал, второй раз здесь не проверяем (один источник правды)
-    if "codex-autonomy" in ids:
+    if "codex-autonomy" in ids and not в_коде:
         additions.append(("note", "Автономность",
                            "Доведи задачу до конца; при неоднозначности действуй с разумными допущениями, не останавливайся на анализе."))
         applied.append("codex-autonomy")
@@ -236,7 +240,7 @@ def rewrite(prompt, target, findings, shape=None):
     # попадала: `_assemble` применяла её молча, и потребитель `--json`, который
     # читает `applied` как список сделанного, видел в `improved` обёртку, о
     # которой ему не сказали. Отчёт обязан перечислять ровно то, что сделано.
-    use_xml = family == "claude" and "claude-xml" in ids
+    use_xml = family == "claude" and "claude-xml" in ids and not в_коде
     improved = _assemble(core, additions, family, use_xml)
     if use_xml:
         applied.append("claude-xml")
