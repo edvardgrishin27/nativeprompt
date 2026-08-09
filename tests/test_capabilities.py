@@ -62,9 +62,19 @@ def test_дописывает_плейсхолдеры_но_не_придумы�
 
 # ── 3. Правки разные у разных вендоров — это и есть суть ────────────
 def test_цепочка_рассуждений_режется_у_codex_и_остаётся_у_claude():
+    """Контраст теперь по НАХОДКАМ, а не по тексту.
+
+    `codex-no-forced-cot` больше не вырезает «думай пошагово» — отличить
+    навязанную цепочку рассуждений от заказанного формата ответа по форме
+    нельзя, поэтому правило только предупреждает (см. rules/openai.json).
+    Контраст между вендорами остаётся реальным: у Codex правило срабатывает,
+    у Claude такого правила нет вовсе — но текст в обоих случаях цел.
+    """
     codex = build_report("Реализуй парсер, думай пошагово", CODEX)
     claude = build_report("Реализуй парсер в @a.py, думай пошагово, прогони тесты", CLAUDE)
-    assert "пошагово" not in codex["improved"]
+    assert "codex-no-forced-cot" in _ids(codex)
+    assert not any("cot" in fid for fid in _ids(claude))
+    assert "пошагово" in codex["improved"]
     assert "пошагово" in claude["improved"]
 
 
@@ -93,6 +103,26 @@ def test_спорное_помечает_а_не_режет():
     r = build_report("Почини @a.py и перепроверь себя", CLAUDE)
     assert "opus5-remove-verification" in _ids(r)
     assert "перепроверь себя" in r["improved"]
+
+
+@pytest.mark.parametrize(
+    "rule_id,model,prompt,kept",
+    [
+        ("codex-no-forced-cot", CODEX, "Реализуй парсер, думай пошагово", "думай пошагово"),
+        ("codex-lean", CODEX, "Сделай бэкап базы. Сделай бэкап базы.", "Сделай бэкап базы"),
+        ("opus5-report-all", CLAUDE, "Покажи только самое важное.", "только самое важное"),
+        ("fable5-no-show-thinking", "claude-fable-5", "Покажи ход мыслей", "ход мыслей"),
+    ],
+)
+def test_переведённые_в_warn_правила_срабатывают_но_не_режут(rule_id, model, prompt, kept):
+    """Все четыре правила, переведённые из «режем» в «предупреждаем» шагом 1,
+    обязаны вести себя как `opus5-remove-verification` выше: находка есть,
+    текст цел. Одно свойство вместо четырёх копий одного и того же теста —
+    и оно же ловит будущий рецидив (кто-то случайно вернёт ветку в rewrite).
+    """
+    r = build_report(prompt, model)
+    assert rule_id in _ids(r), r["findings"]
+    assert kept in r["improved"], r["improved"]
 
 
 # ── 5. Совет по режиму запуска ──────────────────────────────────────

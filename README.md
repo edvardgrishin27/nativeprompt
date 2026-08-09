@@ -5,7 +5,7 @@
 ![MIT](https://img.shields.io/badge/license-MIT-black)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![211 tests](https://img.shields.io/badge/tests-211%20passing-brightgreen)
+![257 tests](https://img.shields.io/badge/tests-257%20passing-brightgreen)
 ![offline](https://img.shields.io/badge/core-deterministic%20%C2%B7%20offline-lightgrey)
 
 **English** | [Русский](README.ru.md)
@@ -100,7 +100,7 @@ Real output (trimmed to the findings and the harness advice):
 определено: явно (--model)
 
 ЧТО УЛУЧШИТЬ (3):
-1. [-] Убрать «думай пошагово» / не прописывать промежуточные шаги
+1. [!] «думай пошагово» лишнее — GPT-5.x рассуждает сам
    правило: https://developers.openai.com/api/docs/guides/reasoning
 2. [+] Сначала результат: цель, формат ответа и что считается «готово»
    правило: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
@@ -111,7 +111,11 @@ Real output (trimmed to the findings and the harness advice):
   → начните обычным запуском; при первой же неясности — /plan
 ```
 
-The exact same prompt against Claude Opus 5 produces a *different* set: `think step by step` survives, `double-check yourself` is flagged but left in place, and scope / verification / output-format placeholders are added. Markers: `[+]` add, `[-]` remove, `[~]` restructure, `[!]` warning.
+The exact same prompt against Claude Opus 5 produces a *different* set — that contrast is the whole point of the tool.
+
+**The prompt text itself is left intact in both cases.** The tool changes form only — it lowers SHOUTING CAPS and drops the polite wrapper — and it **adds** placeholder sections. It never deletes and never substitutes: `[!]` means "the vendor recommends dropping this; your call". Why it works this way is in [CLAIMS.md](CLAIMS.md), section "Why the tool does not rewrite your text".
+
+Markers: `[+]` add, `[-]` remove, `[~]` restructure, `[!]` flagged, not touched.
 
 See both side by side in one command:
 
@@ -275,7 +279,7 @@ Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 Verify first:
 
 ```bash
-python3 -m pytest -q          # 211 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
+python3 -m pytest -q          # 257 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
 ```
 
 **Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:

@@ -71,6 +71,56 @@ A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 
 
 ---
 
+## Why the tool does not rewrite your text
+
+This is the project's main design decision, and it was bought at a price.
+
+`improve` changes exactly two things in your prompt: it lowers SHOUTING CAPS and drops the
+polite opener ("could you", "не мог бы ты"). It also **adds** placeholder sections. It
+deletes nothing and substitutes nothing. Everything the vendor recommends removing — "think
+step by step", "double-check yourself", "only the important bits", "show your reasoning",
+repetition — is reported as a finding with a source link. You decide.
+
+**Why not automatically.** Eight rounds of independent review, eight consecutive versions:
+the regexes that cut text found a new way to destroy meaning every single round. Not
+hypothetically — this is what they did to real prompts:
+
+| input | what came out |
+|---|---|
+| `Обдумай пошагово` ("think it over step by step") | `Об.` — the task destroyed entirely |
+| `почему это настолько важное` | `почему это насвсё (…)` — a word cut in half |
+| `.env почини` | `Env почини.` — the filename destroyed |
+| `show not only the important ones, but also minor` | `show not everything (…)` — meaning inverted |
+| `replace "x ; y" with "x; y"` | `replace "x; y" with "x; y"` — the instruction became a tautology |
+| `you may not touch prod` | `do not touch prod` — permission became prohibition |
+| `fix the bug, think step by step, double-check` | two separate instructions fused into one |
+| `Make sure there are no warnings. Run the linter` | the linter sentence vanished entirely |
+
+Each defect was fixed, each got a test, and the next round found a new input of the same
+class. That is not sloppiness — it is a property of the problem. Telling a polite turn of
+phrase from part of the task cannot be done by word shape. "Think step by step" is an
+imposed chain of thought; "describe the deploy process step by step" is a requested output
+format. They differ in meaning, not in form. A regex racing language loses every time.
+
+**The smart rewrite is not this tool's job.** `improve` prints a **metaprompt** carrying
+every triggered rule, its rationale, its source, and an explicit ban on inventing anything
+on the author's behalf. Your own Claude or Codex executes it — a model that does understand
+language. The deterministic knives were duplicating work already delegated to something
+that does it properly.
+
+**What pins this.** `tests/test_invariant.py` — one property instead of a scattering of
+special-case guards: every content word of the original prompt is present in the result.
+The one exception is the polite opener, and its words are listed in the test explicitly
+rather than obtained by asking the function itself (otherwise a broken function would
+excuse its own bug). The property runs over 40 real prompts — fenced and inline code,
+quotes of every kind, tables, lists, CAPS in five positions, mixed languages, CRLF, emoji,
+degenerate inputs — plus a 500-case fuzzer with a fixed seed, each input against three
+rule families.
+
+**What we gave up.** The `improved` field now stays closer to your original: it used to
+show a fully rewritten prompt, now it shows your text with CAPS lowered and sections
+appended. If you want the finished text, take the metaprompt — that is what it is for.
+
 ## What it does NOT do / limits
 
 **It does not invent your task.** Missing details — files, "done" criteria, output format — are inserted as explicit placeholders `‹…›`, never as plausible-sounding content. A test asserts the rewriter does not fabricate file names.
@@ -113,10 +163,10 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 211 tests, no dependencies beyond pytest
+# 1. Test suite — 257 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 211 passed
-#   72 regressions · 62 rule integrity · 32 detection · 19 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
+# 257 passed
+#   62 rule integrity · 60 regressions · 54 invariant · 32 detection · 23 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
 python3 -m nativeprompt rules claude

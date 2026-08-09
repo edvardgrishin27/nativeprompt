@@ -13,10 +13,18 @@ def _improve(prompt, target):
     return rewrite(prompt, target, findings)
 
 
-def test_strip_cot_openai():
-    r = _improve("Реализуй парсер, думай пошагово.", OPENAI)
-    assert "пошагово" not in r["improved"].lower()
-    assert "codex-no-forced-cot" in r["applied"]
+def test_forced_cot_warns_but_keeps_text_for_openai():
+    """`codex-no-forced-cot` теперь только предупреждает: находка есть, текст цел.
+
+    Отличить навязанную модели цепочку рассуждений от заказанного формата
+    ответа по форме нельзя — та же причина, что увела `opus5-remove-
+    verification` в предупреждение (см. rules/openai.json).
+    """
+    findings = analyze("Реализуй парсер, думай пошагово.", OPENAI)
+    r = rewrite("Реализуй парсер, думай пошагово.", OPENAI, findings)
+    assert "codex-no-forced-cot" in {f["id"] for f in findings}
+    assert "codex-no-forced-cot" not in r["applied"]
+    assert "пошагово" in r["improved"].lower()
 
 
 def test_cot_kept_for_claude():
