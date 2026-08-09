@@ -5,7 +5,7 @@
 ![MIT](https://img.shields.io/badge/license-MIT-black)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![267 tests](https://img.shields.io/badge/tests-267%20passing-brightgreen)
+![275 tests](https://img.shields.io/badge/tests-275%20passing-brightgreen)
 ![offline](https://img.shields.io/badge/core-deterministic%20%C2%B7%20offline-lightgrey)
 
 **English** | [Русский](README.ru.md)
@@ -279,7 +279,7 @@ Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 Verify first:
 
 ```bash
-python3 -m pytest -q          # 267 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
+python3 -m pytest -q          # 275 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
 ```
 
 **Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:

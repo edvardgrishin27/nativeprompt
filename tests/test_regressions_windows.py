@@ -451,8 +451,12 @@ def test_softcaps_только_понижает_регистр():
     """
     from nativeprompt.rewrite import _soften_caps
 
-    assert _soften_caps("Tests MUST pass") == "Tests must pass"
-    assert _soften_caps("you MUST run the linter") == "you must run the linter"
+    # «Tests MUST pass» больше НЕ понижается: английские слова-усилители сплошь
+    # и рядом бывают техническим значением (уровень лога, значение конфига,
+    # HTTP-метод), а по форме крик от значения не отличить. Понижаем их только
+    # когда стоят заголовком — за ними двоеточие или восклицательный знак.
+    assert _soften_caps("Tests MUST pass") == "Tests MUST pass"
+    assert _soften_caps("IMPORTANT: fix it") == "Important: fix it"
     assert _soften_caps("ОБЯЗАТЕЛЬНО почини") == "Обязательно почини"
     assert _soften_caps("ВАЖНО: соблюдай рамки") == "Важно: соблюдай рамки"
     assert _soften_caps("Ты ДОЛЖЕН починить") == "Ты должен починить"
@@ -477,7 +481,9 @@ def test_вежливость_снимается_только_в_начале():
     """`_strip_vague` не имел ни одного пина, а он тоже меняет текст."""
     from nativeprompt.rewrite import _strip_vague
 
-    assert _strip_vague("Не мог бы ты починить @a.py") == "Починить @a.py"
+    # Заглавную не ставим: остаток часто начинается с регистрозависимого токена
+    # («npm ci», «src/utils.py», «git push»), и косметика ломала команду.
+    assert _strip_vague("Не мог бы ты починить @a.py") == "починить @a.py"
     # В середине фразы оборот не трогаем: там он может быть частью смысла.
     src = "Спроси у команды, можешь ли ты трогать прод"
     assert _strip_vague(src) == src
@@ -533,7 +539,12 @@ def test_регистр_не_лезет_в_ссылки_и_имена_файло
     assert _soften_caps("см. https://EXAMPLE.com/MUST-READ") == "см. https://EXAMPLE.com/MUST-READ"
     assert _soften_caps("открой MUST-README.md") == "открой MUST-README.md"
     # А обычное слово по-прежнему понижается.
-    assert _soften_caps("Tests MUST pass") == "Tests must pass"
+    # «Tests MUST pass» больше НЕ понижается: английские слова-усилители сплошь
+    # и рядом бывают техническим значением (уровень лога, значение конфига,
+    # HTTP-метод), а по форме крик от значения не отличить. Понижаем их только
+    # когда стоят заголовком — за ними двоеточие или восклицательный знак.
+    assert _soften_caps("Tests MUST pass") == "Tests MUST pass"
+    assert _soften_caps("IMPORTANT: fix it") == "Important: fix it"
 
 
 def test_разрешение_не_превращается_в_запрет():
@@ -543,7 +554,7 @@ def test_разрешение_не_превращается_в_запрет():
     src = "Можешь не трогать прод, а почини @a.py"
     assert _strip_vague(src) == src
     # Вежливая обёртка без отрицания снимается как прежде.
-    assert _strip_vague("Можешь починить @a.py").startswith("Починить")
+    assert _strip_vague("Можешь починить @a.py").startswith("починить")
 
 
 def test_восклицание_не_превращается_в_точку():
@@ -566,7 +577,12 @@ def test_регистр_понижается_только_при_пустых_с
     ]
     for src in целые:
         assert _soften_caps(src) == src, src
-    assert _soften_caps("Tests MUST pass") == "Tests must pass"
+    # «Tests MUST pass» больше НЕ понижается: английские слова-усилители сплошь
+    # и рядом бывают техническим значением (уровень лога, значение конфига,
+    # HTTP-метод), а по форме крик от значения не отличить. Понижаем их только
+    # когда стоят заголовком — за ними двоеточие или восклицательный знак.
+    assert _soften_caps("Tests MUST pass") == "Tests MUST pass"
+    assert _soften_caps("IMPORTANT: fix it") == "Important: fix it"
     assert _soften_caps("ВАЖНО: рамки") == "Важно: рамки"
 
 
@@ -579,8 +595,8 @@ def test_разрешение_не_ломается_наречием():
                 "Можешь и не чинить это"):
         assert _strip_vague(src) == src, src
     # Обычная вежливость по-прежнему снимается, включая саму формулу «не мог бы».
-    assert _strip_vague("Можешь починить @a.py").startswith("Починить")
-    assert _strip_vague("Не мог бы ты починить @a.py").startswith("Починить")
+    assert _strip_vague("Можешь починить @a.py").startswith("починить")
+    assert _strip_vague("Не мог бы ты починить @a.py").startswith("починить")
 
 
 def test_данные_в_кавычках_не_правятся():
@@ -775,4 +791,66 @@ def test_приставочные_формы_проверки_засчитыва
     assert "claude-verification" not in ids_for("Fix @src/pay.py and retest everything",
                                                 "claude-opus-5")
     # А ложные срабатывания из прошлого круга не вернулись.
+    assert "claude-verification" in ids("Почини баг в модуле аттестации персонала")
+
+
+# ── десятый круг ────────────────────────────────────────────────────
+def test_снятие_обёртки_не_ломает_команду_и_путь():
+    """Заглавная после снятия обёртки подменяла букву в регистрозависимом
+    токене: «Можешь npm ci» → «Npm ci», «Можешь src/utils.py» → «Src/utils.py»,
+    "Can you git push" → "Git push". Тот же класс, что «.env почини» → «Env
+    почини» из таблицы CLAIMS, вернувшийся через другую дверь.
+    """
+    from nativeprompt.explain import build_report
+
+    случаи = [
+        ("Можешь npm ci и потом почини баг в @a.py", "npm ci"),
+        ("Можешь src/utils.py открыть и починить там баг", "src/utils.py"),
+        ("Can you git push after fixing the bug in @a.py", "git push"),
+        ("Можешь ли ты python3 -m pytest прогнать после правки @a.py", "python3 -m pytest"),
+    ]
+    for src, токен in случаи:
+        out = build_report(src, "claude-opus-5")["improved"].split("\n")[0]
+        assert токен in out, "%r -> %r" % (src, out)
+
+
+def test_двойное_восклицание_в_коде_не_схлопывается():
+    """`!!` — оператор, и его удаление переворачивает смысл: `!!user.flag` в JS
+    становилось отрицанием, `user!!.name` в Kotlin ломалось, `xs !! 3` в
+    Haskell уничтожалось. Схлопываем только концевое восклицание."""
+    from nativeprompt.explain import build_report
+
+    for src, кусок in (
+        ("Почини isAdmin в @auth.js: должно быть !!user.flag, и прогони тесты", "!!user.flag"),
+        ("Почини NPE на user!!.name в @Profile.kt и прогони тесты", "user!!.name"),
+        ("Почини выборку xs !! 3 в @Main.hs СРОЧНО и прогони тесты", "xs !! 3"),
+    ):
+        out = build_report(src, "claude-opus-5")["improved"].split("\n")[0]
+        assert кусок in out, "%r -> %r" % (src, out)
+    # А крик по-прежнему снимается.
+    assert "Почини!" in build_report("Почини!!! баг в @a.py", "claude-opus-5")["improved"]
+
+
+def test_техническое_значение_капсом_не_понижается():
+    """`logger.setLevel("CRITICAL")` ломается от понижения регистра, а по форме
+    крик от значения не отличить — значит не трогаем. Английские усилители
+    понижаются только заголовком: за ними двоеточие или восклицательный знак."""
+    from nativeprompt.explain import build_report
+
+    for src, токен in (
+        ("Выставь уровень логирования CRITICAL в @settings.py и прогони тесты", "CRITICAL"),
+        ("Обнови конфиг: level = IMPORTANT в @a.py и прогони тесты", "IMPORTANT"),
+        ("Метод ALWAYS в @api.py оставь как есть, почини соседний", "ALWAYS"),
+    ):
+        out = build_report(src, "claude-opus-5")["improved"].split("\n")[0]
+        assert токен in out, "%r -> %r" % (src, out)
+    # Заголовком — понижается, и русские усилители тоже.
+    assert "Important:" in build_report("IMPORTANT: fix @a.py", "claude-opus-5")["improved"]
+    assert "Обязательно" in build_report("ОБЯЗАТЕЛЬНО почини @a.py", "claude-opus-5")["improved"]
+
+
+def test_приставки_проверки_покрыты_целиком():
+    """Хвост прошлого круга: по- и за- не попали в список приставок."""
+    for глагол in ("протестируй", "потестируй", "затестируй", "перетестируй", "оттестируй"):
+        assert "claude-verification" not in ids("Почини баг в @src/pay.py и %s изменения" % глагол), глагол
     assert "claude-verification" in ids("Почини баг в модуле аттестации персонала")
