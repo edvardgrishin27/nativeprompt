@@ -854,3 +854,40 @@ def test_приставки_проверки_покрыты_целиком():
     for глагол in ("протестируй", "потестируй", "затестируй", "перетестируй", "оттестируй"):
         assert "claude-verification" not in ids("Почини баг в @src/pay.py и %s изменения" % глагол), глагол
     assert "claude-verification" in ids("Почини баг в модуле аттестации персонала")
+
+
+# ── одиннадцатый круг ───────────────────────────────────────────────
+def test_капс_внутри_блока_кода_не_понижается():
+    """Инвариант сравнивает слова без регистра и потому слеп к этой порче:
+    литерал чужой программы менялся молча, а тесты оставались зелёными."""
+    from nativeprompt.explain import build_report
+
+    src = "ОБЯЗАТЕЛЬНО поправь:\n```python\n# ВАЖНО: не трогать\nMODE = 'CRITICAL'\n```\nи прогони тесты"
+    out = build_report(src, "claude-opus-5")["improved"]
+    assert "# ВАЖНО: не трогать" in out, out
+    assert "'CRITICAL'" in out, out
+    # А снаружи блока крик по-прежнему снимается.
+    assert out.lstrip().startswith("Обязательно"), out
+
+
+def test_детектор_крика_не_шире_ножа():
+    """`!!` — оператор, нож его не трогает; значит и находки быть не должно.
+    Обещать правку, которой не будет, — то же нарушение, что и порча текста."""
+    for src in ("Почини isAdmin в @auth.js: должно быть !!user.flag, и прогони тесты",
+                "Замени return user!! на элвис-оператор в @P.kt и прогони тесты"):
+        assert "claude-dial-caps" not in ids(src), src
+    # А настоящий крик ловится.
+    assert "claude-dial-caps" in ids("Почини!!! баг в @a.py и прогони тесты")
+
+
+def test_перенос_строки_не_делает_из_значения_заголовок():
+    """`\\s*` в проверке «за словом двоеточие» перешагивал перевод строки, и
+    `!important` из CSS на следующей строке понижал техническое значение."""
+    from nativeprompt.explain import build_report
+
+    src = ("Выставь уровень логирования CRITICAL\n"
+           "!important в стилях не используй, почини @style.css и прогони тесты")
+    out = build_report(src, "claude-opus-5")["improved"]
+    assert "CRITICAL" in out, out
+    # Заголовком на той же строке — по-прежнему понижается.
+    assert "Important:" in build_report("IMPORTANT: fix @a.py", "claude-opus-5")["improved"]
