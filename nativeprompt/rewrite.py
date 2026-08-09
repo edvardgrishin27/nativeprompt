@@ -16,15 +16,27 @@ _PLACEHOLDER = "‹уточните: %s›"
 
 
 # ── чистки (removals / softenings) ──────────────────────────────────
+#: Код как ДАННЫЕ: закрытый блок, НЕзакрытый блок до конца текста, инлайн-код.
+#: Незакрытый блок обязателен: промпт часто обрывается на куске кода, и первая
+#: редакция (разбор парами) такой блок не защищала — `print("СРОЧНО: не менять")`
+#: снова правился. Инлайн-бэктики тоже: `ВАЖНО` в них — имя константы, а не крик.
+_CODE_SPAN = re.compile(r"```.*?```|~~~.*?~~~|```.*|~~~.*|`[^`\n]+`", re.S)
+
+
 def outside_code(fn, text):
-    """Применить чистку ко всему, КРОМЕ блоков кода в тройных кавычках.
+    """Применить чистку ко всему, КРОМЕ кода.
 
     Промпт часто несёт кусок кода как данные. Чистка формы не должна туда лезть:
     `print("ВАЖНО: не трогать")` превращался в `print("Важно: не трогать")` —
     инструмент молча правил строковый литерал чужой программы.
     """
-    parts = re.split(r"(```.*?```|~~~.*?~~~)", text, flags=re.S)
-    return "".join(p if i % 2 else fn(p) for i, p in enumerate(parts))
+    out, prev = [], 0
+    for m in _CODE_SPAN.finditer(text):
+        out.append(fn(text[prev : m.start()]))
+        out.append(m.group(0))
+        prev = m.end()
+    out.append(fn(text[prev:]))
+    return "".join(out)
 
 
 def _soften_caps(text):
@@ -116,27 +128,6 @@ def _strip_cot(text):
     )
 
 
-def _strip_verification_demand(text):
-    """Вырезать только ГОЛЫЕ просьбы перепроверить себя.
-
-    Спаны считает `analyze.bare_verification_spans` — тот же код, что решает,
-    срабатывать ли правилу. Раньше здесь стояла своя глобальная регулярка, и она
-    не знала про исключения детектора: на промпте, где рядом защищённая и голая
-    фразы, вырезались обе.
-    """
-    from .analyze import bare_verification_spans
-
-    out, prev = [], 0
-    for start, end in bare_verification_spans(text):
-        out.append(text[prev:start])
-        prev = end
-        # Съесть знак препинания, оставшийся висеть сразу после вырезанного.
-        while prev < len(text) and text[prev] in ".,;":
-            prev += 1
-    out.append(text[prev:])
-    return "".join(out)
-
-
 def _strip_vague(text):
     text2 = re.sub(
         r"(?i)^\s*(пожалуйста,?\s*)?(не мог(ли)? бы (ты|вы)|мог бы ты|можешь ли ты|"
@@ -209,10 +200,13 @@ def rewrite(prompt, target, findings, shape=None):
         new = outside_code(_strip_cot, core)
         if new != core:
             core, _ = new, applied.append("codex-no-forced-cot")
-    if "opus5-remove-verification" in ids:
-        new = outside_code(_strip_verification_demand, core)
-        if new != core:
-            core, _ = new, applied.append("opus5-remove-verification")
+    # `opus5-remove-verification` намеренно НЕ применяется к тексту. Правило вендора
+    # верное, но вырезание оказалось единственной переписью, которая уничтожает
+    # содержимое, и трижды подряд уничтожала не то: сначала требование к результату
+    # («проверь себя: назови источник»), потом среднее звено условия, потом целое
+    # предложение с реальным шагом задачи («Прогони линтер, а также убедись, что нет
+    # warnings» → пусто). Отличить вежливый оборот от части задания по форме нельзя,
+    # поэтому инструмент теперь только ПОКАЗЫВАЕТ находку, а режет человек.
     if "opus5-report-all" in ids:
         new = outside_code(_report_all, core)
         if new != core:

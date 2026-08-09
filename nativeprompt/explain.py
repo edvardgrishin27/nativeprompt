@@ -3,7 +3,7 @@
 
 import textwrap
 
-from . import detect as _detect
+from . import catalog, detect as _detect
 from .analyze import analyze, task_shape
 from .harness import recommend_harness
 from .rewrite import rewrite, build_metaprompt
@@ -60,7 +60,7 @@ def render_report(report, show_metaprompt=True):
         out.append(
             "Укажите её явно: nativeprompt improve \"<промпт>\" --model claude-opus-5"
         )
-        out.append("(или --model gpt-5.6 / codex). Доступно: claude, codex.")
+        out.append("(или --model gpt-5.6 / codex). Семейства: %s." % ", ".join(catalog.available_families()))
         return "\n".join(out)
 
     gen = (" · " + t["generation"]) if t.get("generation") else ""

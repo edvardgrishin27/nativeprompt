@@ -20,25 +20,33 @@ FROZEN = {
         "codex-no-contradiction", "codex-explicit-action", "codex-dial-scaffold",
         "codex-agents-md", "codex-autonomy",
     },
+    "gemini": {"gemini-context-file"},
+    "grok": {"grok-context-file"},
+    "kimi": {"kimi-context-file"},
+    "qwen": {"qwen-context-file"},
 }
 
-VALID_WHEN = {"trivial", "normal", "planning", "goal", "loop", "workflow"}
+#: `anytime` используют семейства-заглушки, у которых один режим запуска.
+VALID_WHEN = {"trivial", "normal", "planning", "goal", "loop", "workflow", "anytime"}
 VALID_SHAPES = VALID_WHEN | {"normal"}
+
+
+ВСЕ_СЕМЕЙСТВА = ["claude", "openai", "gemini", "grok", "kimi", "qwen"]
 
 
 def test_families_present():
     fams = set(catalog.available_families())
-    assert {"claude", "openai"} <= fams
+    assert set(ВСЕ_СЕМЕЙСТВА) == fams, "список семейств разошёлся с файлами правил"
 
 
-@pytest.mark.parametrize("family", ["claude", "openai"])
+@pytest.mark.parametrize("family", ВСЕ_СЕМЕЙСТВА)
 def test_rule_ids_frozen(family):
     data = catalog.load_family(family)
     ids = {r["id"] for r in data["rules"]}
     assert ids == FROZEN[family], "Набор правил %s изменился — обнови FROZEN осознанно" % family
 
 
-@pytest.mark.parametrize("family", ["claude", "openai"])
+@pytest.mark.parametrize("family", ВСЕ_СЕМЕЙСТВА)
 def test_rule_shape(family):
     data = catalog.load_family(family)
     assert data.get("rules_version")
@@ -52,14 +60,16 @@ def test_rule_shape(family):
             assert set(r["when_shapes"]) <= VALID_SHAPES
 
 
-@pytest.mark.parametrize("family", ["claude", "openai"])
+@pytest.mark.parametrize("family", ВСЕ_СЕМЕЙСТВА)
 def test_harness_valid(family):
     data = catalog.load_family(family)
     h = data.get("harness")
     assert h and h.get("commands")
     whens = {c["when"] for c in h["commands"]}
-    assert whens <= VALID_WHEN
-    assert {"trivial", "planning", "goal"} <= whens
+    assert whens <= VALID_WHEN, f"{family}: неизвестная ветка {whens - VALID_WHEN}"
+    # Заглушкам хватает одного режима; у полноценных семейств режимы обязаны быть.
+    if family in ("claude", "openai"):
+        assert {"trivial", "normal", "planning", "goal"} <= whens
     for c in h["commands"]:
         assert c["source"].startswith("https://")
         for key in ("command", "title", "why"):

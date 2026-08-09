@@ -30,10 +30,21 @@ def test_soften_caps():
     assert "ОБЯЗАТЕЛЬНО" not in r["improved"]
 
 
-def test_remove_verification_opus5():
-    r = _improve("Почини @a.py, прогони тесты и обязательно перепроверь себя.", CLAUDE)
-    assert "перепроверь" not in r["improved"].lower()
-    assert "opus5-remove-verification" in r["applied"]
+def test_verification_demand_показывается_но_не_вырезается():
+    """Правило вендора верное, но вырезать текст инструмент больше не берётся.
+
+    Удаление было единственной переписью, уничтожающей содержимое, и трижды
+    подряд уничтожало не то: требование к результату, среднее звено условия,
+    целое предложение с реальным шагом задачи. Отличить вежливый оборот от
+    части задания по форме нельзя — поэтому находку показываем, режет человек.
+    """
+    from nativeprompt.analyze import analyze
+
+    p = "Почини @a.py, прогони тесты и обязательно перепроверь себя."
+    r = _improve(p, CLAUDE)
+    assert "перепроверь себя" in r["improved"], "инструмент снова режет текст сам"
+    ids = {f["id"] for f in analyze(p, CLAUDE)}
+    assert "opus5-remove-verification" in ids, "правило перестало предупреждать"
 
 
 def test_placeholder_when_missing_context():

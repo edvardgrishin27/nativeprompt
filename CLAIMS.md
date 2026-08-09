@@ -20,7 +20,7 @@ Keying is by **family + generation**, so an id the cheatsheet has never seen (`c
 
 ### Rules come from vendor documentation
 
-Every rule in `nativeprompt/rules/*.json` carries a `source` URL pointing at an official Anthropic or OpenAI page. There are **19 rules** today:
+Every rule in `nativeprompt/rules/*.json` carries a `source` URL pointing at an official Anthropic or OpenAI page. There are **26 rules** today across six families:
 
 | Family | Rules | Scope split | Harness recommendations |
 |---|---|---|---|
@@ -94,7 +94,7 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 
 **Generation-specific rules exist for Opus 5 only.** The cheatsheet knows four Claude generations and three OpenAI ones, but the only generation‑scoped rules today are the 3 for `opus-5`. Sonnet 5, GPT‑5.6 and Codex currently get family rules.
 
-**Coverage in v1 is Claude Code + Codex.** Two families, agentic CLIs only — not the API, console, or chat surfaces. Gemini and others are architecturally possible (families are data‑driven) but are not shipped.
+**Coverage is six families, agentic CLIs only:** Claude Code, Codex, Gemini CLI, Grok, Kimi, Qwen. Not the API, console, or chat surfaces. Rule counts are very uneven: claude 14, openai 8, and one apiece for the other four — those are stubs carrying a run-mode recommendation, not full sets. Claiming the same depth for them would be false.
 
 **It is not a benchmark.** The tool applies vendor *rules*; it does not measure that your prompt became "N% better". No percentage of quality improvement is claimed anywhere, and none should be.
 
@@ -109,9 +109,9 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 92 tests, no dependencies beyond pytest
+# 1. Test suite — 109 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 92 passed
+# 109 passed
 #   28 detection · 9 analysis · 9 rule integrity · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
@@ -136,7 +136,7 @@ Available commands and flags, in full (`nativeprompt/__main__.py`):
 |---|---|
 | `improve "<prompt>"` (or stdin) | `--model M` · `--json` · `--no-metaprompt` |
 | `detect` | `--model M` · `--json` |
-| `rules [claude\|codex]` | — |
+| `rules [claude, codex, gemini, grok, kimi, qwen]` | — |
 | `update` | `--write` · `--timeout N` · `--json` |
 
 Nothing else exists. If you see a flag documented anywhere that is not in this table, that documentation is wrong.

@@ -2,7 +2,7 @@
 
   improve "<промпт>" [--model M] [--json] [--no-metaprompt]   переписать + объяснить
   detect [--model M]                                          какая модель определилась
-  rules [claude|codex]                                        показать правила + источники
+  rules [семейство]                                           показать правила + источники
   update [--write] [--timeout N]                              сверить свежесть офиц. доков
 """
 
@@ -154,7 +154,7 @@ def build_parser():
     pd.set_defaults(func=cmd_detect)
 
     pr = sub.add_parser("rules", help="показать правила + источники")
-    pr.add_argument("family", nargs="?", help="claude | codex (по умолчанию — все)")
+    pr.add_argument("family", nargs="?", help="claude | codex | gemini | grok | kimi | qwen (по умолчанию — все)")
     pr.set_defaults(func=cmd_rules)
 
     pu = sub.add_parser("update", help="сверить свежесть офиц. доков (self-update)")
