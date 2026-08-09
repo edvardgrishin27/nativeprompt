@@ -35,7 +35,7 @@ A test asserts every rule has `id`, `title`, `why`, `source`, `check`, `action`;
 
 The 25 distinct URLs used as rule, harness and generation-page sources, plus the 22 URLs in the self-update manifest, all returned **HTTP 200** when checked on 2026‑07‑30.
 
-> Verified by: `nativeprompt rules`, `nativeprompt/rules/_sources.json`, and 52 tests in `tests/test_rules.py`.
+> Verified by: `nativeprompt rules`, `nativeprompt/rules/_sources.json`, and 62 tests in `tests/test_rules.py`.
 
 ### Each edit is explained with a link
 
@@ -113,10 +113,10 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 206 tests, no dependencies beyond pytest
+# 1. Test suite — 211 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 206 passed
-#   67 regressions · 62 rule integrity · 32 detection · 19 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
+# 211 passed
+#   72 regressions · 62 rule integrity · 32 detection · 19 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
 python3 -m nativeprompt rules claude
