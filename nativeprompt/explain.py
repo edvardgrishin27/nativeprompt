@@ -10,6 +10,23 @@ from .rewrite import rewrite, build_metaprompt
 
 _ACTION_MARK = {"add": "[+]", "remove": "[-]", "restructure": "[~]", "warn": "[!]"}
 _WIDTH = 76  # переносим сами: терминал рвёт длинные строки посреди слова
+#: Маркер того, что инструмент к тексту не притронулся.
+_UNTOUCHED_MARK = "[!]"
+
+
+def _mark(finding, applied):
+    """Маркер по ФАКТУ, а не по объявленному в правиле намерению.
+
+    Раньше он читался прямо из `action`, и два always-правила с `action: add`
+    (`fable5-ground-progress`, `opus48-encourage-subagents`) печатались тем же
+    `[+]`, что и `opus5-concise`, который действительно дописывает «Ответь
+    кратко». Маркер обещал добавление, которого не было: оба правила уходят
+    только в мета-промпт. Теперь соврать он не может — знак действия получает
+    лишь то правило, которое реально попало в `applied`.
+    """
+    if finding["id"] not in applied:
+        return _UNTOUCHED_MARK
+    return _ACTION_MARK.get(finding["action"], "[?]")
 
 
 def _wrap(text, indent="   ", first=None):
@@ -91,7 +108,7 @@ def render_report(report, show_metaprompt=True):
     if findings:
         out.append("ЧТО УЛУЧШИТЬ (%d):" % len(findings))
         for i, f in enumerate(findings, 1):
-            mark = _ACTION_MARK.get(f["action"], "[?]")
+            mark = _mark(f, report["applied"])
             out.append(_wrap(f["title"], indent="      ",
                              first="%d. %s " % (i, mark)))
             out.append(_wrap(f["why"], indent="      ", first="   почему: "))
@@ -99,7 +116,7 @@ def render_report(report, show_metaprompt=True):
     else:
         out.append("ЧТО УЛУЧШИТЬ: существенных правок правила не требуют.")
     for f in always:
-        mark = _ACTION_MARK.get(f["action"], "[?]")
+        mark = _mark(f, report["applied"])
         out.append(_wrap(f["title"], indent="    ", first="%s " % mark))
         out.append("    правило: %s" % f["source"])
 

@@ -226,12 +226,18 @@ def rewrite(prompt, target, findings, shape=None):
                            "Доведи задачу до конца; при неоднозначности действуй с разумными допущениями, не останавливайся на анализе."))
         applied.append("codex-autonomy")
 
-    improved = _assemble(core, additions, family, ids)
+    # XML-обёртка — тоже правка, и она обязана попасть в `applied`. Раньше не
+    # попадала: `_assemble` применяла её молча, и потребитель `--json`, который
+    # читает `applied` как список сделанного, видел в `improved` обёртку, о
+    # которой ему не сказали. Отчёт обязан перечислять ровно то, что сделано.
+    use_xml = family == "claude" and "claude-xml" in ids
+    improved = _assemble(core, additions, family, use_xml)
+    if use_xml:
+        applied.append("claude-xml")
     return {"improved": improved, "applied": applied, "additions": additions, "shape": shape}
 
 
-def _assemble(core, additions, family, ids):
-    use_xml = family == "claude" and "claude-xml" in ids
+def _assemble(core, additions, family, use_xml):
     if use_xml:
         blocks = ["<instructions>\n%s\n</instructions>" % core]
         for tag, _label, content in additions:

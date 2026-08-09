@@ -163,10 +163,10 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 281 tests, no dependencies beyond pytest
+# 1. Test suite — 629 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 281 passed
-#   70 regressions · 68 invariant · 62 rule integrity · 32 detection · 23 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
+# 629 passed
+#   415 invariant · 71 regressions · 62 rule integrity · 32 detection · 23 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
 python3 -m nativeprompt rules claude
@@ -191,7 +191,7 @@ Available commands and flags, in full (`nativeprompt/__main__.py`):
 | `improve "<prompt>"` (or stdin) | `--model M` · `--json` · `--no-metaprompt` |
 | `detect` | `--model M` · `--json` |
 | `rules [claude, codex, gemini, grok, kimi, qwen]` | — |
-| `update` | `--write` · `--timeout N` · `--json` |
+| `update` | `--write` · `--diff` · `--timeout N` · `--json` |
 
 Nothing else exists. If you see a flag documented anywhere that is not in this table, that documentation is wrong.
 

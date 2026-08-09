@@ -164,10 +164,10 @@ Claude Code, было бы враньём.
 ## Проверяемость
 
 ```bash
-# 1. Тесты — 281 штук, из зависимостей только pytest
+# 1. Тесты — 629 штук, из зависимостей только pytest
 cd nativeprompt && python3 -m pytest -q
-# 281 passed
-#   70 регрессии · 68 инвариант · 62 целостность · 32 детект · 23 свойства · 9 разбор · 8 перепись · 6 харнесс · 3 update
+# 629 passed
+#   415 инвариант · 71 регрессии · 62 целостность · 32 детект · 23 свойства · 9 разбор · 8 перепись · 6 харнесс · 3 update
 
 # 2. Все правила с официальными источниками — сверьте ссылки выборочно
 python3 -m nativeprompt rules claude
@@ -192,7 +192,7 @@ python3 -m nativeprompt detect
 | `improve "<промпт>"` (или stdin) | `--model M` · `--json` · `--no-metaprompt` |
 | `detect` | `--model M` · `--json` |
 | `rules [claude, codex, gemini, grok, kimi, qwen]` | — |
-| `update` | `--write` · `--timeout N` · `--json` |
+| `update` | `--write` · `--diff` · `--timeout N` · `--json` |
 
 Больше ничего нет. Если где-то описан флаг, которого нет в этой таблице, — та документация врёт.
 
