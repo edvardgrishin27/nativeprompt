@@ -119,7 +119,10 @@ def _strip_vague(text):
     """
     начало = _VAGUE_OPENER.match(text)
     if начало:
-        первая_фраза = re.split(r"[,.!?\n]", text[начало.end():], maxsplit=1)[0]
+        # До конца ПРЕДЛОЖЕНИЯ, а не до первой запятой: вводный оборот вставляет
+        # запятую между «можешь» и «не» — «Можешь, в принципе, не деплоить»
+        # проходило мимо гарда, и разрешение превращалось в запрет.
+        первая_фраза = re.split(r"[.!?\n]", text[начало.end():], maxsplit=1)[0]
         if _NEGATION.search(первая_фраза):
             return text                      # разрешение, а не вежливая обёртка
     text2 = _VAGUE_OPENER.sub("", text, count=1)
@@ -141,7 +144,12 @@ def rewrite(prompt, target, findings, shape=None):
     applied = []
 
     if "claude-explicit-action" in ids or "codex-explicit-action" in ids:
-        new = outside_code(_strip_vague, core)
+        # НЕ через outside_code: та режет текст на сегменты по код-спанам, и
+        # якорь `^` совпадает с началом КАЖДОГО сегмента — «Прочитай `README.md`
+        # можешь ли ты обновить…» теряло «можешь ли ты» из СЕРЕДИНЫ и склеивало
+        # слово с бэктиком. Обёртка по определению стоит в начале всего текста,
+        # поэтому применяется к нему целиком, а `^` в шаблоне и есть вся защита.
+        new = _strip_vague(core)
         if new != core:
             core, _ = new, applied.append("claude-explicit-action" if "claude-explicit-action" in ids else "codex-explicit-action")
     if "claude-dial-caps" in ids or "codex-dial-scaffold" in ids:

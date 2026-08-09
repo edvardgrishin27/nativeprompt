@@ -125,7 +125,7 @@ appended. If you want the finished text, take the metaprompt — that is what it
 
 **It does not invent your task.** Missing details — files, "done" criteria, output format — are inserted as explicit placeholders `‹…›`, never as plausible-sounding content. A test asserts the rewriter does not fabricate file names.
 
-**The deterministic rewrite is structural, not literary.** It removes what the vendor says hurts (forced chain‑of‑thought for Codex, "double‑check yourself" for Opus 5, `!!!` and CAPS imperatives, hedged "could you", duplicated sentences), restructures (XML tags for multi‑part Claude prompts, headed sections for Codex) and appends placeholder sections. The **smart** prose rewrite is not done by this tool at all: `improve` emits a **meta-prompt** that your own Claude or Codex executes. There is no model inside `nativeprompt`, and the quality of that second pass is your model's, not ours.
+**The deterministic rewrite is structural, not literary — and very narrow.** It changes exactly two things: it lowers SHOUTING CAPS and drops the polite opener (`!!!` collapses to a single mark). It also appends placeholder sections and an XML wrapper for multi-part Claude prompts. Everything the vendor recommends removing by meaning — forced chain-of-thought, "double-check yourself", "only the important bits", duplicated sentences — is FLAGGED with a source link and left untouched; see "Why the tool does not rewrite your text" for the reasoning. The **smart** prose rewrite is not done by this tool at all: `improve` emits a **meta-prompt** that your own Claude or Codex executes. There is no model inside `nativeprompt`, and the quality of that second pass is your model's, not ours.
 
 **Rules are not auto-updated in code.** `update` only *signals* that official docs moved. Editing `rules/*.json` is a human action through a PR. This is deliberate — it keeps the cheatsheet reviewable — but it also means the rules can lag behind a vendor doc change until someone acts on the signal.
 
@@ -163,10 +163,10 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 257 tests, no dependencies beyond pytest
+# 1. Test suite — 267 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 257 passed
-#   62 rule integrity · 60 regressions · 54 invariant · 32 detection · 23 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
+# 267 passed
+#   63 regressions · 62 rule integrity · 61 invariant · 32 detection · 23 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
 python3 -m nativeprompt rules claude

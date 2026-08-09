@@ -741,3 +741,38 @@ def test_флагманский_пример_readme_совпадает_с_жив
                 assert f["title"][:34] in текст, (
                     "%s: заголовок находки %r в доке отсутствует" % (файл, f["title"][:50])
                 )
+
+
+# ── девятый круг ────────────────────────────────────────────────────
+def test_обёртка_снимается_только_в_начале_всего_текста():
+    """`outside_code` резала текст на сегменты, и якорь `^` шаблона обёртки
+    совпадал с началом КАЖДОГО. Вежливый оборот после блока кода вырезался из
+    середины, а слово склеивалось с бэктиком."""
+    from nativeprompt.explain import build_report
+
+    src = "Прочитай `README.md` можешь ли ты обновить раздел установки и прогнать тесты"
+    out = build_report(src, "claude-opus-5")["improved"].split("\n")[0]
+    assert "можешь ли ты обновить" in out, out
+    assert "`README.md` можешь" in out, "склеено с кодом: %r" % out
+
+
+def test_разрешение_переживает_вводный_оборот():
+    """Гард отрицания смотрел до первой запятой, а вводный оборот вставляет
+    запятую между «можешь» и «не» — разрешение становилось запретом."""
+    from nativeprompt.explain import build_report
+
+    for src in ("Можешь, в принципе, не деплоить сегодня — главное почини баг в @a.py",
+                "Можешь, пожалуйста, не трогать прод, а почини @a.py",
+                "Can you, for now, not deploy — just fix @a.py"):
+        out = build_report(src, "claude-opus-5")["improved"].split("\n")[0]
+        assert out.lower().startswith(("можешь", "can you")), "%r -> %r" % (src, out)
+
+
+def test_приставочные_формы_проверки_засчитываются():
+    """Левая граница у «тест» отсекла «протестируй» и «retest», и инструмент
+    требовал проверку там, где автор её уже заказал."""
+    assert "claude-verification" not in ids("Почини баг в @src/pay.py и протестируй изменения")
+    assert "claude-verification" not in ids_for("Fix @src/pay.py and retest everything",
+                                                "claude-opus-5")
+    # А ложные срабатывания из прошлого круга не вернулись.
+    assert "claude-verification" in ids("Почини баг в модуле аттестации персонала")

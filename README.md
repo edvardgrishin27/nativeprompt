@@ -5,7 +5,7 @@
 ![MIT](https://img.shields.io/badge/license-MIT-black)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![257 tests](https://img.shields.io/badge/tests-257%20passing-brightgreen)
+![267 tests](https://img.shields.io/badge/tests-267%20passing-brightgreen)
 ![offline](https://img.shields.io/badge/core-deterministic%20%C2%B7%20offline-lightgrey)
 
 **English** | [Русский](README.ru.md)
@@ -241,7 +241,7 @@ detect  →  analyze  →  rewrite  →  harness  →  explain          (+ updat
 
 1. **detect** (`detect.py`) — resolves model → **family + generation**. Keying on family means an unreleased id like `claude-opus-6` still gets Claude-family rules instead of nothing. Signals, in order: `--model`, active CLI session markers, `ANTHROPIC_MODEL` / `OPENAI_MODEL` / `CODEX_MODEL`, the `~/.claude/settings.json` cascade, `~/.codex/config.toml`. The `[1m]` suffix is split off and reported separately.
 2. **analyze** (`analyze.py`) — regex detectors for prompt smells (`forced_cot`, `verification_demand`, `pushy_caps`, `repetition`, `contradiction_hint`, `missing_verification`, `missing_output_contract`, `vague_ask`, …) plus a **task shape** classifier: `trivial | normal | planning | goal | loop | workflow`.
-3. **rewrite** (`rewrite.py`) — the deterministic pass. It removes what the vendor says hurts, restructures what the vendor says to restructure, and adds missing sections **as `‹placeholders›`**. It never invents your task.
+3. **rewrite** (`rewrite.py`) — the deterministic pass. It lowers SHOUTING CAPS, drops the polite opener, and adds missing sections **as `‹placeholders›`**. It never deletes your content and never invents your task — anything the vendor recommends removing by meaning is flagged instead.
 4. **harness** (`harness.py`) — maps the task shape to a run mode from the `harness` block of the rules file: plan mode / `/goal` / `/loop` / dynamic workflow on Claude Code, `/plan` / `/goal` / delegation on Codex — each with its own source link.
 5. **explain** (`explain.py`) — assembles the report and the **meta-prompt**: a model-specific instruction, built from exactly the rules that fired, which your own Claude or Codex executes to do the full prose rewrite. That split is deliberate — the tool itself contains no model.
 
@@ -266,7 +266,7 @@ A weekly GitHub Actions job (`.github/workflows/update-rules.yml`) runs exactly 
 Deliberately narrow, so the tool stays trustworthy:
 
 - **It does not invent your task.** Missing details — file paths, done criteria, output format — become explicit `‹placeholders›`, never fabricated content.
-- **The deterministic rewrite is structural, not literary.** It strips what hurts, restructures, and inserts placeholder sections. The full prose rewrite is the **meta-prompt**, run by your own model. There is no LLM inside this tool.
+- **The deterministic rewrite is structural, not literary.** It lowers CAPS, drops the polite opener, and inserts placeholder sections — nothing else. The full prose rewrite is the **meta-prompt**, run by your own model. There is no LLM inside this tool.
 - **Detectors are regex heuristics.** Unusual phrasings will produce false positives and misses. It is an assistant, not an oracle.
 - **An alias is not a version.** `opus`, `sonnet`, `best` resolve differently per provider and plan, so generation-specific rules are withheld and family rules applied — and the CLI says so.
 - **No benchmark claims.** The tool applies the vendors' published rules; it does not measure that your prompt got "N% better", and it will never print such a number.
@@ -279,7 +279,7 @@ Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 Verify first:
 
 ```bash
-python3 -m pytest -q          # 257 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
+python3 -m pytest -q          # 267 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
 ```
 
 **Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:
