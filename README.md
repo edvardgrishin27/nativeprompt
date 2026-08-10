@@ -5,7 +5,7 @@
 ![MIT](https://img.shields.io/badge/license-MIT-black)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![281 tests](https://img.shields.io/badge/tests-863%20passing-brightgreen)
+![281 tests](https://img.shields.io/badge/tests-872%20passing-brightgreen)
 ![offline](https://img.shields.io/badge/core-deterministic%20%C2%B7%20offline-lightgrey)
 
 **English** | [Русский](README.ru.md)
@@ -257,7 +257,7 @@ detect  →  analyze  →  rewrite  →  harness  →  explain          (+ updat
 [новое]            openai  https://learn.chatgpt.com/docs/prompting.md
 [без изменений]    claude  https://code.claude.com/docs/en/best-practices.md
 ...
-Итог: изменилось 1, новых 4, без изменений 17, недоступно 0 (из 22).
+Итог: изменилось 1, новых 4, без изменений 17, недоступно 0 (из 24).
 ```
 
 A weekly GitHub Actions job (`.github/workflows/update-rules.yml`) runs exactly that and fails when the official guidance moved. **The rules are never rewritten automatically** — a maintainer reads the changed doc, updates the JSON, and lands it in a PR, then records the new snapshot with `nativeprompt update --write`. That is a deliberate design choice: a cheat sheet you can audit is worth more than one that mutates silently.
@@ -280,7 +280,7 @@ Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 Verify first:
 
 ```bash
-python3 -m pytest -q          # 863 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
+python3 -m pytest -q          # 872 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
 ```
 
 **Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:

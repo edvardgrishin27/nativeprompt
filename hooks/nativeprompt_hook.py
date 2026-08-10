@@ -44,16 +44,17 @@ def main():
         data = json.loads(raw) if raw.strip() else {}
     except Exception:
         return 0
-    prompt = (data.get("prompt") or data.get("user_prompt") or "").strip()
-    if len(prompt) < 15:
+    prompt = data.get("prompt") or data.get("user_prompt") or ""
+    if len(prompt.strip()) < 15:
         return 0
 
     root = _find_package()
     if root:
         sys.path.insert(0, root)
     try:
+        from nativeprompt.analyze import normalize_prompt
         from nativeprompt.explain import build_report
-        rep = build_report(prompt)
+        rep = build_report(normalize_prompt(prompt))
     except Exception:
         return 0
 

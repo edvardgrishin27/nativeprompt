@@ -207,3 +207,36 @@ def test_числа_в_документации_совпадают_с_факто
                 "%s: раскладка %s = %d, а заявлено %s"
                 % (имя, слагаемые, sum(слагаемые), итог.group(1))
             )
+
+
+def test_readme_не_расходится_с_числом_страниц():
+    """Круг 22: CLAIMS исправили с 22 на 24, README — нет.
+
+    «(из N)» в примере вывода — это total, он всегда равен числу URL в
+    манифесте и от сети не зависит, значит проверяется точно.
+    """
+    import io
+    import re as _re
+    from nativeprompt.update import _all_urls
+
+    сколько = len(_all_urls())
+    for имя in ("README.ru.md", "README.md"):
+        текст = io.open(имя, encoding="utf-8").read()
+        for m in _re.finditer(r"\(из (\d+)\)|\(of (\d+)\)", текст):
+            число = m.group(1) or m.group(2)
+            assert int(число) == сколько, (
+                "%s: пример показывает «из %s», манифест даёт %d" % (имя, число, сколько))
+
+
+def test_русский_readme_перечисляет_все_флаги_update():
+    """Круг 22: `--diff` был в CLAIMS обоих языков и в англ. README, но не в русском."""
+    import io
+    from nativeprompt.__main__ import build_parser
+
+    подкоманды = build_parser()._subparsers._group_actions[0].choices
+    флаги = {д for д in подкоманды["update"]._option_string_actions if д.startswith("--")}
+    текст = io.open("README.ru.md", encoding="utf-8").read()
+    строка = [l for l in текст.split("\n") if "Флаги `update`" in l]
+    assert строка, "исчезла строка про флаги update"
+    for флаг in флаги - {"--help"}:
+        assert флаг in строка[0], "%s не назван в README.ru.md" % флаг
