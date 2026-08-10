@@ -240,3 +240,29 @@ def test_русский_readme_перечисляет_все_флаги_update()
     assert строка, "исчезла строка про флаги update"
     for флаг in флаги - {"--help"}:
         assert флаг in строка[0], "%s не назван в README.ru.md" % флаг
+
+
+def test_claims_не_врёт_про_размер_собственного_файла():
+    """Круг 23: CLAIMS обещал «62 теста в tests/test_rules.py», их было 64.
+
+    Разбивка по файлам в разделе «Проверяемость» уже сверялась автоматически,
+    а эта строчка жила отдельно и руками — и разошлась.
+    """
+    import io
+    import re as _re
+    import subprocess
+    import sys
+    from collections import Counter
+
+    собрано = subprocess.run([sys.executable, "-m", "pytest", "--collect-only", "-q"],
+                             capture_output=True, text=True)
+    счёт = Counter(l.split("::")[0].split("/")[-1]
+                   for l in собрано.stdout.splitlines() if "::" in l)
+    сколько = счёт["test_rules.py"]
+    for имя, шаблон in (("CLAIMS.ru.md", r"(\d+) теста в `tests/test_rules\.py`"),
+                        ("CLAIMS.md", r"(\d+) tests in `tests/test_rules\.py`")):
+        текст = io.open(имя, encoding="utf-8").read()
+        m = _re.search(шаблон, текст)
+        assert m, "пропала строчка про число тестов в %s" % имя
+        assert int(m.group(1)) == сколько, (
+            "%s обещает %s тестов в test_rules.py, собрано %d" % (имя, m.group(1), сколько))

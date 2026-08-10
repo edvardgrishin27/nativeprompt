@@ -5,7 +5,7 @@
 ![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-lightgrey.svg)
-![Tests](https://img.shields.io/badge/tests-872%20passed-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-879%20passed-brightgreen.svg)
 
 [English](README.md) | **Русский**
 
@@ -337,10 +337,10 @@ $nativeprompt улучши этот промпт для Codex: ‹промпт�
 - **Детект настроек читает не всё.** Сейчас разбирается каскад `.claude/settings.local.json` → `.claude/settings.json` → `~/.claude/settings.json` и `~/.codex/config.toml`. Managed-настройки Claude Code (высший приоритет в enterprise), проектный `.codex/config.toml` и переменная `CODEX_HOME` пока не учитываются. Если сомневаетесь — сверьтесь с `/status` или задайте `--model` явно.
 - **Переменные сессии Codex — эвристика.** `CODEX_THREAD_ID`, `CODEX_SHELL`, `CODEX_CI`, `CODEX_SANDBOX` не входят в список официально документированных переменных; определение активной сессии Codex опирается на них как на догадку.
 - **Правила обновляются человеком.** `update` только сигнализирует об изменении доков.
-- **Покрытие v1 — Claude Code и Codex.** Архитектура семейств готова к другим вендорам, но правил для них пока нет.
+- **Глубина покрытия разная.** У Claude Code и Codex правила разобраны по поколениям (14 и 8 правил), у Gemini, Qwen, Kimi и Grok — по одному правилу и совету по запуску: вендоры публикуют о них меньше.
 - **Это не бенчмарк.** Инструмент применяет правила вендора, а не измеряет, что промпт стал «на X% лучше». Никаких процентов улучшения он не обещает.
 
-Проверяемость: `python -m pytest -q` — 872 тестов (детект, детекторы, перепись, харнесс, целостность правил, frozen-снапшот набора правил). `nativeprompt rules` показывает все правила с источниками — сверьте выборочно сами.
+Проверяемость: `python -m pytest -q` — 879 тестов (детект, детекторы, перепись, харнесс, целостность правил, frozen-снапшот набора правил). `nativeprompt rules` показывает все правила с источниками — сверьте выборочно сами.
 
 ## Как внести вклад
 

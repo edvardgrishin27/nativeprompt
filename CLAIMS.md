@@ -4,7 +4,7 @@
 
 This file exists so that nothing in the README, the video, or the repo promises more than the code delivers. Every claim below names the exact thing that proves it — a command you can run, or a file you can read. If a claim cannot be checked, it does not belong here.
 
-Numbers were measured on **2026‑07‑30** against `nativeprompt 0.1.0`, `rules_version 2026-07-29`. Re-run the commands in [How to verify](#how-to-verify) to check them yourself.
+The numbers in this file describe the CURRENT version and are checked by tests: test, rule, generation and self-update page counts are read from the code rather than retyped by hand. The live HTTP 200 check of the sources is dated **2026‑07‑30** — `nativeprompt update` repeats it. Re-run the commands in [How to verify](#how-to-verify) to check everything yourself.
 
 ---
 
@@ -35,7 +35,7 @@ A test asserts every rule has `id`, `title`, `why`, `source`, `check`, `action`;
 
 The 25 distinct URLs used as rule, harness and generation-page sources, plus the 24 URLs in the self-update manifest, all returned **HTTP 200** when checked on 2026‑07‑30.
 
-> Verified by: `nativeprompt rules`, `nativeprompt/rules/_sources.json`, and 62 tests in `tests/test_rules.py`.
+> Verified by: `nativeprompt rules`, `nativeprompt/rules/_sources.json`, and 65 tests in `tests/test_rules.py`.
 
 ### Each edit is explained with a link
 
@@ -165,10 +165,10 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 872 tests, no dependencies beyond pytest
+# 1. Test suite — 879 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 872 passed
-#   654 invariant · 73 regressions · 64 rule integrity · 32 detection · 23 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
+# 879 passed
+#   660 invariant · 73 regressions · 65 rule integrity · 32 detection · 23 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
 python3 -m nativeprompt rules claude

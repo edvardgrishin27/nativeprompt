@@ -4,7 +4,7 @@
 import textwrap
 
 from . import catalog, detect as _detect
-from .analyze import analyze, mask_code, task_shape
+from .analyze import analyze, mask_code, normalize_prompt, task_shape
 from .harness import recommend_harness
 from .rewrite import rewrite, build_metaprompt
 
@@ -41,6 +41,12 @@ def _wrap(text, indent="   ", first=None):
 
 def build_report(prompt, model=None):
     """Один вызов: детект модели → разбор → харнесс → перепись → мета-промпт."""
+    # Нормализуем ЗДЕСЬ, а не в каждой двери: аргумент CLI приходил сырым, и
+    # те же байты через `improve "…"` и через stdin давали разные отчёты —
+    # пустые строки в начале дотягивали текст до порога «многочастный», и
+    # XML-обёртка применялась к промпту, который по собственному критерию
+    # многочастным не был.
+    prompt = normalize_prompt(prompt)
     target = _detect.resolve(model)
     report = {"original": prompt, "target": target}
     if not target.get("family"):
