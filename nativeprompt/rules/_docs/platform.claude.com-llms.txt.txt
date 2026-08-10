@@ -12,7 +12,7 @@ https://platform.claude.com
 
 The full documentation is available in the following languages on https://platform.claude.com/docs:
 
-- English (en) - 549 pages - /docs - Content included below
+- English (en) - 553 pages - /docs - Content included below
 - German (Deutsch) (de) - 201 pages - /docs/de - Visit website for content
 - Spanish (Español) (es) - 201 pages - /docs/es - Visit website for content
 - French (Français) (fr) - 201 pages - /docs/fr - Visit website for content
@@ -150,17 +150,21 @@ The full documentation is available in the following languages on https://platfo
 - [Admin API](https://platform.claude.com/docs/en/manage-claude/admin-api.md)
 - [Analytics APIs](https://platform.claude.com/docs/en/manage-claude/analytics-api.md)
 - [API and data retention](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention.md)
+- [App Attest](https://platform.claude.com/docs/en/manage-claude/app-attest.md) - App Attest for iOS and macOS apps
 - [Claude Code Analytics API](https://platform.claude.com/docs/en/manage-claude/claude-code-analytics-api.md)
 - [Overview](https://platform.claude.com/docs/en/manage-claude/compliance-api.md) - Compliance API
 - [FAQ](https://platform.claude.com/docs/en/manage-claude/compliance-faq.md) - Compliance API FAQ
 - [AWS KMS](https://platform.claude.com/docs/en/manage-claude/cmek-aws-kms.md) - Configure AWS KMS for CMEK
 - [Azure Key Vault](https://platform.claude.com/docs/en/manage-claude/cmek-azure-key-vault.md) - Configure Azure Key Vault for CMEK
 - [Google Cloud KMS](https://platform.claude.com/docs/en/manage-claude/cmek-google-cloud-kms.md) - Configure Google Cloud KMS for CMEK
+- [Configure Inference hooks](https://platform.claude.com/docs/en/manage-claude/inference-hooks-configuration.md)
 - [Create an Admin API key](https://platform.claude.com/docs/en/manage-claude/admin-api-keys.md)
 - [Overview](https://platform.claude.com/docs/en/manage-claude/cmek.md) - Customer-managed encryption keys
 - [Data residency](https://platform.claude.com/docs/en/manage-claude/data-residency.md)
 - [Design your integration](https://platform.claude.com/docs/en/manage-claude/compliance-integration-patterns.md) - Design your compliance integration
+- [Build an integration](https://platform.claude.com/docs/en/manage-claude/inference-hooks-endpoint.md) - Develop an Inference hooks integration
 - [Errors](https://platform.claude.com/docs/en/manage-claude/compliance-errors.md) - Handle Compliance API errors
+- [Overview](https://platform.claude.com/docs/en/manage-claude/inference-hooks.md) - Inference hooks
 - [Organizations, users, roles, groups, and settings](https://platform.claude.com/docs/en/manage-claude/compliance-org-data.md) - List organizations, users, roles, groups, and settings
 - [Manage WIF via API](https://platform.claude.com/docs/en/manage-claude/wif-admin-api.md) - Manage WIF with the Admin API
 - [Activity Feed](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed.md) - Query the Activity Feed

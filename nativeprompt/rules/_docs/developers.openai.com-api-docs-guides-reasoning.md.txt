@@ -60,6 +60,39 @@ response = client.responses.create(
 print(response.output_text)
 ```
 
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	prompt := `Write a bash script that takes a matrix represented as a string with
+format '[1,2],[3,4],[5,6]' and prints the transpose in the same format.`
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Reasoning: responses.ReasoningParam{
+			Effort: responses.ReasoningEffortLow,
+		},
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String(prompt),
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(response.OutputText())
+}
+```
+
 ```bash
 curl https://api.openai.com/v1/responses \
   -H "Content-Type: application/json" \
@@ -236,6 +269,45 @@ if (
         print("Ran out of tokens during reasoning")
 ```
 
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	prompt := `Write a bash script that takes a matrix represented as a string with
+format '[1,2],[3,4],[5,6]' and prints the transpose in the same format.`
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model:           "gpt-5.6",
+		MaxOutputTokens: openai.Int(300),
+		Reasoning: responses.ReasoningParam{
+			Effort: responses.ReasoningEffortMedium,
+		},
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String(prompt),
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	if response.Status == responses.ResponseStatusIncomplete {
+		fmt.Println("Ran out of tokens")
+		if text := response.OutputText(); text != "" {
+			fmt.Println("Partial output:", text)
+		}
+	}
+}
+```
+
 
 ### Keeping reasoning items in context
 
@@ -315,6 +387,52 @@ second = client.responses.create(
 )
 
 print(second.output_text)
+```
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	model := "gpt-5.6"
+
+	first, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: model,
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String("Inspect this repository and identify the likely bug."),
+		},
+		Reasoning: responses.ReasoningParam{
+			Context: responses.ReasoningContextCurrentTurn,
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	second, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model:              model,
+		PreviousResponseID: openai.String(first.ID),
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String("Now patch the bug and explain the change."),
+		},
+		Reasoning: responses.ReasoningParam{
+			Context: responses.ReasoningContextAllTurns,
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(second.OutputText())
+}
 ```
 
 
@@ -422,6 +540,63 @@ second = client.responses.create(
 print(second.output_text)
 ```
 
+```go
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+	"github.com/openai/openai-go/v3/shared"
+)
+
+func main() {
+	client := openai.NewClient()
+	history := []responses.ResponseInputItemUnionParam{
+		responses.ResponseInputItemParamOfMessage("Inspect this repository and identify the likely bug.", responses.EasyInputMessageRoleUser),
+	}
+	first, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model:     "gpt-5.6",
+		Store:     openai.Bool(false),
+		Input:     responses.ResponseNewParamsInputUnion{OfInputItemList: history},
+		Reasoning: shared.ReasoningParam{Context: shared.ReasoningContextCurrentTurn},
+	})
+	if err != nil {
+		panic(err)
+	}
+	history = append(history, outputAsInput(first.Output)...)
+	history = append(history, responses.ResponseInputItemParamOfMessage(
+		"Now patch the bug and explain the change.",
+		responses.EasyInputMessageRoleUser,
+	))
+	second, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model:     "gpt-5.6",
+		Store:     openai.Bool(false),
+		Input:     responses.ResponseNewParamsInputUnion{OfInputItemList: history},
+		Reasoning: shared.ReasoningParam{Context: shared.ReasoningContextAllTurns},
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(second.OutputText())
+}
+
+func outputAsInput(output []responses.ResponseOutputItemUnion) []responses.ResponseInputItemUnionParam {
+	input := make([]responses.ResponseInputItemUnionParam, 0, len(output))
+	for _, item := range output {
+		var converted responses.ResponseInputItemUnion
+		if err := json.Unmarshal([]byte(item.RawJSON()), &converted); err != nil {
+			panic(err)
+		}
+		input = append(input, converted.ToParam())
+	}
+	return input
+}
+```
+
 
 ## Reasoning summaries
 
@@ -463,6 +638,38 @@ response = client.responses.create(
 )
 
 print(response.output)
+```
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String("What is the capital of France?"),
+		},
+		Reasoning: responses.ReasoningParam{
+			Effort:  responses.ReasoningEffortLow,
+			Summary: responses.ReasoningSummaryAuto,
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(response.Output)
+}
 ```
 
 ```bash
@@ -584,6 +791,44 @@ response = client.responses.create(
 print(response.output_text)
 ```
 
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	commentary := responses.ResponseInputItemParamOfMessage(
+		"I’ll inspect the logs and then summarize root cause and remediation.",
+		responses.EasyInputMessageRoleAssistant,
+	)
+	commentary.OfMessage.Phase = responses.EasyInputMessagePhaseCommentary
+	finalAnswer := responses.ResponseInputItemParamOfMessage(
+		"Root cause: cache invalidation race.",
+		responses.EasyInputMessageRoleAssistant,
+	)
+	finalAnswer.OfMessage.Phase = responses.EasyInputMessagePhaseFinalAnswer
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Input: responses.ResponseNewParamsInputUnion{OfInputItemList: responses.ResponseInputParam{
+			commentary,
+			finalAnswer,
+			responses.ResponseInputItemParamOfMessage("Great—now give me a rollout-safe fix plan.", responses.EasyInputMessageRoleUser),
+		}},
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(response.OutputText())
+}
+```
+
 
 ## Advice on prompting
 
@@ -702,6 +947,44 @@ response = client.responses.create(
 print(response.output_text)
 ```
 
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	prompt := `Instructions:
+- Given the React component below, change it so that nonfiction books have red text.
+- Return only the code in your reply.
+- Do not include any additional formatting, such as markdown code blocks.
+
+const books = [
+  { title: 'Dune', category: 'fiction', id: 1 },
+  { title: 'Frankenstein', category: 'fiction', id: 2 },
+  { title: 'Moneyball', category: 'nonfiction', id: 3 },
+];`
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String(prompt),
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(response.OutputText())
+}
+```
+
 
   
 
@@ -775,6 +1058,39 @@ response = client.responses.create(
 print(response.output_text)
 ```
 
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	prompt := `I want to build a Python app that takes user questions and looks them up
+in a database where they are mapped to answers. If there is a close match, it
+retrieves the matched answer. If there is not, it asks the user to provide an
+answer and stores the question/answer pair in the database. Make a plan for the
+directory structure you will need, then return each file in full.`
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String(prompt),
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(response.OutputText())
+}
+```
+
 
   
 
@@ -832,6 +1148,36 @@ response = client.responses.create(
 )
 
 print(response.output_text)
+```
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	prompt := `What are three compounds we should consider investigating to advance
+research into new antibiotics? Why should we consider them?`
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String(prompt),
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(response.OutputText())
+}
 ```
 
 
