@@ -33,7 +33,7 @@ recommendation, not full sets. Claiming the same depth for them would be false.
 
 A test asserts every rule has `id`, `title`, `why`, `source`, `check`, `action`; that `source` is `https://`; and that `check` names a detector that actually exists in `analyze.py`. A second test freezes the rule id sets, so the cheatsheet cannot grow or shrink silently.
 
-The 25 distinct URLs used as rule, harness and generation-page sources, plus the 22 URLs in the self-update manifest, all returned **HTTP 200** when checked on 2026‑07‑30.
+The 25 distinct URLs used as rule, harness and generation-page sources, plus the 24 URLs in the self-update manifest, all returned **HTTP 200** when checked on 2026‑07‑30.
 
 > Verified by: `nativeprompt rules`, `nativeprompt/rules/_sources.json`, and 62 tests in `tests/test_rules.py`.
 
@@ -51,7 +51,7 @@ The tool classifies the task into one of `trivial | planning | goal | loop | wor
 
 ### Self-update actually fetches
 
-`nativeprompt update` downloads the 22 canonical `.md` / `llms.txt` vendor pages listed in `rules/_sources.json`, hashes them with SHA‑256, and diffs against `rules/_snapshot.json`. It exits non‑zero when something changed or is new, so CI can fail on it; `.github/workflows/update-rules.yml` runs it weekly.
+`nativeprompt update` downloads the 24 canonical `.md` / `llms.txt` vendor pages listed in `rules/_sources.json`, hashes them with SHA‑256, and diffs against `rules/_snapshot.json`. It exits non‑zero when something changed or is new, so CI can fail on it; `.github/workflows/update-rules.yml` runs it weekly.
 
 A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 unreachable → action needed.** That is the mechanism working, not a passing grade: it means a maintainer owes the cheatsheet a review pass.
 
@@ -165,10 +165,10 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 855 tests, no dependencies beyond pytest
+# 1. Test suite — 863 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 855 passed
-#   639 invariant · 73 regressions · 62 rule integrity · 32 detection · 23 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
+# 863 passed
+#   647 invariant · 73 regressions · 62 rule integrity · 32 detection · 23 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
 python3 -m nativeprompt rules claude

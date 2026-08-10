@@ -1243,3 +1243,71 @@ def test_цитата_это_чужая_речь():
     r = build_report(src, "claude-opus-5")
     assert "> у меня всё не работает!!!" in r["improved"], r["improved"]
     assert "> ВАЖНО почините срочно" in r["improved"], r["improved"]
+
+
+# ── двадцать первый круг: нормализация ОДНА на весь пакет ─────────────
+def test_нормализация_промпта_живёт_в_одном_месте():
+    """Структурная страховка от четвёртой двери.
+
+    Роль нормализации играл `strip()`, расставленный порознь: в `rewrite`,
+    в чтении stdin и в сборке мета-промпта. Двадцатый круг починил первое,
+    двадцать первый нашёл два оставшихся — и штатная дверь (stdin, который
+    предписывает SKILL.md) срезала отступ по-прежнему. Тест краснеет, если
+    кто-то снова нормализует промпт мимо `normalize_prompt`.
+    """
+    import pathlib
+    корень = pathlib.Path(_rewrite_module.__file__).parent
+    подозрительные = []
+    for файл in sorted(корень.glob("*.py")):
+        for н, строка in enumerate(файл.read_text(encoding="utf-8").splitlines(), 1):
+            # Ловим именно НОРМАЛИЗАЦИЮ текста промпта, а не проверку на
+            # пустоту (`if data.strip():`) и не измерение длины.
+            если_промпт = re.search(r"(?:\bprompt\b|\bcore\b|stdin\.read\(\))\s*\.strip\(\)",
+                                    строка)
+            if если_промпт and "len(" not in строка:
+                подозрительные.append("%s:%d %s" % (файл.name, н, строка.strip()))
+    assert not подозрительные, "нормализация промпта мимо normalize_prompt:\n" + "\n".join(подозрительные)
+
+
+def test_stdin_не_срезает_значимый_отступ():
+    """Д1: штатная дверь теряла маркер отступного блока — и в `original` тоже."""
+    import subprocess, sys, json
+    промпт = "    ВАЖНО = load_config()\nобъясни, что делает этот код и почини баг в parser.py"
+    готово = subprocess.run(
+        [sys.executable, "-m", "nativeprompt", "improve", "--model", "claude-opus-5", "--json"],
+        input=промпт, capture_output=True, text=True,
+        cwd=str(pathlib_родитель()), check=True)
+    отчёт = json.loads(готово.stdout)
+    assert отчёт["original"].startswith("    ВАЖНО"), отчёт["original"][:40]
+    assert "    ВАЖНО = load_config()" in отчёт["improved"], отчёт["improved"][:60]
+
+
+def pathlib_родитель():
+    import pathlib
+    return pathlib.Path(_rewrite_module.__file__).parent.parent
+
+
+@pytest.mark.parametrize("отступ,имя", [
+    ("\t\t", "два таба"),
+    (" \t ", "пробел-таб-пробел"),
+    ("  \t", "два пробела и таб"),
+    ("    ", "четыре пробела"),
+    ("\t", "один таб"),
+])
+def test_таб_раскрывается_до_четырёх_колонок(отступ, имя):
+    """Д2: регулярка требовала непробельный символ сразу после ОДНОГО таба.
+
+    `\\t\\tКОД` и ` \\t КОД` считались прозой и правились внутри, хотя по
+    CommonMark 2.2 таб тянет до следующей кратной четырём колонки.
+    """
+    r = build_report(отступ + "ВАЖНО = load_config()\n"
+                     "объясни, что делает этот код и почини баг в parser.py", "claude-opus-5")
+    assert "ВАЖНО = load_config()" in r["improved"], (имя, r["improved"])
+
+
+def test_метапромпт_несёт_тот_же_текст_что_и_improved():
+    """Д3: второй выход инструмента отдавал промпт с уничтоженным отступом."""
+    src = "    ВАЖНО = load_config()\nобъясни, что делает этот код и почини баг в parser.py"
+    r = build_report(src, "claude-opus-5")
+    внутри = r["metaprompt"].split("<<<\n")[1]
+    assert внутри.startswith("    ВАЖНО = load_config()"), внутри[:40]

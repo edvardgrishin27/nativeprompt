@@ -15,8 +15,8 @@ from . import catalog
 #: уже расходились — `rewrite` знал про незакрытый блок кода, `analyze` нет;
 #: `_soften_caps` знал про давящие слова, `_c_pushy_caps` нет.
 from .analyze import (CODE_SPAN as _CODE_SPAN, CAPS_WORD as _CAPS_WORD,
-                      code_regions, has_safe_neighbors, tail_inside_code,
-                      task_shape)
+                      code_regions, has_safe_neighbors, normalize_prompt,
+                      tail_inside_code, task_shape)
 
 _PLACEHOLDER = "‹уточните: %s›"
 
@@ -162,7 +162,7 @@ def rewrite(prompt, target, findings, shape=None):
     # и `    ВАЖНО = load_config()` превращалось в `Важно = load_config()` без
     # отступа. Снимаем пустые строки в начале и пробелы в конце; отступ первой
     # содержательной строки — часть текста, а не мусор.
-    core = re.sub(r"\A(?:[ \t]*\r?\n)+", "", prompt).rstrip()
+    core = normalize_prompt(prompt)
     applied = []
     # Промпт, оборванный на незакрытом ```-блоке, дописывать НЕЛЬЗЯ ничем:
     # ни секцией, ни заметкой, ни точкой (см. tail_inside_code).
@@ -328,5 +328,5 @@ def build_metaprompt(prompt, target, findings, harness_rec=None):
         "1) Улучшенный промпт (готов к вставке).\n"
         "2) 3–5 строк «что изменил и почему», каждая — со ссылкой на правило.\n\n"
         "PROMPT:\n<<<\n%s\n>>>"
-        % (cli, label, cli, rules_block, harness_block, prompt.strip())
+        % (cli, label, cli, rules_block, harness_block, normalize_prompt(prompt))
     )

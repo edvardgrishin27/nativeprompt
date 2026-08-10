@@ -6,6 +6,7 @@ import pytest
 
 from nativeprompt import catalog
 from nativeprompt.analyze import _CHECKS
+from nativeprompt.update import _all_urls
 
 FROZEN = {
     "claude": {
@@ -178,8 +179,12 @@ def test_числа_в_документации_совпадают_с_факто
     корень = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     правил = sum(len(catalog.load_family(f)["rules"]) for f in ВСЕ_СЕМЕЙСТВА)
     страниц = sum(
-        len(v.get("docs", v)) if isinstance(v, dict) else len(v)
-        for v in catalog.load_sources()["families"].values()
+        # Считаем ТЕМ ЖЕ вызовом, что и сам `update`, а не своей формулой.
+        # Своя давала 22 (только `docs`), команда качала 24 (плюс `index`
+        # каждого семейства) — и в договоре двадцать один круг стояло число,
+        # которое не совпадало ни с чем. Проверка, считающая иначе, чем код,
+        # проверяет собственную арифметику.
+        1 for _ in _all_urls()
     )
     for имя in ("CLAIMS.md", "CLAIMS.ru.md"):
         текст = io.open(os.path.join(корень, имя), encoding="utf-8").read()

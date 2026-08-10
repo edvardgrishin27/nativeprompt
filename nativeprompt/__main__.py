@@ -11,6 +11,7 @@ import json
 import sys
 
 from . import __version__, catalog, detect as _detect
+from .analyze import normalize_prompt
 from .explain import build_report, render_report
 from . import update as _update
 
@@ -42,8 +43,12 @@ def _read_prompt(arg):
     if arg and arg.strip():
         return arg
     if not sys.stdin.isatty():
-        data = sys.stdin.read().strip()
-        if data:
+        # `strip()` здесь срезал ведущий отступ первой строки — маркер
+        # отступного блока кода. И это была ШТАТНАЯ дверь: SKILL.md предписывает
+        # передавать промпт именно через stdin, так что исправление 0.3.1 в
+        # обычном сценарии просто не работало.
+        data = normalize_prompt(sys.stdin.read())
+        if data.strip():
             return data
     return None
 
