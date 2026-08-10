@@ -15,7 +15,8 @@ from . import catalog
 #: уже расходились — `rewrite` знал про незакрытый блок кода, `analyze` нет;
 #: `_soften_caps` знал про давящие слова, `_c_pushy_caps` нет.
 from .analyze import (CODE_SPAN as _CODE_SPAN, CAPS_WORD as _CAPS_WORD,
-                      has_safe_neighbors, tail_inside_code, task_shape)
+                      code_regions, has_safe_neighbors, tail_inside_code,
+                      task_shape)
 
 _PLACEHOLDER = "‹уточните: %s›"
 
@@ -29,10 +30,12 @@ def outside_code(fn, text):
     инструмент молча правил строковый литерал чужой программы.
     """
     out, prev = [], 0
-    for m in _CODE_SPAN.finditer(text):
-        out.append(fn(text[prev : m.start()]))
-        out.append(m.group(0))
-        prev = m.end()
+    for начало, конец in code_regions(text):
+        if начало < prev:
+            continue                   # вложенная область уже отдана как код
+        out.append(fn(text[prev:начало]))
+        out.append(text[начало:конец])
+        prev = конец
     out.append(fn(text[prev:]))
     return "".join(out)
 
