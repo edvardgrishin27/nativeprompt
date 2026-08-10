@@ -927,3 +927,22 @@ def test_промпт_из_одних_пробелов_не_доходит_до_
     monkeypatch.setattr("sys.stdin", _Терминал())
     assert main(["improve", "   \t  ", "--model", "claude-opus-5"]) == 2
     assert main(["improve", "", "--model", "claude-opus-5"]) == 2
+
+
+def test_прямые_кавычки_защищают_данные():
+    """Мутация круга 18: убрать маскирование прямых кавычек — 843 теста зелёные.
+
+    То есть защита цитируемых данных не проверялась вовсе, хотя ради неё
+    кавычки в `CODE_SPAN` и заводились: `замени "ВАЖНО: не трогать" на …` —
+    это инструкция ПРО текст, а не крик, и трогать его нельзя.
+    """
+    from nativeprompt.explain import build_report
+
+    r = build_report('Замени в @a.py строку "ВАЖНО: не трогать" на "важно" и прогони тесты',
+                     "claude-opus-5")
+    assert '"ВАЖНО: не трогать"' in r["improved"], r["improved"]
+    assert "claude-dial-caps" not in {f["id"] for f in r["findings"]}
+    # И детектор не выдумывает находку по тексту внутри кавычек.
+    r2 = build_report('Выведи сообщение "перепроверь себя" в @a.py и прогони тесты',
+                      "claude-opus-5")
+    assert "opus5-remove-verification" not in {f["id"] for f in r2["findings"]}
