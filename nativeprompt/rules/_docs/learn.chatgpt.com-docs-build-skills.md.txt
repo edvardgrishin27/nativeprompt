@@ -9,15 +9,15 @@ can follow a workflow reliably. Skills build on the
 
 Skills are the authoring format for reusable workflows. Plugins distribute
 reusable skills and connectors through the universal plugin directory shared
-by ChatGPT and Codex. Plugins are available with ChatGPT Work on the web, with
-ChatGPT Work and Codex in the ChatGPT desktop app, and through Codex CLI. Use
-skills to design the workflow itself, then package it as a
+by ChatGPT and Codex. Plugins work in Chat and Work across ChatGPT on the web,
+desktop, and mobile, in Codex in the ChatGPT desktop app, and through Codex
+CLI. Use skills to design the workflow itself, then package it as a
 [plugin](https://developers.openai.com/plugins/build/plugins) when you want
 other people to install it.
 
 Standalone skills are available in the ChatGPT desktop app, Codex CLI, and IDE
-extension. Skills bundled in plugins are also available through supported
-plugin surfaces, including ChatGPT Work on the web.
+extension. Skills bundled in plugins are also available in Chat and Work across
+ChatGPT on the web, desktop, and mobile.
 
 In the ChatGPT desktop app, open **Skills** in the sidebar to view and explore skills
 created across your projects.
