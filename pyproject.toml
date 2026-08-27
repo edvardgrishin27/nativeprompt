@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nativeprompt"
-version = "0.4.0"
+version = "0.4.1"
 description = "Rewrite your prompt into the native dialect of the model you're actually using — by each vendor's OFFICIAL rules, and tell you why."
 readme = "README.md"
 requires-python = ">=3.9"

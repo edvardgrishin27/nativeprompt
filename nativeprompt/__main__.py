@@ -8,7 +8,9 @@
 """
 
 import argparse
+import io
 import json
+import re
 import sys
 
 from . import __version__, catalog, detect as _detect
@@ -82,6 +84,97 @@ def cmd_improve(args):
     if delta is not None and not report.get("error"):
         print(render_verify(delta))
     return 0 if not report.get("error") else 1
+
+
+def cmd_coverage(args):
+    """Сколько правил вендора инструмент закрывает на ВАШИХ промптах.
+
+    Это не оценка качества ответа и не бенчмарк: модель не запускается, ответы
+    не сравниваются, слова «лучше» здесь нет. Считается ровно одно — сколько
+    официальных рекомендаций промпт нарушал, сколько из них инструмент закрыл
+    сам, сколько оставил вам на решение и сколько внёс собственными вставками.
+    Последнее число обязано быть нулём: если инструмент вносит находки сам,
+    это дефект, а не статистика.
+
+    Величина полностью в наших руках и воспроизводима: одни и те же промпты
+    дают один и тот же счёт, потому что внутри нет ни модели, ни сети.
+    """
+    import collections
+
+    путь = args.file
+    try:
+        сырое = io.open(путь, encoding="utf-8").read()
+    except OSError as e:
+        print("Не смог прочитать %s: %s" % (путь, e), file=sys.stderr)
+        return 2
+
+    # Два формата. JSON-массив строк — точный: промпт с пустой строкой внутри
+    # доедет как есть. Простой текст с разделением пустой строкой — удобный,
+    # но такой промпт он разорвёт, и это надо знать заранее.
+    if сырое.lstrip().startswith("["):
+        try:
+            промпты = [str(x).strip() for x in json.loads(сырое) if str(x).strip()]
+        except ValueError as e:
+            print("Файл похож на JSON, но не разбирается: %s" % e, file=sys.stderr)
+            return 2
+    else:
+        промпты = [b.strip() for b in re.split(r"\n\s*\n", сырое) if b.strip()]
+    if not промпты:
+        print("В файле %s не нашлось ни одного промпта." % путь, file=sys.stderr)
+        return 2
+
+    модели = args.models.split(",") if args.models else [args.model or None]
+    счёт = collections.Counter()
+    закрытые = collections.Counter()
+    прогонов = 0
+    внесённые = []
+
+    for м in модели:
+        цель = _detect.resolve((м or "").strip() or None)
+        # Пустое семейство значит «правил для такой модели нет». Считать по ним
+        # покрытие нельзя: находок не будет ни одной, и ноль прочитается как
+        # «нарушений нет», хотя разбора просто не было.
+        if цель.get("error") or not цель.get("family"):
+            print("Модель не опознана: %s" % (м or "(автоопределение)"), file=sys.stderr)
+            return 1
+        for текст in промпты:
+            отчёт = build_report(текст, target=цель)
+            if отчёт.get("error"):
+                continue
+            d = verify_delta(отчёт)
+            прогонов += 1
+            счёт["закрыто"] += len(d["closed"])
+            счёт["оставлено"] += len(d["left"])
+            счёт["внесено"] += len(d["introduced"])
+            for r in d["closed"]:
+                закрытые[r] += 1
+            if d["introduced"]:
+                внесённые.append((текст[:60], d["introduced"]))
+
+    всего = счёт["закрыто"] + счёт["оставлено"]
+    if args.json:
+        print(json.dumps({
+            "prompts": len(промпты), "models": len(модели), "runs": прогонов,
+            "findings": всего, "closed": счёт["закрыто"],
+            "left": счёт["оставлено"], "introduced": счёт["внесено"],
+            "closed_by_rule": dict(закрытые),
+        }, ensure_ascii=False, indent=2))
+        return 0 if счёт["внесено"] == 0 else 1
+
+    print("Промптов: %d · моделей: %d · прогонов: %d" % (len(промпты), len(модели), прогонов))
+    print("Находок всего: %d" % всего)
+    if всего:
+        print("  закрыто инструментом: %d (%.0f%%)" % (счёт["закрыто"], 100.0 * счёт["закрыто"] / всего))
+        print("  оставлено вам:        %d (%.0f%%)" % (счёт["оставлено"], 100.0 * счёт["оставлено"] / всего))
+    print("  внесено инструментом: %d%s" % (счёт["внесено"], "" if счёт["внесено"] == 0 else "   ← это дефект"))
+    if закрытые:
+        print("\nЧто именно закрывает:")
+        for r, n in закрытые.most_common():
+            print("  %4d  %s" % (n, r))
+    for текст, ids in внесённые:
+        print("\n  ВНЕСЕНО на «%s…»: %s" % (текст, ", ".join(ids)))
+    print("\nЭто счёт правил, а не оценка качества ответа: модель не запускалась.")
+    return 0 if счёт["внесено"] == 0 else 1
 
 
 def cmd_detect(args):
@@ -185,6 +278,13 @@ def build_parser():
     pr = sub.add_parser("rules", help="показать правила + источники")
     pr.add_argument("family", nargs="?", help="claude | codex | gemini | grok | kimi | qwen (по умолчанию — все)")
     pr.set_defaults(func=cmd_rules)
+
+    pc = sub.add_parser("coverage", help="сколько правил закрывается на ваших промптах")
+    pc.add_argument("file", help="файл с промптами, разделёнными пустой строкой")
+    pc.add_argument("--model", help="одна модель")
+    pc.add_argument("--models", help="несколько моделей через запятую")
+    pc.add_argument("--json", action="store_true")
+    pc.set_defaults(func=cmd_coverage)
 
     pu = sub.add_parser("update", help="сверить свежесть офиц. доков (self-update)")
     pu.add_argument("--write", action="store_true", help="записать снимки (после ревью правил)")

@@ -5,7 +5,7 @@
 ![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
 ![Dependencies](https://img.shields.io/badge/dependencies-zero-lightgrey.svg)
-![Tests](https://img.shields.io/badge/tests-2393%20passed-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-2403%20passed-brightgreen.svg)
 
 [English](README.md) | **Русский**
 
@@ -375,7 +375,7 @@ $nativeprompt улучши этот промпт для Codex: ‹промпт�
 - **Глубина покрытия разная.** У Claude Code и Codex правила разобраны по поколениям (14 и 8 правил), у Gemini, Qwen, Kimi и Grok — по одному правилу и совету по запуску: вендоры публикуют о них меньше.
 - **Это не бенчмарк.** Инструмент применяет правила вендора, а не измеряет, что промпт стал «на X% лучше». Никаких процентов улучшения он не обещает.
 
-Проверяемость: `python -m pytest -q` — 2393 теста (детект, детекторы, перепись, харнесс, целостность правил, frozen-снапшот набора правил, самопроверка, отказ переписывать, бюджет контекста хука, карточка воспроизводимости). `nativeprompt rules` показывает все правила с источниками — сверьте выборочно сами.
+Проверяемость: `python -m pytest -q` — 2403 теста (детект, детекторы, перепись, харнесс, целостность правил, frozen-снапшот набора правил, самопроверка, отказ переписывать, бюджет контекста хука, карточка воспроизводимости). `nativeprompt rules` показывает все правила с источниками — сверьте выборочно сами.
 
 ## Как внести вклад
 

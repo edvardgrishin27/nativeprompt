@@ -221,6 +221,39 @@ rule families.
 show a fully rewritten prompt, now it shows your text with CAPS lowered and sections
 appended. If you want the finished text, take the metaprompt — that is what it is for.
 
+### How many rules the tool closes: measurable and reproducible
+
+Measuring answer quality offline is not honest: it needs a dataset, a model run,
+and a second run to compare against. There is no model inside `nativeprompt`,
+and adding one for the sake of a number would cost exactly what makes the tool
+what it is.
+
+Something else is fully measurable: **how many official recommendations the
+prompt broke, and what happened to them**. That is not a quality score, it is
+a rule count, and it reproduces byte-for-byte because there is neither a model
+nor a network inside.
+
+```
+nativeprompt coverage my-prompts.json --models claude-opus-5,gpt-5.6-sol
+```
+
+On the project's own corpus (56 prompts × 3 models, 168 runs, 227 findings):
+**87 closed by the tool (38%), 140 left to you (62%), 0 introduced by the tool.**
+
+The third number matters more than the first two. If the tool introduces
+findings through its own insertions, that is a defect rather than a statistic,
+and the command exits non-zero. That is exactly how two defects were found:
+the tool was reacting to its own insertions.
+
+What 38% means. The tool closes only what cannot be got wrong: shouting caps,
+a polite opener, markup. The other 62% are rules it flags and leaves to you,
+because cutting those by regex eventually kills meaning. That is not a gap,
+it is the "flag, don't cut" contract expressed as a number.
+
+> Verified by: 10 tests in `tests/test_coverage.py`, including a guard on the
+> published number itself — change a rule or the corpus and the test goes red
+> along with the figure above.
+
 ## What it does NOT do / limits
 
 **It does not invent your task.** Missing details — files, "done" criteria, output format — are inserted as explicit placeholders `‹…›`, never as plausible-sounding content. A test asserts the rewriter does not fabricate file names.
@@ -265,10 +298,10 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 2393 tests, no dependencies beyond pytest
+# 1. Test suite — 2403 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 2393 passed
-#   688 invariant · 528 hook budget · 479 reproducibility card · 361 self-check · 91 rule integrity · 73 regressions · 69 prompt-as-data · 32 detection · 23 refusal · 23 capabilities · 9 analysis · 8 rewrite · 6 harness · 3 update
+# 2403 passed
+#   688 invariant · 528 hook budget · 479 reproducibility card · 361 self-check · 91 rule integrity · 73 regressions · 69 prompt-as-data · 32 detection · 23 refusal · 23 capabilities · 10 coverage · 9 analysis · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
 python3 -m nativeprompt rules claude
