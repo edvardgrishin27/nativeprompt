@@ -5,7 +5,7 @@
 ![MIT](https://img.shields.io/badge/license-MIT-black)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![281 tests](https://img.shields.io/badge/tests-907%20passing-brightgreen)
+![2393 tests](https://img.shields.io/badge/tests-2393%20passing-brightgreen)
 ![offline](https://img.shields.io/badge/core-deterministic%20%C2%B7%20offline-lightgrey)
 
 **English** | [Русский](README.ru.md)
@@ -99,13 +99,16 @@ Real output (trimmed to the findings and the harness advice):
 МОДЕЛЬ: Codex (gpt-5.6) · gpt-5.6
 определено: явно (--model)
 
-ЧТО УЛУЧШИТЬ (3):
-1. [!] «думай пошагово» лишнее — GPT-5.x рассуждает сам
+ЧТО УЛУЧШИТЬ (3, сначала важное):
+1. [+] Сначала результат: цель, формат ответа и что считается «готово»
+   неприменимо: Если результат уже описан в AGENTS.md или в предыдущем сообщении…
+   правило: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
+2. [~] Просить действие прямо
+   неприменимо: Если вы спрашиваете совет, а не поручаете работу…
+   правило: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
+3. [!] «думай пошагово» лишнее — GPT-5.x рассуждает сам
+   неприменимо: Если «пошагово» относится к ФОРМАТУ ответа («опиши пошагово процесс деплоя»)…
    правило: https://developers.openai.com/api/docs/guides/reasoning
-2. [+] Сначала результат: цель, формат ответа и что считается «готово»
-   правило: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
-3. [~] Просить действие прямо
-   правило: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
 
 КАК ЗАПУСКАТЬ (Codex) — форма задачи: normal
   → начните обычным запуском; при первой же неясности — /plan
@@ -114,6 +117,10 @@ Real output (trimmed to the findings and the harness advice):
 The exact same prompt against Claude Opus 5 produces a *different* set — that contrast is the whole point of the tool.
 
 **The prompt text itself is left intact in both cases.** The tool changes form only — it lowers SHOUTING CAPS and drops the polite wrapper — and it **adds** placeholder sections. It never deletes and never substitutes: `[!]` means "the vendor recommends dropping this; your call". Why it works this way is in [CLAIMS.md](CLAIMS.md), section "Why the tool does not rewrite your text".
+
+Findings are ordered by importance, not by their order in the rule file: `priority` 1 is the result contract and the task boundaries, 2 the run mode and structure, 3 cosmetics. Under each finding there is a `неприменимо:` line — the concrete situation in which the advice does not apply ("the file is already named earlier in this conversation"), because the detectors here are regexes and see no conversation history. A false positive you can recognise and skip costs nothing; that is cheaper than a detector that is never wrong. The same clause travels into the meta-prompt and into the hook.
+
+When nothing fires — or when everything that fired the tool has already closed itself — `improve` says so and prints **no** meta-prompt: "Промпт соответствует правилам, которые инструмент умеет проверять, переписывать нечего." Handing a model the order "rewrite this" over a prompt that needs no rewrite only buys you a change for the sake of a change. A placeholder `‹…›` does not count as closed: it hands the rule to you, and `--verify` counts it the same way.
 
 Markers: `[+]` add, `[-]` remove, `[~]` restructure, `[!]` flagged, not touched.
 A marker is derived from what actually happened, not from what the rule declares: a finding gets an action marker only if it really changed the text, so `[!]` is also what you see when a rule's advice went to the meta-prompt alone.
@@ -130,7 +137,7 @@ More raw prompts to try are in [`examples/prompts.md`](examples/prompts.md).
 
 | Command | Flags | What it does |
 |---|---|---|
-| `improve "<prompt>"` | `--model M`, `--json`, `--no-metaprompt` | detect → analyze → rewrite → harness advice → explain. Reads the prompt from stdin when the argument is omitted. |
+| `improve "<prompt>"` | `--model M`, `--json`, `--no-metaprompt`, `--verify` | detect → analyze → rewrite → harness advice → explain. Reads the prompt from stdin when the argument is omitted. Every report carries a **reproducibility card** — one line in the header, the full `meta` object under `--json`: tool version, family, rules version, vendor-docs snapshot date, generation and the signal it came from, task shape, the rule ids that fired and were applied, and the first 12 characters of the prompt's sha256. Without it, two reports from different tool and rule-sheet versions are indistinguishable. |
 | `detect` | `--model M`, `--json` | shows the resolved model, family/CLI, and **which signal** it came from. Exit 1 if nothing resolved. |
 | `rules [claude\|codex]` | — | prints every rule with its source URL, plus the harness table. No argument = all families. |
 | `update` | `--diff`, `--write`, `--timeout N`, `--json` | fetches the vendors' canonical docs and compares them with stored text snapshots. `--diff` prints the exact before/after lines. Non-zero exit when action is needed (CI signal). `--write` records the new snapshots after you've reviewed the rules. A weekly CI job opens a PR containing the diff — **rules themselves are always edited by a human** (see below). |
@@ -138,6 +145,8 @@ More raw prompts to try are in [`examples/prompts.md`](examples/prompts.md).
 `nativeprompt --version` prints the version.
 
 `improve` output has four blocks: **what to fix** (each with the vendor rule + link), the **rewritten prompt**, a **how-to-run** recommendation, and a **meta-prompt** you can hand to your own model for a full prose rewrite (suppress it with `--no-metaprompt`).
+
+`--verify` adds a fifth: the same detectors run a second time over the tool's own result, and the rules land in three buckets — *closed* (the finding is gone from your text), *left to you* (the rule still fires — that is the norm, those rules are flagged rather than cut) and *introduced by the tool* (there was no finding and now there is — that one is a defect of the tool). It is a count of rules, not a quality score: the tool has no opinion on whether your text got better.
 
 ## Using it in VS Code
 
@@ -209,6 +218,7 @@ What it does and doesn't do:
 - Any error is swallowed — it never blocks your prompt from being sent.
 - **Budget: 30 seconds.** `UserPromptSubmit` lowers the default hook timeout from 600 s to 30 s ([hooks](https://code.claude.com/docs/en/hooks)). This hook is deterministic and makes no network calls, so it fits comfortably — don't add network calls of your own there.
 - Matchers are not supported for this event and are silently ignored; it fires on every prompt.
+- **Context budget: 2400 characters.** The hook is paid for on every prompt, out of your own context window, so its size is capped; over the project corpus the worst case after trimming is 1729 characters. When it does not fit, it trims in a fixed order and only its own blocks — the run recommendation first, then the tail of the advisory list beyond three, then the "improved version" block in full. Your text is never cut in the middle: the block is whole or absent, and a single line says what was dropped ([CLAIMS](CLAIMS.md#the-hooks-cost-is-measurable-the-injected-context-has-a-ceiling)).
 - The hook resolves the package on its own: an installed `nativeprompt` first, then its own repository directory, then `NATIVEPROMPT_HOME` / `CLAUDE_PROJECT_DIR`. No path editing required, and it stays silent rather than failing if nothing resolves.
 
 There is also a documented way to get the model *exactly*, which the hook does not use yet: only `SessionStart` hooks can receive a `model` field, and *"there is no `$CLAUDE_MODEL` environment variable"* ([hooks](https://code.claude.com/docs/en/hooks)). A `SessionStart` hook that caches that value would beat any settings-file read, because it also catches `--model` and the session-only `s` choice. Contributions welcome.
@@ -280,7 +290,7 @@ Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 Verify first:
 
 ```bash
-python3 -m pytest -q          # 907 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot
+python3 -m pytest -q          # 2393 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot, self-check, refusal, hook context budget, reproducibility card
 ```
 
 **Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:

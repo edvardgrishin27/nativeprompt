@@ -51,8 +51,10 @@
       "scope": "family",
       "check": "needs_agents_md",
       "action": "warn",
+      "priority": 2,
       "title": "Постоянные правила проекта — в AGENTS.md, не в промпте",
       "why": "Повторяющиеся установки (стиль, команды, границы) выносите в AGENTS.md — Kimi CLI читает его как контекст проекта. Промпт тогда — только про конкретную задачу.",
+      "unless": "Если AGENTS.md уже лежит в проекте вместе с этой установкой, либо запуск разовый и файла после него не останется, — держите установку в промпте.",
       "source": "https://github.com/MoonshotAI/kimi-cli/blob/main/docs/en/reference/slash-commands.md"
     }
   ],

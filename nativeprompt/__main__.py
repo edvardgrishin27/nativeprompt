@@ -1,6 +1,7 @@
 """CLI: nativeprompt <команда>.
 
-  improve "<промпт>" [--model M] [--json] [--no-metaprompt]   переписать + объяснить
+  improve "<промпт>" [--model M] [--json] [--no-metaprompt] [--verify]
+                                                              переписать + объяснить
   detect [--model M]                                          какая модель определилась
   rules [семейство]                                           показать правила + источники
   update [--write] [--timeout N]                              сверить свежесть офиц. доков
@@ -12,7 +13,7 @@ import sys
 
 from . import __version__, catalog, detect as _detect
 from .analyze import normalize_prompt
-from .explain import build_report, render_report
+from .explain import build_report, render_report, render_verify, verify_delta, nothing_to_do
 from . import update as _update
 
 
@@ -59,10 +60,27 @@ def cmd_improve(args):
         print("Дайте промпт: nativeprompt improve \"<текст>\"  (или через stdin).", file=sys.stderr)
         return 2
     report = build_report(prompt, model=args.model)
+    # Самопроверка — отдельный шаг за флагом. Без флага её нет вовсе: ни
+    # второго прогона, ни лишней строки в выводе, ни нового ключа в --json.
+    # У людей вызов хука уже прописан в settings.json, и он обязан работать
+    # ровно как раньше.
+    # На отчёте с ошибкой (модель не опознана) разбора не было вовсе, и пустые
+    # корзины прочитались бы как «инструмент ничего не внёс». Молчим — ровно
+    # так же, как молчит текстовая ветка и как убран meta.
+    delta = verify_delta(report) if (args.verify and not report.get("error")) else None
     if args.json:
-        print(json.dumps(report, ensure_ascii=False, indent=2))
+        out = dict(report)                        # не мутируем отчёт
+        if delta is not None:
+            out["verify"] = delta
+        # Скилл ходит через --json и по нему решает, выполнять ли мета-промпт.
+        # Без этого ключа ему нечем свериться с CLI, и два пути расходятся.
+        if not report.get("error"):
+            out["nothing_to_do"] = nothing_to_do(report)
+        print(json.dumps(out, ensure_ascii=False, indent=2))
         return 0 if not report.get("error") else 1
     print(render_report(report, show_metaprompt=not args.no_metaprompt))
+    if delta is not None and not report.get("error"):
+        print(render_verify(delta))
     return 0 if not report.get("error") else 1
 
 
@@ -155,6 +173,8 @@ def build_parser():
     pi.add_argument("--model", help="целевая модель: claude-opus-5 / gpt-5.6 / codex …")
     pi.add_argument("--json", action="store_true", help="выдать отчёт как JSON")
     pi.add_argument("--no-metaprompt", action="store_true", help="без блока мета-промпта")
+    pi.add_argument("--verify", action="store_true",
+                    help="прогнать детекторы по собственному результату: закрыто / оставлено вам / внесено инструментом")
     pi.set_defaults(func=cmd_improve)
 
     pd = sub.add_parser("detect", help="показать, какая модель определилась")

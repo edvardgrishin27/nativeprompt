@@ -36,8 +36,10 @@
       "scope": "family",
       "check": "needs_agents_md",
       "action": "warn",
+      "priority": 2,
       "title": "Постоянные правила проекта — в QWEN.md, не в промпте",
       "why": "Повторяющиеся установки (стиль, команды, границы) выносите в QWEN.md — Qwen Code подхватывает его как контекст. Промпт тогда — только про конкретную задачу. Файл создаётся командой /init.",
+      "unless": "Если QWEN.md уже создан командой /init и установка в нём записана, либо это разовый прогон в чужом каталоге, — оставьте установку в промпте.",
       "source": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/commands.md"
     }
   ],

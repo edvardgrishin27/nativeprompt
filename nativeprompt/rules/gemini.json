@@ -24,8 +24,10 @@
       "scope": "family",
       "check": "needs_agents_md",
       "action": "warn",
+      "priority": 2,
       "title": "Постоянные правила проекта — в GEMINI.md, не в промпте",
       "why": "Повторяющиеся установки (стиль, команды, границы) выносите в GEMINI.md — Gemini CLI подхватывает его как контекст. Промпт тогда — только про конкретную задачу.",
+      "unless": "Если GEMINI.md уже заведён и эта установка в нём записана, либо вы работаете в чужом репозитории, где файл создавать нельзя, — оставьте установку в промпте.",
       "source": "https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/gemini-md.md"
     }
   ],
