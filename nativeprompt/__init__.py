@@ -5,7 +5,7 @@
 Zero-deps, stdlib-only, детерминированное ядро. См. README.md.
 """
 
-__version__ = "0.3.6"
+__version__ = "0.4.0"
 
 from .catalog import load_family, available_families, RulesError
 from .detect import detect_model
