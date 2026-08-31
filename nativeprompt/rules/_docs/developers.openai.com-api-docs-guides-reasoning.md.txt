@@ -60,6 +60,112 @@ response = client.responses.create(
 print(response.output_text)
 ```
 
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	prompt := `Write a bash script that takes a matrix represented as a string with
+format '[1,2],[3,4],[5,6]' and prints the transpose in the same format.`
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Reasoning: responses.ReasoningParam{
+			Effort: responses.ReasoningEffortLow,
+		},
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String(prompt),
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(response.OutputText())
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.Reasoning;
+import com.openai.models.ReasoningEffort;
+import com.openai.models.responses.ResponseCreateParams;
+
+String prompt =
+    """
+    Write a bash script that takes a matrix represented as a string with format
+    '[1,2],[3,4],[5,6]' and prints the transpose in the same format.
+    """
+        .strip();
+
+ResponseCreateParams params =
+    ResponseCreateParams.builder()
+        .model("gpt-5.6")
+        .input(prompt)
+        .reasoning(Reasoning.builder().effort(ReasoningEffort.LOW).build())
+        .build();
+
+client.responses().create(params).output().stream()
+    .flatMap(item -> item.message().stream())
+    .flatMap(message -> message.content().stream())
+    .flatMap(content -> content.outputText().stream())
+    .forEach(text -> System.out.println(text.text()));
+```
+
+```csharp
+using OpenAI.Responses;
+#pragma warning disable OPENAI001
+
+string key = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
+ResponsesClient client = new(key);
+
+string prompt =
+    """
+    Write a bash script that takes a matrix represented as a string with format
+    '[1,2],[3,4],[5,6]' and prints the transpose in the same format.
+    """;
+CreateResponseOptions options = new()
+{
+    Model = "gpt-5.6",
+    ReasoningOptions = new ResponseReasoningOptions
+    {
+        ReasoningEffortLevel = ResponseReasoningEffortLevel.Low,
+    },
+};
+options.InputItems.Add(ResponseItem.CreateUserMessageItem(prompt));
+
+ResponseResult response = await client.CreateResponseAsync(options);
+
+Console.WriteLine(response.GetOutputText());
+```
+
+```ruby
+require "openai"
+
+client = OpenAI::Client.new
+prompt = <<~PROMPT
+  Write a bash script that takes a matrix represented as a string with format
+  '[1,2],[3,4],[5,6]' and prints the transpose in the same format.
+PROMPT
+
+response = client.responses.create(
+  model: "gpt-5.6",
+  reasoning: {effort: :low},
+  input: prompt
+)
+
+puts(response.output_text)
+```
+
 ```bash
 curl https://api.openai.com/v1/responses \
   -H "Content-Type: application/json" \
@@ -236,6 +342,153 @@ if (
         print("Ran out of tokens during reasoning")
 ```
 
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	prompt := `Write a bash script that takes a matrix represented as a string with
+format '[1,2],[3,4],[5,6]' and prints the transpose in the same format.`
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model:           "gpt-5.6",
+		MaxOutputTokens: openai.Int(300),
+		Reasoning: responses.ReasoningParam{
+			Effort: responses.ReasoningEffortMedium,
+		},
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String(prompt),
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	if response.Status == responses.ResponseStatusIncomplete {
+		fmt.Println("Ran out of tokens")
+		if text := response.OutputText(); text != "" {
+			fmt.Println("Partial output:", text)
+		}
+	}
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.Reasoning;
+import com.openai.models.ReasoningEffort;
+import com.openai.models.responses.Response;
+import com.openai.models.responses.ResponseCreateParams;
+import com.openai.models.responses.ResponseStatus;
+
+ResponseCreateParams params =
+    ResponseCreateParams.builder()
+        .model("gpt-5.6")
+        .input(
+            "Write a bash script that takes a matrix represented as a string with format "
+                + "'[1,2],[3,4],[5,6]' and prints the transpose in the same format.")
+        .maxOutputTokens(300)
+        .reasoning(Reasoning.builder().effort(ReasoningEffort.MEDIUM).build())
+        .build();
+
+var response = client.responses().create(params);
+if (response.status().filter(ResponseStatus.INCOMPLETE::equals).isPresent()
+    && response
+        .incompleteDetails()
+        .flatMap(Response.IncompleteDetails::reason)
+        .filter(Response.IncompleteDetails.Reason.MAX_OUTPUT_TOKENS::equals)
+        .isPresent()) {
+  System.out.println("Ran out of tokens");
+  response.output().stream()
+      .flatMap(item -> item.message().stream())
+      .flatMap(message -> message.content().stream())
+      .flatMap(content -> content.outputText().stream())
+      .forEach(text -> System.out.println("Partial output: " + text.text()));
+}
+```
+
+```csharp
+using OpenAI.Responses;
+#pragma warning disable OPENAI001
+
+string key = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
+ResponsesClient client = new(key);
+
+CreateResponseOptions options = new()
+{
+    Model = "gpt-5.6",
+    MaxOutputTokenCount = 300,
+    ReasoningOptions = new ResponseReasoningOptions
+    {
+        ReasoningEffortLevel = ResponseReasoningEffortLevel.Medium,
+    },
+};
+options.InputItems.Add(
+    ResponseItem.CreateUserMessageItem("Write a bash script that transposes a matrix.")
+);
+
+ResponseResult response = await client.CreateResponseAsync(options);
+if (
+    response.Status == ResponseStatus.Incomplete
+    && response.IncompleteStatusDetails?.Reason == ResponseIncompleteStatusReason.MaxOutputTokens
+)
+{
+    Console.WriteLine("The response ended before all output tokens were generated.");
+    string partialOutput = response.GetOutputText();
+    Console.WriteLine(
+        string.IsNullOrWhiteSpace(partialOutput)
+            ? "Ran out of tokens during reasoning."
+            : $"Partial output: {partialOutput}"
+    );
+}
+else if (
+    response.Status == ResponseStatus.Incomplete
+    && response.IncompleteStatusDetails?.Reason == ResponseIncompleteStatusReason.ContentFilter
+)
+{
+    Console.WriteLine("The response was interrupted by the content filter.");
+}
+else if (response.Status == ResponseStatus.Completed)
+{
+    Console.WriteLine(response.GetOutputText());
+}
+else
+{
+    throw new InvalidOperationException($"The response ended with status: {response.Status}");
+}
+```
+
+```ruby
+require "openai"
+
+client = OpenAI::Client.new
+prompt = <<~PROMPT
+  Write a bash script that takes a matrix represented as a string with format
+  '[1,2],[3,4],[5,6]' and prints the transpose in the same format.
+PROMPT
+
+response = client.responses.create(
+  model: "gpt-5.6",
+  max_output_tokens: 300,
+  reasoning: {effort: :medium},
+  input: prompt
+)
+
+if response.status == OpenAI::Responses::ResponseStatus::INCOMPLETE
+  puts("Ran out of tokens")
+  puts("Partial output: #{response.output_text}") unless response.output_text.empty?
+end
+```
+
 
 ### Keeping reasoning items in context
 
@@ -267,6 +520,10 @@ The [GPT-5.6 model family](https://developers.openai.com/api/docs/guides/latest-
 The response's `reasoning.context` field contains the effective mode, either `current_turn` or `all_turns`. Check this field on each response to confirm which mode the model used. The setting does not create reasoning items that are not already available.
 
 `all_turns` has an effect only when the request has access to earlier response items. Use `previous_response_id`, attach the response to a conversation, or manually replay the complete response history. On the first request, `current_turn` and `all_turns` behave the same because no earlier reasoning exists.
+
+Persisted reasoning can be reused only within the same model family. For example, `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna` can reuse each other's reasoning, but reasoning does not carry between the GPT-5.6 and GPT-5.5 families.
+
+When you switch model families, the API omits incompatible reasoning from the model's context, even when `reasoning.context` is `all_turns`.
 
 ### Continue reasoning with stored responses
 
@@ -315,6 +572,113 @@ second = client.responses.create(
 )
 
 print(second.output_text)
+```
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	model := "gpt-5.6"
+
+	first, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: model,
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String("Inspect this repository and identify the likely bug."),
+		},
+		Reasoning: responses.ReasoningParam{
+			Context: responses.ReasoningContextCurrentTurn,
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	second, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model:              model,
+		PreviousResponseID: openai.String(first.ID),
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String("Now patch the bug and explain the change."),
+		},
+		Reasoning: responses.ReasoningParam{
+			Context: responses.ReasoningContextAllTurns,
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(second.OutputText())
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.JsonValue;
+import com.openai.models.Reasoning;
+import com.openai.models.responses.ResponseCreateParams;
+
+var first =
+    client
+        .responses()
+        .create(
+            ResponseCreateParams.builder()
+                .model("gpt-5.6")
+                .input("Inspect this repository and identify the likely bug.")
+                .reasoning(
+                    Reasoning.builder()
+                        .putAdditionalProperty("context", JsonValue.from("current_turn"))
+                        .build())
+                .build());
+
+var second =
+    client
+        .responses()
+        .create(
+            ResponseCreateParams.builder()
+                .model("gpt-5.6")
+                .input("Now patch the bug and explain the change.")
+                .previousResponseId(first.id())
+                .reasoning(
+                    Reasoning.builder()
+                        .putAdditionalProperty("context", JsonValue.from("all_turns"))
+                        .build())
+                .build());
+second.output().stream()
+    .flatMap(item -> item.message().stream())
+    .flatMap(message -> message.content().stream())
+    .flatMap(content -> content.outputText().stream())
+    .forEach(text -> System.out.println(text.text()));
+```
+
+```ruby
+require "openai"
+
+client = OpenAI::Client.new
+
+first = client.responses.create(
+  model: "gpt-5.6",
+  input: "Inspect this repository and identify the likely bug.",
+  reasoning: {context: :current_turn}
+)
+
+second = client.responses.create(
+  model: "gpt-5.6",
+  previous_response_id: first.id,
+  input: "Now patch the bug and explain the change.",
+  reasoning: {context: :all_turns}
+)
+
+puts(second.output_text)
 ```
 
 
@@ -422,6 +786,151 @@ second = client.responses.create(
 print(second.output_text)
 ```
 
+```go
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+	"github.com/openai/openai-go/v3/shared"
+)
+
+func main() {
+	client := openai.NewClient()
+	history := []responses.ResponseInputItemUnionParam{
+		responses.ResponseInputItemParamOfMessage("Inspect this repository and identify the likely bug.", responses.EasyInputMessageRoleUser),
+	}
+	first, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model:     "gpt-5.6",
+		Store:     openai.Bool(false),
+		Input:     responses.ResponseNewParamsInputUnion{OfInputItemList: history},
+		Reasoning: shared.ReasoningParam{Context: shared.ReasoningContextCurrentTurn},
+	})
+	if err != nil {
+		panic(err)
+	}
+	history = append(history, outputAsInput(first.Output)...)
+	history = append(history, responses.ResponseInputItemParamOfMessage(
+		"Now patch the bug and explain the change.",
+		responses.EasyInputMessageRoleUser,
+	))
+	second, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model:     "gpt-5.6",
+		Store:     openai.Bool(false),
+		Input:     responses.ResponseNewParamsInputUnion{OfInputItemList: history},
+		Reasoning: shared.ReasoningParam{Context: shared.ReasoningContextAllTurns},
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(second.OutputText())
+}
+
+func outputAsInput(output []responses.ResponseOutputItemUnion) []responses.ResponseInputItemUnionParam {
+	input := make([]responses.ResponseInputItemUnionParam, 0, len(output))
+	for _, item := range output {
+		var converted responses.ResponseInputItemUnion
+		if err := json.Unmarshal([]byte(item.RawJSON()), &converted); err != nil {
+			panic(err)
+		}
+		input = append(input, converted.ToParam())
+	}
+	return input
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.JsonValue;
+import com.openai.models.Reasoning;
+import com.openai.models.responses.EasyInputMessage;
+import com.openai.models.responses.ResponseCreateParams;
+import com.openai.models.responses.ResponseInputItem;
+import java.util.ArrayList;
+
+var history = new ArrayList<ResponseInputItem>();
+history.add(
+    ResponseInputItem.ofEasyInputMessage(
+        EasyInputMessage.builder()
+            .role(EasyInputMessage.Role.USER)
+            .content("Inspect this repository and identify the likely bug.")
+            .build()));
+
+var first =
+    client
+        .responses()
+        .create(
+            ResponseCreateParams.builder()
+                .model("gpt-5.6")
+                .inputOfResponse(history)
+                .store(false)
+                .reasoning(
+                    Reasoning.builder()
+                        .putAdditionalProperty("context", JsonValue.from("current_turn"))
+                        .build())
+                .build());
+first.output().stream()
+    .map(item -> JsonValue.from(item).convert(ResponseInputItem.class))
+    .forEach(history::add);
+history.add(
+    ResponseInputItem.ofEasyInputMessage(
+        EasyInputMessage.builder()
+            .role(EasyInputMessage.Role.USER)
+            .content("Now patch the bug and explain the change.")
+            .build()));
+
+client
+    .responses()
+    .create(
+        ResponseCreateParams.builder()
+            .model("gpt-5.6")
+            .inputOfResponse(history)
+            .store(false)
+            .reasoning(
+                Reasoning.builder()
+                    .putAdditionalProperty("context", JsonValue.from("all_turns"))
+                    .build())
+            .build())
+    .output()
+    .stream()
+    .flatMap(item -> item.message().stream())
+    .flatMap(message -> message.content().stream())
+    .flatMap(content -> content.outputText().stream())
+    .forEach(text -> System.out.println(text.text()));
+```
+
+```ruby
+require "openai"
+
+client = OpenAI::Client.new
+history = [
+  {role: :user, content: "Inspect this repository and identify the likely bug."}
+]
+
+first = client.responses.create(
+  model: "gpt-5.6",
+  store: false,
+  input: history,
+  reasoning: {context: :current_turn}
+)
+history.concat(first.output)
+history << {role: :user, content: "Now patch the bug and explain the change."}
+
+second = client.responses.create(
+  model: "gpt-5.6",
+  store: false,
+  input: history,
+  reasoning: {context: :all_turns}
+)
+
+puts(second.output_text)
+```
+
 
 ## Reasoning summaries
 
@@ -463,6 +972,102 @@ response = client.responses.create(
 )
 
 print(response.output)
+```
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String("What is the capital of France?"),
+		},
+		Reasoning: responses.ReasoningParam{
+			Effort:  responses.ReasoningEffortLow,
+			Summary: responses.ReasoningSummaryAuto,
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(response.Output)
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.Reasoning;
+import com.openai.models.ReasoningEffort;
+import com.openai.models.responses.ResponseCreateParams;
+
+ResponseCreateParams params =
+    ResponseCreateParams.builder()
+        .model("gpt-5.6")
+        .input("What is the capital of France?")
+        .reasoning(
+            Reasoning.builder()
+                .effort(ReasoningEffort.LOW)
+                .summary(Reasoning.Summary.AUTO)
+                .build())
+        .build();
+
+client.responses().create(params).output().stream()
+    .flatMap(item -> item.reasoning().stream())
+    .flatMap(reasoning -> reasoning.summary().stream())
+    .forEach(summary -> System.out.println(summary.text()));
+```
+
+```csharp
+using OpenAI.Responses;
+#pragma warning disable OPENAI001
+
+string key = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
+ResponsesClient client = new(key);
+
+CreateResponseOptions options = new()
+{
+    Model = "gpt-5.6",
+    ReasoningOptions = new ResponseReasoningOptions
+    {
+        ReasoningEffortLevel = ResponseReasoningEffortLevel.Low,
+        ReasoningSummaryVerbosity = ResponseReasoningSummaryVerbosity.Auto,
+    },
+};
+options.InputItems.Add(ResponseItem.CreateUserMessageItem("What is the capital of France?"));
+
+ResponseResult response = await client.CreateResponseAsync(options);
+foreach (ReasoningResponseItem reasoning in response.OutputItems.OfType<ReasoningResponseItem>())
+{
+    Console.WriteLine(reasoning.GetSummaryText());
+}
+Console.WriteLine(response.GetOutputText());
+```
+
+```ruby
+require "openai"
+
+client = OpenAI::Client.new
+
+response = client.responses.create(
+  model: "gpt-5.6",
+  input: "What is the capital of France?",
+  reasoning: {effort: :low, summary: :auto}
+)
+
+puts(response.output)
 ```
 
 ```bash
@@ -584,6 +1189,112 @@ response = client.responses.create(
 print(response.output_text)
 ```
 
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	commentary := responses.ResponseInputItemParamOfMessage(
+		"I’ll inspect the logs and then summarize root cause and remediation.",
+		responses.EasyInputMessageRoleAssistant,
+	)
+	commentary.OfMessage.Phase = responses.EasyInputMessagePhaseCommentary
+	finalAnswer := responses.ResponseInputItemParamOfMessage(
+		"Root cause: cache invalidation race.",
+		responses.EasyInputMessageRoleAssistant,
+	)
+	finalAnswer.OfMessage.Phase = responses.EasyInputMessagePhaseFinalAnswer
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Input: responses.ResponseNewParamsInputUnion{OfInputItemList: responses.ResponseInputParam{
+			commentary,
+			finalAnswer,
+			responses.ResponseInputItemParamOfMessage("Great—now give me a rollout-safe fix plan.", responses.EasyInputMessageRoleUser),
+		}},
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(response.OutputText())
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.EasyInputMessage;
+import com.openai.models.responses.ResponseCreateParams;
+import com.openai.models.responses.ResponseInputItem;
+import java.util.List;
+
+ResponseCreateParams params =
+    ResponseCreateParams.builder()
+        .model("gpt-5.6")
+        .inputOfResponse(
+            List.of(
+                ResponseInputItem.ofEasyInputMessage(
+                    EasyInputMessage.builder()
+                        .role(EasyInputMessage.Role.ASSISTANT)
+                        .phase(EasyInputMessage.Phase.COMMENTARY)
+                        .content(
+                            "I'll inspect the logs and then summarize root cause and remediation.")
+                        .build()),
+                ResponseInputItem.ofEasyInputMessage(
+                    EasyInputMessage.builder()
+                        .role(EasyInputMessage.Role.ASSISTANT)
+                        .phase(EasyInputMessage.Phase.FINAL_ANSWER)
+                        .content("Root cause: cache invalidation race.")
+                        .build()),
+                ResponseInputItem.ofEasyInputMessage(
+                    EasyInputMessage.builder()
+                        .role(EasyInputMessage.Role.USER)
+                        .content("Great—now give me a rollout-safe fix plan.")
+                        .build())))
+        .build();
+
+client.responses().create(params).output().stream()
+    .flatMap(item -> item.message().stream())
+    .flatMap(message -> message.content().stream())
+    .flatMap(content -> content.outputText().stream())
+    .forEach(text -> System.out.println(text.text()));
+```
+
+```ruby
+require "openai"
+
+client = OpenAI::Client.new
+
+response = client.responses.create(
+  model: "gpt-5.6",
+  input: [
+    {
+      role: :assistant,
+      phase: :commentary,
+      content: "I'll inspect the logs and then summarize root cause and remediation."
+    },
+    {
+      role: :assistant,
+      phase: :final_answer,
+      content: "Root cause: cache invalidation race."
+    },
+    {
+      role: :user,
+      content: "Great—now give me a rollout-safe fix plan."
+    }
+  ]
+)
+
+puts(response.output_text)
+```
+
 
 ## Advice on prompting
 
@@ -702,6 +1413,140 @@ response = client.responses.create(
 print(response.output_text)
 ```
 
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	prompt := `Instructions:
+- Given the React component below, change it so that nonfiction books have red text.
+- Return only the code in your reply.
+- Do not include any additional formatting, such as markdown code blocks.
+
+const books = [
+  { title: 'Dune', category: 'fiction', id: 1 },
+  { title: 'Frankenstein', category: 'fiction', id: 2 },
+  { title: 'Moneyball', category: 'nonfiction', id: 3 },
+];`
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String(prompt),
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(response.OutputText())
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.ResponseCreateParams;
+
+String prompt =
+    """
+    Instructions:
+    - Given the React component below, change it so that nonfiction books have red text.
+    - Return only the code in your reply.
+    - Do not include any additional formatting, such as markdown code blocks.
+
+    const books = [
+    { title: 'Dune', category: 'fiction', id: 1 },
+    { title: 'Frankenstein', category: 'fiction', id: 2 },
+    { title: 'Moneyball', category: 'nonfiction', id: 3 },
+    ];
+    """
+        .strip();
+
+ResponseCreateParams params =
+    ResponseCreateParams.builder().model("gpt-5.6").input(prompt).build();
+
+client.responses().create(params).output().stream()
+    .flatMap(item -> item.message().stream())
+    .flatMap(message -> message.content().stream())
+    .flatMap(content -> content.outputText().stream())
+    .forEach(text -> System.out.println(text.text()));
+```
+
+```csharp
+using OpenAI.Responses;
+#pragma warning disable OPENAI001
+
+string key = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
+ResponsesClient client = new(key);
+
+string prompt =
+    """
+    Instructions:
+    - Given the React component below, make nonfiction book titles red.
+    - Return only the updated component code in your reply.
+    - Do not include any additional formatting, such as markdown code blocks.
+    - For formatting, use four space tabs, and do not allow any lines of code to
+      exceed 80 columns.
+
+    const books = [
+      { title: 'Dune', category: 'fiction', id: 1 },
+      { title: 'Frankenstein', category: 'fiction', id: 2 },
+      { title: 'Moneyball', category: 'nonfiction', id: 3 },
+    ];
+
+    export default function BookList() {
+      const listItems = books.map(book =>
+        <li>
+          {book.title}
+        </li>
+      );
+
+      return (
+        <ul>{listItems}</ul>
+      );
+    }
+    """;
+ResponseResult response = await client.CreateResponseAsync(
+    "gpt-5.6",
+    [ResponseItem.CreateUserMessageItem(prompt)]
+);
+Console.WriteLine(response.GetOutputText());
+```
+
+```ruby
+require "openai"
+
+client = OpenAI::Client.new
+prompt = <<~PROMPT
+  Instructions:
+  - Given the React component below, change it so that nonfiction books have red text.
+  - Return only the code in your reply.
+  - Do not include any additional formatting, such as markdown code blocks.
+
+  const books = [
+    { title: 'Dune', category: 'fiction', id: 1 },
+    { title: 'Frankenstein', category: 'fiction', id: 2 },
+    { title: 'Moneyball', category: 'nonfiction', id: 3 },
+  ];
+PROMPT
+
+response = client.responses.create(
+  model: "gpt-5.6",
+  input: prompt
+)
+
+puts(response.output_text)
+```
+
 
   
 
@@ -775,6 +1620,102 @@ response = client.responses.create(
 print(response.output_text)
 ```
 
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	prompt := `I want to build a Python app that takes user questions and looks them up
+in a database where they are mapped to answers. If there is a close match, it
+retrieves the matched answer. If there is not, it asks the user to provide an
+answer and stores the question/answer pair in the database. Make a plan for the
+directory structure you will need, then return each file in full.`
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String(prompt),
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(response.OutputText())
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.ResponseCreateParams;
+
+String prompt =
+    """
+    I want to build a Python app that looks up user questions in a database where
+    they are mapped to answers. If there is a close match, it retrieves the answer.
+    Otherwise, it asks the user for an answer and stores the question and answer.
+    Plan the directory structure, then return each file in full.
+    """
+        .strip();
+
+ResponseCreateParams params =
+    ResponseCreateParams.builder().model("gpt-5.6").input(prompt).build();
+
+client.responses().create(params).output().stream()
+    .flatMap(item -> item.message().stream())
+    .flatMap(message -> message.content().stream())
+    .flatMap(content -> content.outputText().stream())
+    .forEach(text -> System.out.println(text.text()));
+```
+
+```csharp
+using OpenAI.Responses;
+#pragma warning disable OPENAI001
+
+string key = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
+ResponsesClient client = new(key);
+
+string prompt =
+    """
+    I want to build a Python app that looks up user questions in a database where
+    they are mapped to answers. If there is a close match, it retrieves the answer.
+    Otherwise, it asks the user for an answer and stores the question and answer.
+    Plan the directory structure, then return each file in full.
+    Only supply your reasoning at the beginning and end, not throughout the code.
+    """;
+ResponseResult response = await client.CreateResponseAsync("gpt-5.6", prompt);
+
+Console.WriteLine(response.GetOutputText());
+```
+
+```ruby
+require "openai"
+
+client = OpenAI::Client.new
+prompt = <<~PROMPT
+  I want to build a Python app that looks up user questions in a database where
+  they are mapped to answers. If there is a close match, it retrieves the answer.
+  Otherwise, it asks the user for an answer and stores the question and answer.
+  Plan the directory structure, then return each file in full.
+PROMPT
+
+response = client.responses.create(
+  model: "gpt-5.6",
+  input: prompt
+)
+
+puts(response.output_text)
+```
+
 
   
 
@@ -832,6 +1773,94 @@ response = client.responses.create(
 )
 
 print(response.output_text)
+```
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/responses"
+)
+
+func main() {
+	client := openai.NewClient()
+	prompt := `What are three compounds we should consider investigating to advance
+research into new antibiotics? Why should we consider them?`
+
+	response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+		Model: "gpt-5.6",
+		Input: responses.ResponseNewParamsInputUnion{
+			OfString: openai.String(prompt),
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(response.OutputText())
+}
+```
+
+```java
+import com.openai.client.OpenAIClient;
+import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.models.responses.ResponseCreateParams;
+
+String prompt =
+    """
+    What are three compounds we should consider investigating to advance research
+    into new antibiotics? Why should we consider them?
+    """
+        .strip();
+
+ResponseCreateParams params =
+    ResponseCreateParams.builder().model("gpt-5.6").input(prompt).build();
+
+client.responses().create(params).output().stream()
+    .flatMap(item -> item.message().stream())
+    .flatMap(message -> message.content().stream())
+    .flatMap(content -> content.outputText().stream())
+    .forEach(text -> System.out.println(text.text()));
+```
+
+```csharp
+using OpenAI.Responses;
+#pragma warning disable OPENAI001
+
+string key = Environment.GetEnvironmentVariable("OPENAI_API_KEY")!;
+ResponsesClient client = new(key);
+
+string prompt =
+    """
+    What are three compounds we should investigate to advance research into
+    new antibiotics? Why should we consider them?
+    """;
+ResponseResult response = await client.CreateResponseAsync(
+    "gpt-5.6",
+    [ResponseItem.CreateUserMessageItem(prompt)]
+);
+Console.WriteLine(response.GetOutputText());
+```
+
+```ruby
+require "openai"
+
+client = OpenAI::Client.new
+prompt = <<~PROMPT
+  What are three compounds we should consider investigating to advance research
+  into new antibiotics? Why should we consider them?
+PROMPT
+
+response = client.responses.create(
+  model: "gpt-5.6",
+  input: prompt
+)
+
+puts(response.output_text)
 ```
 
 

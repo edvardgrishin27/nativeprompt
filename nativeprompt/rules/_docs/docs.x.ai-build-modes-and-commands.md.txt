@@ -54,6 +54,10 @@ Use `/context` to check current context usage.
 | `/imagine <prompt>` | Generate an image from a text description |
 | `/imagine-video <prompt>` | Generate a video from a text description |
 | `/tasks` | List background tasks, subagents, and scheduled tasks |
+| `/create-workflow [description]` | Author and save a new workflow |
+| `/workflow <name> [args]` | Launch a saved workflow, or `pause` / `resume` / `stop` / `save` a run |
+| `/workflows` | Open the live workflow run dashboard (fullscreen) |
+| `/deep-research <query>` | Run a background research workflow |
 | `/queue` | List the prompts queued behind the running turn |
 | `/dashboard` | Open the [Agent Dashboard](/build/features/dashboard) |
 | `/settings` (alias `/config`) | Open the settings modal |
@@ -95,3 +99,24 @@ These appear when cross-session memory is enabled.
 Any user-invocable skill can also appear as a slash command, for example `/<skill-name>`.
 
 If names collide, use the qualified form, such as `/local:commit`.
+
+## Workflows
+
+Workflows orchestrate a bounded set of [subagents](/build/features/subagents) in the background: fan out work, verify, then return a result. They are on by default.
+
+Create one with `/create-workflow` and describe what it should do. Grok asks about fan-out, verification, and scope, then authors, smoke-checks, and saves the file as `.grok/workflows/<name>.rhai` in the project, or `~/.grok/workflows/<name>.rhai` for every project.
+
+```text
+/create-workflow Review the current branch for bugs, then verify each finding
+```
+
+Launch a saved workflow with `/workflow <name>` (optional JSON args) or `/<name>`. `/workflows` is the live run dashboard in the fullscreen TUI; it lists active and retained runs, not saved files.
+
+```text
+/workflow review-changes {"target":"origin/main...HEAD"}
+/workflow pause review-changes
+/workflow resume review-changes
+/workflow stop review-changes-2
+```
+
+`/deep-research <query>` starts a built-in research workflow. Disable the feature with `[workflows] enabled = false` in `~/.grok/config.toml`, or `GROK_WORKFLOWS=0`.
