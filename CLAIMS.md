@@ -298,10 +298,10 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 2403 tests, no dependencies beyond pytest
+# 1. Test suite — 2410 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 2403 passed
-#   688 invariant · 528 hook budget · 479 reproducibility card · 361 self-check · 91 rule integrity · 73 regressions · 69 prompt-as-data · 32 detection · 23 refusal · 23 capabilities · 10 coverage · 9 analysis · 8 rewrite · 6 harness · 3 update
+# 2410 passed
+#   688 invariant · 528 hook budget · 479 reproducibility card · 361 self-check · 91 rule integrity · 73 regressions · 69 prompt-as-data · 32 detection · 23 refusal · 23 capabilities · 10 coverage · 9 analysis · 8 rewrite · 6 harness · 7 install · 3 update
 
 # 2. Every rule with its official source — spot-check the links
 python3 -m nativeprompt rules claude

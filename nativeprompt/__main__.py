@@ -11,6 +11,7 @@ import argparse
 import io
 import json
 import re
+import os
 import sys
 
 from . import __version__, catalog, detect as _detect
@@ -54,6 +55,51 @@ def _read_prompt(arg):
         if data.strip():
             return data
     return None
+
+
+def cmd_install(args):
+    """Ставит навык в ~/.claude/skills, чтобы его видели и терминал, и приложение.
+
+    Навык лежит в самом пакете, а не только в репозитории: после `pipx install`
+    клона у человека нет, и копировать SKILL.md было неоткуда. Ровно на этом
+    спотыкались: ставили пакет, навык не появлялся, и в чате «такого инструмента
+    не существует».
+
+    Каталог ~/.claude/skills читают обе среды, поэтому отдельной установки
+    под приложение не нужно.
+    """
+    import shutil
+
+    пакет = os.path.dirname(os.path.abspath(__file__))
+    исходник = os.path.join(пакет, "assets", "skill", "SKILL.md")
+    if not os.path.exists(исходник):
+        # Запуск из клона репозитория, где ассетов ещё нет: берём корневой файл.
+        корневой = os.path.join(os.path.dirname(пакет), "SKILL.md")
+        if os.path.exists(корневой):
+            исходник = корневой
+        else:
+            print("не нашёл SKILL.md в дистрибутиве", file=sys.stderr)
+            return 2
+
+    каталог = os.path.expanduser(args.dir or "~/.claude/skills")
+    цель_dir = os.path.join(каталог, "nativeprompt")
+    цель = os.path.join(цель_dir, "SKILL.md")
+
+    if os.path.exists(цель) and not args.force:
+        print(f"{цель} уже есть. Перезаписать: --force", file=sys.stderr)
+        return 1
+
+    os.makedirs(цель_dir, exist_ok=True)
+    shutil.copyfile(исходник, цель)
+    print(f"✓ навык поставлен: {цель}")
+    print()
+    print("Дальше в Claude Code (терминал или вкладка Code в приложении) просто")
+    print("попросите словами, слэш-команды у навыка нет:")
+    print('    улучши мой промпт: <ваш текст>')
+    print()
+    print("Инструмент улучшает ПРОМПТЫ. Обычную просьбу «напиши поздравление»")
+    print("он не тронет: это не промпт, а задача, и улучшать там нечего.")
+    return 0
 
 
 def cmd_improve(args):
@@ -285,6 +331,11 @@ def build_parser():
     pc.add_argument("--models", help="несколько моделей через запятую")
     pc.add_argument("--json", action="store_true")
     pc.set_defaults(func=cmd_coverage)
+
+    pin = sub.add_parser("install", help="поставить навык для Claude Code и приложения")
+    pin.add_argument("--dir", help="куда ставить (по умолчанию ~/.claude/skills)")
+    pin.add_argument("--force", action="store_true", help="перезаписать существующий")
+    pin.set_defaults(func=cmd_install)
 
     pu = sub.add_parser("update", help="сверить свежесть офиц. доков (self-update)")
     pu.add_argument("--write", action="store_true", help="записать снимки (после ревью правил)")
