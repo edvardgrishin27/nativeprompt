@@ -153,7 +153,7 @@ def test_опубликованная_цифра_не_устарела(корп�
     """
     d = json.loads(_прогнать(корпус_json, "--models", МОДЕЛИ, "--json").stdout)
     доля = round(100.0 * d["closed"] / d["findings"])
-    for имя in ("README.md", "README.ru.md", "CLAIMS.md", "CLAIMS.ru.md"):
+    for имя in ("README.md", "README.en.md", "CLAIMS.md", "CLAIMS.ru.md"):
         текст = io.open(os.path.join(КОРЕНЬ, имя), encoding="utf-8").read()
         if "coverage" not in текст:
             continue

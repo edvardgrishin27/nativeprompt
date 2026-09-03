@@ -150,7 +150,7 @@ def test_опубликованный_худший_случай_не_устар�
 
 def test_потолок_назван_в_документации():
     """Потолок — обещание пользователю, а не внутренняя константа."""
-    for имя in ("CLAIMS.ru.md", "CLAIMS.md", "README.ru.md", "README.md"):
+    for имя in ("CLAIMS.ru.md", "CLAIMS.md", "README.md", "README.en.md"):
         текст = io.open(_КОРЕНЬ / имя, encoding="utf-8").read()
         assert re.search(r"\b%d\b" % хук.ПОТОЛОК_КОНТЕКСТА, текст), (
             "%s не называет потолок %d" % (имя, хук.ПОТОЛОК_КОНТЕКСТА))

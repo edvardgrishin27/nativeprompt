@@ -233,7 +233,7 @@ def test_readme_не_расходится_с_числом_страниц():
     from nativeprompt.update import _all_urls
 
     сколько = len(_all_urls())
-    for имя in ("README.ru.md", "README.md"):
+    for имя in ("README.md", "README.en.md"):
         текст = io.open(имя, encoding="utf-8").read()
         for m in _re.finditer(r"\(из (\d+)\)|\(of (\d+)\)", текст):
             число = m.group(1) or m.group(2)
@@ -248,11 +248,11 @@ def test_русский_readme_перечисляет_все_флаги_update()
 
     подкоманды = build_parser()._subparsers._group_actions[0].choices
     флаги = {д for д in подкоманды["update"]._option_string_actions if д.startswith("--")}
-    текст = io.open("README.ru.md", encoding="utf-8").read()
+    текст = io.open("README.md", encoding="utf-8").read()
     строка = [l for l in текст.split("\n") if "Флаги `update`" in l]
     assert строка, "исчезла строка про флаги update"
     for флаг in флаги - {"--help"}:
-        assert флаг in строка[0], "%s не назван в README.ru.md" % флаг
+        assert флаг in строка[0], "%s не назван в README.md" % флаг
 
 
 def test_claims_не_врёт_про_размер_собственного_файла():
@@ -307,7 +307,7 @@ def test_claims_не_врёт_ни_про_один_счётчик_тестов()
     счёт = Counter(l.split("::")[0].split("/")[-1] for l in строки)
     всего = len(строки)
 
-    for имя in ("CLAIMS.md", "CLAIMS.ru.md", "README.md", "README.ru.md"):
+    for имя in ("CLAIMS.md", "CLAIMS.ru.md", "README.md", "README.en.md"):
         текст = io.open(имя, encoding="utf-8").read()
 
         # Разбивка: «NNN тестов в `tests/<файл>.py`» на любом языке.

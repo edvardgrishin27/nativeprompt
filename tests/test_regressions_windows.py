@@ -744,9 +744,9 @@ def test_флагманский_пример_readme_совпадает_с_жив
           "double-check yourself. Only report the most important things.")
 
     пары = (
-        ("README.ru.md", build_report(ru, "claude-opus-5")),
-        ("README.ru.md", build_report(ru, "gpt-5.6")),
-        ("README.md", build_report(en, "gpt-5.6")),
+        ("README.md", build_report(ru, "claude-opus-5")),
+        ("README.md", build_report(ru, "gpt-5.6")),
+        ("README.en.md", build_report(en, "gpt-5.6")),
     )
     for файл, отчёт in пары:
         текст = io.open(os.path.join(корень, файл), encoding="utf-8").read()

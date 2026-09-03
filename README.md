@@ -1,197 +1,394 @@
+🇷🇺 Русский · [🇬🇧 English](README.en.md)
+
 # nativeprompt
 
-**Rewrite your prompt into the native dialect of the model you're actually running — using that vendor's official rules — and show you which rule drove each edit.**
+**Один и тот же промпт Claude Code и Codex читают по-разному. nativeprompt переписывает его
+под ту модель, за которой вы сидите прямо сейчас, по официальным правилам вендора, и на
+каждую правку дает ссылку на первоисточник.**
 
-![MIT](https://img.shields.io/badge/license-MIT-black)
-![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
-![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![2433 tests](https://img.shields.io/badge/tests-2433%20passing-brightgreen)
-![offline](https://img.shields.io/badge/core-deterministic%20%C2%B7%20offline-lightgrey)
+[![лицензия](https://img.shields.io/badge/license-MIT-97ca00)](LICENSE)
+[![python](https://img.shields.io/badge/python-3.9%2B-3776ab)](#установка)
+[![зависимости](https://img.shields.io/badge/dependencies-zero-555555)](pyproject.toml)
+[![тесты](https://img.shields.io/badge/tests-2433-2ea043)](tests)
+[![API-ключи](https://img.shields.io/badge/API%20keys-none-1f6feb)](#почему-это-работает-на-вашей-подписке)
 
-**English** | [Русский](README.ru.md)
+Claude Code · Codex · 2433 теста · ноль зависимостей · ноль API-ключей · работает офлайн
 
-Scope: the **agentic CLIs** — Claude Code, Codex, Gemini CLI, Grok Build, Qwen Code and Kimi CLI. Not the API, not the web chat.
+## Одна фраза, две судьбы
 
-Coverage differs by vendor, and the tool says so out loud. Anthropic and OpenAI publish
-model-specific prompting rules, so for Claude Code and Codex you get both halves: what to
-change in the prompt *and* which command to launch with. Google, xAI, Alibaba and Moonshot publish no
-such rules — for Gemini CLI, Grok Build, Qwen Code and Kimi CLI you get the harness half only. Inventing rules and
-attributing them to a vendor would defeat the point: every finding here cites a source.
+«Думай пошагово». Совет, который повторяют все и везде.
 
----
+На Claude он безобиден. На reasoning-моделях GPT-5.x он делает ответ **хуже**, и написано это
+не у меня в блоге, а в документации самой OpenAI: модель уже рассуждает внутри, навязанные
+шаги ей мешают.
 
-## Why
+Вы пишете один и тот же текст в двух окнах и думаете, что просите одно и то же. А просите
+разное. Вот несколько мест, где грамматики расходятся:
 
-The two vendors do not agree on what a good prompt looks like. Their own docs say so.
-
-| Same phrase in your prompt | Claude Code | Codex / GPT‑5.x |
+| Что в промпте | Claude Code (Opus 5) | Codex / GPT-5.x |
 |---|---|---|
-| "think step by step" | acceptable scaffolding | **remove it** — reasoning models plan internally, and prescribed intermediate steps get in the way ([reasoning guide](https://developers.openai.com/api/docs/guides/reasoning)) |
-| "double-check yourself" | **warned about on Opus 5** — the model already verifies, so the reminder buys over-verification, tokens and latency; the tool flags the phrase but does not cut it ([Opus 5 prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5)) | harmless, but usually redundant |
-| "only report the important stuff" | **rephrase** — Opus 5 follows constraints literally and will genuinely hide the rest; ask for everything, filter in a second pass ([Opus 5 prompting](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5)) | same direction, weaker effect |
-| repeated instructions, extra examples | tolerated | **cut them** — lean prompts win on GPT‑5.x ([prompt guidance](https://developers.openai.com/api/docs/guides/prompt-guidance)) |
-| mixed instructions + data + examples | **wrap in XML tags** so the model doesn't blend them ([XML tags](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/use-xml-tags)) | not a documented Codex practice |
-| "CRITICAL: you MUST…" in caps | **drop the caps** — aggressive scaffolding causes over-triggering on new models | **drop it** — GPT‑4.1-era scaffolding, no longer helps ([GPT‑5 prompting guide](https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide)) |
+| «думай пошагово» | допустимо | **удалить**, модель рассуждает сама ([reasoning guide](https://developers.openai.com/api/docs/guides/reasoning)) |
+| «перепроверь себя» | **предупреждение**, Opus 5 верифицирует сам ([prompting Opus 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5)) | нейтрально |
+| «покажи только самое важное» | **переформулировать**, Opus 5 поймет буквально и правда скроет остальное | нейтрально |
+| КАПС и «ОБЯЗАТЕЛЬНО!!!» | убрать, вызывает пере-срабатывание | убрать, скаффолдинг эпохи GPT-4.1 не помогает |
+| Одна инструкция дважды | терпимо | **убрать**, лаконичный промпт выигрывает ([prompt guidance](https://developers.openai.com/api/docs/guides/prompt-guidance)) |
 
-So a prompt tuned on one CLI is measurably *mis*-tuned on the other. `nativeprompt` detects which one you're on and applies that vendor's published rules — plus it recommends **how to run** the task (`/goal`, `/loop`, plan mode, dynamic workflow on Claude Code; `/plan`, `/goal`, delegation on Codex).
+Это не мои наблюдения и не народные приметы. Каждая строка тут ведет на страницу вендора, и
+эти страницы инструмент сам проверяет на свежесть.
 
-## What makes it different
+## Что он делает
 
-Both vendors ship a prompt improver, but only for their own model, closed, and frozen at release time. Generic multi-vendor rewriters make *you* pick the target and their rule sets drift out of date. Four properties together are the point:
+Три шага, никакой магии.
 
-| | Anthropic prompt improver | OpenAI prompt optimizer | Generic multi-vendor rewriters (Rosetta et al.) | **nativeprompt** |
-|---|---|---|---|---|
-| **Auto-detects the model you're on** | n/a — Anthropic only | n/a — OpenAI only | you pick the target manually | yes — family + generation, from the live session, env, or settings files |
-| **Rules sourced from vendor docs** | implicit, not shown | implicit, not shown | usually hand-written folklore | every rule carries a `source` URL you can open |
-| **Explains each edit** | no — silent rewrite | no — silent rewrite | rarely | yes — rule title, rationale, and link per finding |
-| **Stays current** | ships when the vendor ships | ships when the vendor ships | goes stale | `update --diff` shows the exact changed lines in the vendor's doc; weekly CI opens a PR with that diff |
+**Смотрит, на чем вы работаете.** Явный `--model`, потом маркеры живой сессии CLI, потом
+переменные окружения, потом каскад `.claude/settings.json` и `~/.codex/config.toml`. Ключ
+это семейство плюс поколение, поэтому незнакомый идентификатор вроде будущего
+`claude-opus-6` все равно получит правила семейства Claude, а не «модель не определена».
 
-Plus: **zero runtime dependencies** (stdlib only), deterministic, works offline, no API key. The only command that touches the network is `update`.
+**Проверяет промпт по правилам именно этого вендора.** У Claude их 18, у OpenAI 8, каждое с
+обязательной ссылкой на официальный док. Народные хаки в шпаргалку не принимаются, это
+условие вклада.
 
-> **Note on language.** The CLI's explanations are currently written in Russian (the author's audience); rule titles link to the vendors' English documentation. The code, the API and this README are English. English CLI output is on the roadmap — see [Contributing](#contributing).
+**Показывает, что и почему.** Каждая находка идет с объяснением, с оговоркой «когда этот
+совет не подходит» и с адресом правила. Плюс подсказывает, какой командой запускать задачу:
+`/goal`, `/loop`, plan mode, dynamic workflow у Claude Code, `/plan`, `/goal`, делегирование
+в облако у Codex.
 
-## Install
+Текст ваш при этом цел. Инструмент понижает КАПС, снимает вежливую обертку и **дописывает**
+недостающие секции плейсхолдерами `‹…›`. Он не додумывает за вас задачу и ничего не удаляет
+молча: маркер `[!]` означает «вендор советует это убрать, решать вам».
+
+## Почему это работает на вашей подписке
+
+Внутри инструмента нет модели. Совсем.
+
+Разбор считается локально: регулярные выражения плюс версионированная шпаргалка правил. Ни
+API-ключа, ни счета за токены, ни отправки вашего промпта кому бы то ни было. Выдерните
+сеть, он продолжит работать, кроме команды `update`, которая ходит за доками вендоров.
+
+А «умную» литературную переписку делает **ваша же модель**, по мета-промпту, который
+инструмент для нее готовит. То есть внутри подписки Claude Code или Codex, за которую вы уже
+заплатили. Второго счета не появляется.
+
+Ноль рантайм-зависимостей, только стандартная библиотека Python.
+
+## Чем он отличается от других улучшателей
+
+У Anthropic и OpenAI есть свои prompt improver'ы. Каждый умеет ровно одну вещь: свою модель.
+Мульти-вендорные вроде Rosetta требуют, чтобы **вы** сами выбрали целевую модель, а правила
+внутри со временем протухают, и вы об этом не узнаете.
+
+| | Anthropic improver | OpenAI optimizer | Rosetta и похожие | **nativeprompt** |
+|---|:--:|:--:|:--:|:--:|
+| Сам определяет вашу модель (семейство + поколение) | нет | нет | нет | **да** |
+| Только официальные правила вендора | да | да | частично | **да** |
+| Дает ссылку на док под каждой правкой | нет | нет | нет | **да** |
+| Следит за свежестью доков и сигналит | нет | нет | нет | **да** |
+| Работает офлайн, без ключа и без счета за токены | нет | нет | нет | **да** |
+| Знает и Claude, и Codex одновременно | нет | нет | да | **да** |
+
+Последняя строка и есть причина, по которой инструмент вообще появился. Если вы работаете
+только в Claude, вам хватит родного improver'а от Anthropic. Больно становится, когда окон
+два.
+
+## Кому это надо
+
+**Тем, у кого открыты оба окна.** Claude Code для одного, Codex для другого. Держать в голове
+две грамматики руками тяжело, а разница реальная и стоит качества ответа.
+
+**Тем, кто платит за подписку и не хочет второй счет.** Разбор ничего не стоит: он считается
+у вас на машине.
+
+**Тем, кто учит промптингу.** Каждый совет со ссылкой на официальную страницу, спорить не с
+чем. Это сильно короче, чем объяснять своими словами.
+
+**Командам с общими правилами.** Шпаргалка лежит в JSON, правится через PR, версионируется.
+Свои правила добавляются рядом с вендорскими.
+
+**Тем, кто ведет проект долго.** Вендоры меняют рекомендации, и вы об этом обычно узнаете
+последним. `nativeprompt update` следит за 24 страницами доков и говорит, когда первоисточник
+поехал.
+
+Область применения это **агентные CLI**: Claude Code, Codex, а также Gemini CLI, Grok Build,
+Qwen Code и Kimi CLI. Не API, не веб-чат.
+
+Про последние четыре скажу честно и сразу. Google, xAI, Alibaba и Moonshot правил промптинга
+под свои модели не публикуют. Значит там остается только половина про запуск, а половина про
+текст промпта пустует. Выдумать правила и подписать их именем вендора я не могу: тогда
+рухнет вся конструкция, ради которой все затевалось.
+
+## Установка
 
 ```bash
-pipx install nativeprompt   # or: pip install nativeprompt
+pipx install nativeprompt   # или: pip install nativeprompt
 ```
-Published on PyPI. Zero runtime dependencies — stdlib only, works offline, no API key.
 
-Until then, install from a clone:
+Ноль внешних зависимостей, только стандартная библиотека. Работает офлайн и без API-ключа.
+
+Из исходников, если хотите править правила под себя:
 
 ```bash
 git clone https://github.com/edvardgrishin27/nativeprompt
 cd nativeprompt
-pip install -e .            # gives you the `nativeprompt` command
+pip install -e .          # даст команду `nativeprompt` в PATH
 ```
 
-Or run it with no install at all — it is stdlib-only:
+Можно вообще без установки, пакет запускается как модуль из папки репозитория:
 
 ```bash
-python3 -m nativeprompt improve "your prompt" --model claude-opus-5
+python3 -m nativeprompt improve "..."
 ```
 
-Requires Python ≥ 3.9. Nothing else.
+Требования: Python 3.9 и выше. Больше ничего.
 
-## Quick start
+## Быстрый старт
+
+Шесть команд: `improve`, `detect`, `rules`, `coverage`, `install`, `update`.
 
 ```bash
-# 1. Which model does it think you're on?
+# переписать промпт под автоматически определённую модель + объяснить
+nativeprompt improve "почини баг в логине, думай пошагово, перепроверь себя"
+
+# задать целевую модель явно
+nativeprompt improve "..." --model claude-opus-5
+nativeprompt improve "..." --model gpt-5.6        # или просто: codex
+
+# какая модель определилась?
 nativeprompt detect
+
+# показать все правила и их источники
+nativeprompt rules claude
+nativeprompt rules codex
+
+# самопроверка: не изменились ли официальные доки вендоров
+nativeprompt update
 ```
 
+Флаги `improve`: `--model M`, `--json` (весь отчет машиночитаемо), `--no-metaprompt` (без
+блока мета-промпта), `--verify` (самопроверка: те же детекторы по собственному результату,
+закрыто / оставлено вам / внесено инструментом).
+Флаги `detect`: `--model M`, `--json`.
+Флаги `update`: `--write` (записать снапшот хэшей после ревью), `--diff` (показать, ЧТО именно изменилось в доке вендора), `--timeout N` (по умолчанию 20 с), `--json`.
+
+Каждый отчет несет **карточку воспроизводимости**: строкой в шапке и полным объектом `meta` в
+`--json`. Там версия пакета, семейство, версия правил, дата сверки с доками, поколение и
+признак, по которому оно определилось, форма задачи, id сработавших и примененных правил и
+первые 12 символов sha256 промпта. Нужна она вот зачем: два отчета от разных версий
+инструмента и разных версий шпаргалки внешне неразличимы, и спор «у меня выдавало другое»
+иначе не решить.
+
 ```
-Модель: claude-opus-5[1m] · opus-5
-Семейство/CLI: claude (Claude Code)
-Определено: ~/.claude/settings.json (сессия Claude Code · VS Code)
+воспроизводимость: nativeprompt 0.6.0 · правила claude 2026-09-02 · доки
+  сверены 2026-07-29 · поколение opus-5 (model-id) · форма normal ·
+  сработало 8, применено 6 · промпт sha256 4da13855e134
 ```
+
+Хэш тут метка для сверки «тот ли промпт», не доказательство: полный текст по 48 битам не
+восстановить. Поэтому карточку можно приложить к issue, не вклеивая туда пути и куски логов.
+
+Промпт подается и через stdin, для текста с кавычками так безопаснее:
 
 ```bash
-# 2. Rewrite + explain. Always pass the prompt over stdin —
-#    quotes and $substitutions inside a user prompt will otherwise break the command.
-printf '%s' 'Could you please FIX the login bug, think step by step and double-check yourself. Only report the most important things.' \
-  | nativeprompt improve --model gpt-5.6
+printf '%s' "$PROMPT" | nativeprompt improve --model claude-opus-5 --json
 ```
 
-Real output (trimmed to the findings and the harness advice):
+### Как выглядит вывод
 
-```
-МОДЕЛЬ: Codex (gpt-5.6) · gpt-5.6
+Возьмем типичный «как привыкли» промпт:
+
+> Не мог бы ты пожалуйста ОБЯЗАТЕЛЬНО починить баг в логине, думай пошагово и обязательно перепроверь себя. Покажи только самое важное.
+
+**На Claude Opus 5** (`--model claude-opus-5`), 7 находок:
+
+```text
+МОДЕЛЬ: Claude Code (claude-opus-5) · opus-5
 определено: явно (--model)
 
-ЧТО УЛУЧШИТЬ (3, сначала важное):
-1. [+] Сначала результат: цель, формат ответа и что считается «готово»
-   неприменимо: Если результат уже описан в AGENTS.md или в предыдущем сообщении…
-   правило: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
-2. [~] Просить действие прямо
-   неприменимо: Если вы спрашиваете совет, а не поручаете работу…
-   правило: https://developers.openai.com/cookbook/examples/gpt-5/gpt-5_prompting_guide
-3. [!] «думай пошагово» лишнее — GPT-5.x рассуждает сам
-   неприменимо: Если «пошагово» относится к ФОРМАТУ ответа («опиши пошагово процесс деплоя»)…
-   правило: https://developers.openai.com/api/docs/guides/reasoning
+ЧТО УЛУЧШИТЬ (7, сначала важное):
+1. [+] Заскоупить задачу: файл, сценарий, что значит «готово»
+   неприменимо: Если файл, модуль или экран уже назван выше в этом же диалоге…
+   правило: https://code.claude.com/docs/en/best-practices
+2. [+] Дать проверку, которую Claude прогонит сам
+   неприменимо: Если проверку задаёт окружение (хук на тесты, CI на каждый коммит)…
+   правило: https://code.claude.com/docs/en/best-practices
+3. [~] Симптом + где искать + что значит «починено» (лечить причину)
+   неприменимо: Если причина уже найдена выше в диалоге…
+   правило: https://code.claude.com/docs/en/best-practices
+4. [!] «Только важное» сужает выдачу — просите всё, фильтруйте отдельно
+   неприменимо: Если сузить выдачу — и есть цель («только упавшие тесты»)…
+   правило: https://platform.claude.com/docs/en/.../prompting-claude-opus-5
+5. [~] Просить действие прямо, а не намёком
+   неприменимо: Если вы и правда просите мнение, а не работу…
+   правило: https://platform.claude.com/docs/en/.../be-clear-and-direct
+6. [-] Убрать давящие КАПС / «CRITICAL» / «ОБЯЗАТЕЛЬНО!!!»
+   неприменимо: Если КАПС — это имя, флаг или цитата из лога (ERROR, TODO, DEBUG=1)…
+7. [!] Лишняя просьба «перепроверь себя» (Opus 5 верифицирует сам)
+   неприменимо: Если «проверь» — часть самого задания…
+   правило: https://platform.claude.com/docs/en/.../prompting-claude-opus-5
 
-КАК ЗАПУСКАТЬ (Codex) — форма задачи: normal
-  → начните обычным запуском; при первой же неясности — /plan
+УЛУЧШЕННЫЙ ПРОМПТ (детерминированная правка):
+Обязательно починить баг в логине, думай пошагово и обязательно перепроверь себя. Покажи только самое важное.
+
+Контекст: ‹назовите файл/путь через @ (напр. @src/...), сценарий и что значит «готово»›
+
+Симптом: ‹что именно ломается, где искать (файл/модуль) и что значит «починено»; лечить причину, не симптом›
+
+Проверка: ‹тест/сборка/команда, которую нужно прогнать после правки, и чинить, пока не пройдёт›
+
+(Краткость: Ответь кратко.)
 ```
 
-The exact same prompt against Claude Opus 5 produces a *different* set — that contrast is the whole point of the tool.
+**Тот же промпт на GPT-5.6** (`--model gpt-5.6`), находки уже **другие**:
 
-**The prompt text itself is left intact in both cases.** The tool changes form only — it lowers SHOUTING CAPS and drops the polite wrapper — and it **adds** placeholder sections. It never deletes and never substitutes: `[!]` means "the vendor recommends dropping this; your call". Why it works this way is in [CLAIMS.md](CLAIMS.md), section "Why the tool does not rewrite your text".
+```text
+МОДЕЛЬ: Codex (gpt-5.6) · gpt-5.6
 
-Findings are ordered by importance, not by their order in the rule file: `priority` 1 is the result contract and the task boundaries, 2 the run mode and structure, 3 cosmetics. Under each finding there is a `неприменимо:` line — the concrete situation in which the advice does not apply ("the file is already named earlier in this conversation"), because the detectors here are regexes and see no conversation history. A false positive you can recognise and skip costs nothing; that is cheaper than a detector that is never wrong. The same clause travels into the meta-prompt and into the hook.
+ЧТО УЛУЧШИТЬ (3, сначала важное):
+1. [!] «думай пошагово» лишнее — GPT-5.x рассуждает сам
+   неприменимо: Если «пошагово» относится к ФОРМАТУ ответа…
+   правило: https://developers.openai.com/api/docs/guides/reasoning
+2. [~] Просить действие прямо
+3. [-] Убрать лишние подпорки и КАПС-приказы
 
-When nothing fires — or when everything that fired the tool has already closed itself — `improve` says so and prints **no** meta-prompt: "Промпт соответствует правилам, которые инструмент умеет проверять, переписывать нечего." Handing a model the order "rewrite this" over a prompt that needs no rewrite only buys you a change for the sake of a change. A placeholder `‹…›` does not count as closed: it hands the rule to you, and `--verify` counts it the same way.
+УЛУЧШЕННЫЙ ПРОМПТ (детерминированная правка):
+Обязательно починить баг в логине, думай пошагово и обязательно перепроверь себя. Покажи только самое важное.
+```
 
-Markers: `[+]` add, `[-]` remove, `[~]` restructure, `[!]` flagged, not touched.
-A marker is derived from what actually happened, not from what the rule declares: a finding gets an action marker only if it really changed the text, so `[!]` is also what you see when a rule's advice went to the meta-prompt alone.
+Смотрите: у Codex «думай пошагово» это находка, а у Claude такого правила нет вовсе. Вот они,
+две разные официальные грамматики, ради которых все и написано.
 
-See both side by side in one command:
+И обратите внимание, что **текст промпта в обоих случаях цел**. Меняется форма, дописываются
+секции-плейсхолдеры. Маркер считается по факту, а не по тому, что правило о себе объявляет:
+знак действия получает только та находка, которая правда изменила текст. Поэтому `[!]` стоит
+и там, где совет ушел только в мета-промпт.
+
+Находки идут **от важного к косметике**: `priority` 1 это контракт результата и границы
+задачи, 2 режим запуска и структура, 3 косметика. Под каждой стоит строка `неприменимо:`,
+конкретная ситуация, где совет мимо («файл уже назван выше в этом же диалоге»). Детекторы тут
+регулярки, истории диалога они не видят, и часть находок ложные. Ложное срабатывание, которое
+видно и которое можно пропустить, ничего не стоит. Детектор, который никогда не ошибается,
+обошелся бы дороже.
+
+Если правила молчат, или все сработавшее инструмент закрыл сам, `improve` так и скажет, а
+мета-промпт печатать не станет: «Промпт соответствует правилам, которые инструмент умеет
+проверять, переписывать нечего». Плейсхолдер `‹…›` закрытием не считается, он передает
+правило вам, и `--verify` смотрит на это так же. Почему так устроено, разобрано в
+[CLAIMS.ru.md](CLAIMS.ru.md), раздел «Почему инструмент не переписывает текст сам».
+
+Увидеть оба варианта рядом одной командой:
 
 ```bash
 python3 examples/contrast_demo.py
 ```
 
-More raw prompts to try are in [`examples/prompts.md`](examples/prompts.md).
+Сырые промпты для экспериментов лежат в [`examples/prompts.md`](examples/prompts.md).
 
-### Commands
+### Сколько правил он реально закрывает
 
-| Command | Flags | What it does |
-|---|---|---|
-| `improve "<prompt>"` | `--model M`, `--json`, `--no-metaprompt`, `--verify` | detect → analyze → rewrite → harness advice → explain. Reads the prompt from stdin when the argument is omitted. Every report carries a **reproducibility card** — one line in the header, the full `meta` object under `--json`: tool version, family, rules version, vendor-docs snapshot date, generation and the signal it came from, task shape, the rule ids that fired and were applied, and the first 12 characters of the prompt's sha256. Without it, two reports from different tool and rule-sheet versions are indistinguishable. |
-| `detect` | `--model M`, `--json` | shows the resolved model, family/CLI, and **which signal** it came from. Exit 1 if nothing resolved. |
-| `rules [claude\|codex]` | — | prints every rule with its source URL, plus the harness table. No argument = all families. |
-| `update` | `--diff`, `--write`, `--timeout N`, `--json` | fetches the vendors' canonical docs and compares them with stored text snapshots. `--diff` prints the exact before/after lines. Non-zero exit when action is needed (CI signal). `--write` records the new snapshots after you've reviewed the rules. A weekly CI job opens a PR containing the diff — **rules themselves are always edited by a human** (see below). |
+Команда `coverage` считает это на ваших же промптах, без всякой модели внутри:
 
-`nativeprompt --version` prints the version.
+```bash
+nativeprompt coverage мои-промпты.json --models claude-opus-5,gpt-5.6
+```
 
-`improve` output has four blocks: **what to fix** (each with the vendor rule + link), the **rewritten prompt**, a **how-to-run** recommendation, and a **meta-prompt** you can hand to your own model for a full prose rewrite (suppress it with `--no-metaprompt`).
+На моем тестовом корпусе цифра такая: 227 находок, инструмент закрывает 87 из них, это
+**38 %**, оставляет вам 140 и вносит своих **ноль**. Последнее и есть главное свойство:
+инструмент не имеет права добавить нарушение, которого в промпте не было.
 
-`--verify` adds a fifth: the same detectors run a second time over the tool's own result, and the rules land in three buckets — *closed* (the finding is gone from your text), *left to you* (the rule still fires — that is the norm, those rules are flagged rather than cut) and *introduced by the tool* (there was no finding and now there is — that one is a defect of the tool). It is a count of rules, not a quality score: the tool has no opinion on whether your text got better.
+Что эта цифра НЕ означает: она не про качество ответа модели. Модель тут не запускается
+вовсе. Померить качество ответа офлайн честно нельзя, для этого нужен датасет и два прогона.
+Померить соответствие официальным правилам можно, и результат воспроизводится побайтово.
 
-## Using it in VS Code
+## Использование в VS Code
 
-Both CLIs have a VS Code extension, and both have quirks that change how `nativeprompt` sees your setup. Everything in this section comes from the vendors' docs.
+Расширение Claude Code для VS Code это отдельная поверхность со своими особенностями. Разберу
+явно, потому что именно тут детект модели удивляет чаще всего.
 
-### Claude Code extension
+### Предпосылки
 
-**The extension does not put `claude` on your PATH.** It bundles a private copy of the CLI for its chat panel; a standalone CLI install is a separate thing ([vs-code](https://code.claude.com/docs/en/vs-code)). Practical consequence: run `nativeprompt` in VS Code's **integrated terminal** (`` Cmd+` ``), and use the hook (below) if you want it inside the chat panel.
+- Нужен VS Code 1.94.0 и выше. Расширение ставится по ссылке `vscode:extension/anthropic.claude-code` или поиском «Claude Code» в Extensions. Для форков (Cursor, Kiro, Devin Desktop) есть сборка в Open VSX.
+- **Расширение НЕ добавляет `claude` в PATH.** Оно несет приватную копию CLI для панели чата, а команда `claude` в терминале требует отдельной установки standalone-CLI. Это стоит развести: `nativeprompt` обычная CLI-утилита, вы ставите и запускаете ее **во встроенном терминале** VS Code (`` Cmd+` ``). Хук же работает внутри панели чата. Вывод `nativeprompt improve` сам по себе в панели не появится.
 
-**Where the model actually comes from.** Claude Code's documented precedence is: in-session `/model` → `claude --model` at startup → `ANTHROPIC_MODEL` → the `model` field in your settings file ([model-config](https://code.claude.com/docs/en/model-config)). `nativeprompt detect` follows the same order (env before settings) and tells you which signal it used.
+### Как проверить, что модель определилась
 
-**Three ways to confirm the model, in increasing order of reliability:**
+Три способа, по возрастанию надежности.
 
-1. `/status` in the chat panel — shows the active model and account ([model-config](https://code.claude.com/docs/en/model-config)).
-2. `nativeprompt detect` in the integrated terminal — also names the source file or variable.
-3. A `statusLine` script — it receives `model.id` and `model.display_name` on stdin, along with `effort.level` and `context_window.context_window_size`, so it's the only way to confirm that a 1M context is *actually* active ([statusline](https://code.claude.com/docs/en/statusline)).
+1. `/status` прямо в панели чата, покажет активную модель и аккаунт.
+2. `nativeprompt detect` во встроенном терминале, покажет не только модель, но и **источник**:
 
-**If `detect` shows the wrong model,** it is almost always one of these:
+```text
+$ nativeprompt detect
+Модель: claude-opus-5[1m] · opus-5
+Семейство/CLI: claude (Claude Code)
+Определено: ~/.claude/settings.json (сессия Claude Code · VS Code)
+```
 
-- You pressed **`s`** in the `/model` picker ("this session only"). Since v2.1.153 only `Enter` writes the `model` field to your **user** settings; `s` writes nothing, so any settings-based detection sees the old value ([model-config](https://code.claude.com/docs/en/model-config)).
-- **VS Code was launched from Finder/Dock and never inherited your shell environment**, so `ANTHROPIC_MODEL` from `.zshrc` is invisible to it. The documented fixes: launch with `code .` from a terminal, set the extension's `claudeCode.environmentVariables` setting, or put the variable in the `env` block of `~/.claude/settings.json` — which is shared between the extension and the CLI ([vs-code](https://code.claude.com/docs/en/vs-code)).
-- **Project or managed settings override yours.** The cascade is managed → CLI args → `.claude/settings.local.json` → `.claude/settings.json` → `~/.claude/settings.json` ([settings](https://code.claude.com/docs/en/settings)). When the startup model comes from project or managed settings, the startup header names the file.
-- **You're on an alias, not a version.** `opus` / `sonnet` / `haiku` / `best` resolve to different concrete models depending on your provider (Anthropic API vs Bedrock vs Foundry vs Google Cloud), and `ANTHROPIC_DEFAULT_OPUS_MODEL` and friends can redirect them ([model-config](https://code.claude.com/docs/en/model-config)). `nativeprompt` says so explicitly and falls back to family-level rules. Pass `--model claude-opus-5` to get generation-specific rules. The `[1m]` suffix (1M context) is preserved and reported — it works on aliases and on full model names alike, including `opusplan[1m]`.
+3. Статус-строка (`statusLine`), самый точный путь: скрипту статус-строки на stdin приходит JSON с `model.id` и `model.display_name`, а заодно `context_window.context_window_size` (фактическое подтверждение, что 1M-контекст правда активен) и `effort.level`.
 
-**Hooks work identically in the panel.** `~/.claude/settings.json` is *"shared between the extension and CLI"* — the same `hooks` block applies to both ([vs-code](https://code.claude.com/docs/en/vs-code)). You can also reach it from the panel: type `/` → **Customize** → hooks. Adding `"$schema": "https://json.schemastore.org/claude-code-settings.json"` to the file gives you completion and validation right in the editor.
+### Если `detect` показывает не ту модель
 
-### Codex extension
+Все причины ниже из официальных доков, а не из догадок.
 
-- The IDE extension and the CLI **share the same configuration layers**; open it from the gear icon → **Codex Settings → Open config.toml** ([config-basic](https://learn.chatgpt.com/docs/config-file/config-basic)).
-- Precedence: CLI flags → project `.codex/config.toml` (closest directory wins) → profile → `~/.codex/config.toml` → `/etc/codex/config.toml` → built-in defaults. **Untrusted projects skip the project-scoped `.codex/` layers entirely.**
-- There is **no official environment variable for the Codex model** — the documented list is `CODEX_HOME`, `CODEX_SQLITE_HOME`, `CODEX_NON_INTERACTIVE`, `CODEX_INSTALL_DIR`, `CODEX_API_KEY`, `CODEX_ACCESS_TOKEN`, `CODEX_CA_CERTIFICATE`, `SSL_CERT_FILE`, `RUST_LOG` ([environment-variables](https://learn.chatgpt.com/docs/config-file/environment-variables)). `nativeprompt` reads `model = "..."` from `config.toml`; its `CODEX_MODEL` / `OPENAI_MODEL` lookups are an **unofficial convenience heuristic**, and so is its detection of an active Codex session. When in doubt, pass `--model codex` explicitly.
+- **В пикере `/model` вы нажали `s`** («только на эту сессию»). `Enter` сохраняет выбор в пользовательские настройки (`~/.claude/settings.json`), `s` не сохраняет ничего. Значит `detect` честно читает старое значение. Это известное ограничение чтения настроек.
+- **VS Code запущен из Dock или Finder и не унаследовал shell-окружение.** Тогда `ANTHROPIC_MODEL` из `.zshrc` расширение не увидит. Лечится тремя способами: запускать `code .` из терминала, задать переменную в настройке расширения `claudeCode.environmentVariables`, либо прописать ее в блоке `env` файла `~/.claude/settings.json`, этот файл **общий для расширения и CLI**.
+- **Проектные или managed-настройки перебивают ваш выбор.** Порядок приоритета: managed (высший, не переопределяется ничем), аргументы командной строки, `.claude/settings.local.json`, `.claude/settings.json` проекта, `~/.claude/settings.json`. Когда модель на старте пришла из проектных или managed-настроек, стартовый заголовок сессии показывает, какой файл ее задал.
+- **Алиас это не версия.** `opus`, `sonnet`, `best` резолвятся в конкретную модель по-разному в зависимости от провайдера: Anthropic API, AWS, Bedrock, Google Cloud, Microsoft Foundry дают разные поколения. `nativeprompt` в таком случае честно оставляет поколение неопределенным и применяет правила семейства. Нужна точность, пиньте полное имя модели или используйте `ANTHROPIC_DEFAULT_OPUS_MODEL` / `_SONNET_` / `_HAIKU_` / `_FABLE_`.
+- Суффикс `[1m]` (окно 1M) дописывается и к алиасу, и к полному имени: `opus[1m]`, `claude-opus-4-8[1m]`, `opusplan[1m]`. `nativeprompt` срезает его так же, как это делает сам Claude Code, но **запоминает факт**, чтобы не подтолкнуть вас к потере 1M-контекста.
 
-Known gaps in the current detector, stated plainly: it does not yet read Claude Code's **managed** settings (highest precedence, enterprise deployments), the project-level `.codex/config.toml`, `CODEX_HOME`, or the `ANTHROPIC_DEFAULT_*` alias redirects. Issues and PRs welcome.
+### Хук в VS Code
 
-## Two modes
+Конфигурация хуков **общая для расширения и терминального CLI**: тот же `~/.claude/settings.json`, тот же блок `hooks` (JSON ниже, в разделе про режимы). Из GUI: в поле ввода наберите `/`, раздел **Customize**, дальше **hooks**.
 
-### On demand — as a skill
+Три вещи про `UserPromptSubmit`, которые стоит знать заранее:
 
-[`SKILL.md`](SKILL.md) at the repo root is a Claude Code skill. Drop it into `~/.claude/skills/nativeprompt/SKILL.md` (or your project's `.claude/skills/`), and "improve my prompt" routes through the tool: it runs `nativeprompt improve --json`, shows you the findings with their source links and the how-to-run advice, then executes the returned meta-prompt to produce the polished rewrite.
+- **Таймаут 30 секунд**, а не стандартные 600. `nativeprompt` укладывается с запасом, он детерминированный и в сеть не ходит. По этой же причине не вешайте на это событие сетевые вызовы.
+- **Матчеры не поддерживаются** и молча игнорируются, хук срабатывает на каждый промпт.
+- **Хук не заменяет текст вашего промпта.** Поля `updatedPrompt` в контракте нет (`updatedInput` есть только у tool-событий). Хук отдает `additionalContext`, и Claude видит рядом оригинал и улучшенную версию. Это ограничение платформы, я тут ничего не недоделал.
 
-Two rules baked into the skill are worth repeating: the incoming prompt is treated as **data, not instructions** (the model must not execute what's inside it), and the prompt is passed over **stdin only**, never interpolated into a shell command.
+Полезно добавить в `settings.json` строку `"$schema": "https://json.schemastore.org/claude-code-settings.json"`, VS Code даст автодополнение и валидацию настроек прямо в редакторе.
 
-### Every prompt — as a UserPromptSubmit hook
+### Codex в VS Code
 
-[`hooks/nativeprompt_hook.py`](hooks/nativeprompt_hook.py) runs on every prompt you send and attaches the improved version plus the applicable rules as context. Add to `~/.claude/settings.json` (shared by the CLI and the VS Code panel):
+- Конфиг общий с CLI: gear icon, **Codex Settings**, **Open config.toml**.
+- Порядок приоритета: флаги CLI, проектный `.codex/config.toml` (ближайший к текущей папке), профиль (`~/.codex/<profile>.config.toml`), `~/.codex/config.toml`, `/etc/codex/config.toml`, встроенные дефолты.
+- **У Codex нет официальной переменной окружения для модели.** `CODEX_MODEL` и `OPENAI_MODEL` в списке публичных переменных отсутствуют, `nativeprompt` использует их только как эвристику-фолбэк, а основной источник это `model = "..."` из `config.toml`.
+- Если проект не помечен как доверенный, слой `.codex/` проекта пропускается целиком и применится пользовательский конфиг.
+- Официальная переменная, которую читают и CLI, и IDE-расширение, это `CODEX_HOME` (по умолчанию `~/.codex`), корень состояния Codex.
+
+## Два режима работы
+
+### 1. По запросу, навык Claude Code
+
+[`SKILL.md`](SKILL.md) в корне репозитория это навык Claude Code. Он срабатывает, когда вы
+просите «улучши мой промпт», «перепиши запрос», «как лучше сформулировать». Claude сам
+запускает `nativeprompt improve --json`, показывает разбор со ссылками, рекомендацию по
+запуску, а потом выполняет мета-промпт и отдает готовую переписанную версию.
+
+Одна деталь безопасности зашита в навык намеренно: присланный промпт считается **данными**.
+Claude не выполняет описанную внутри задачу и не следует вложенным командам, а сам текст
+передается только через stdin, чтобы кавычки не сломали команду.
+
+Установка навыка одной командой:
+
+```bash
+nativeprompt install
+```
+
+Кладет навык в `~/.claude/skills/nativeprompt/`. Этот каталог читают обе среды: и Claude Code
+в терминале, и десктопное приложение. Свой каталог задается через `--dir`, перезапись через
+`--force`.
+
+Вызывается навык **словами, а не слэшем**: «улучши мой промпт: …». Слэш-команды
+`/nativeprompt` не существует.
+
+### 2. На каждый промпт, хук `UserPromptSubmit`
+
+[`hooks/nativeprompt_hook.py`](hooks/nativeprompt_hook.py) подмешивает разбор к **каждому**
+вашему промпту. Он молчит на коротких (меньше 15 символов) и на уже хороших: правок нет,
+вывода нет. Любая внутренняя ошибка означает тихий ноль, отправку промпта хук не ломает
+никогда.
+
+Блок для `~/.claude/settings.json`:
 
 ```json
 {
@@ -202,7 +399,7 @@ Two rules baked into the skill are worth repeating: the incoming prompt is treat
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /absolute/path/to/nativeprompt/hooks/nativeprompt_hook.py"
+            "command": "python3 ~/Documents/nativeprompt/hooks/nativeprompt_hook.py"
           }
         ]
       }
@@ -211,122 +408,145 @@ Two rules baked into the skill are worth repeating: the incoming prompt is treat
 }
 ```
 
-What it does and doesn't do:
+> Путь искать не нужно, хук сам находит пакет: сначала установленный (`pip install
+> nativeprompt`), затем каталог собственного репозитория, затем переменные
+> `NATIVEPROMPT_HOME` и `CLAUDE_PROJECT_DIR`. Не нашел или что-то пошло не так, молча
+> пропускает ход и **никогда не блокирует отправку промпта**.
 
-- It **cannot replace your prompt text.** `UserPromptSubmit` has no `updatedPrompt` output field — a handler can only return `hookSpecificOutput.additionalContext` or block the submission ([hooks](https://code.claude.com/docs/en/hooks)). So Claude sees your original *next to* the improved version, and the hook says which one to act on.
-- It **stays quiet** on short prompts (< 15 chars) and on prompts that already satisfy the rules, so it doesn't turn into noise.
-- Any error is swallowed — it never blocks your prompt from being sent.
-- **Budget: 30 seconds.** `UserPromptSubmit` lowers the default hook timeout from 600 s to 30 s ([hooks](https://code.claude.com/docs/en/hooks)). This hook is deterministic and makes no network calls, so it fits comfortably — don't add network calls of your own there.
-- Matchers are not supported for this event and are silently ignored; it fires on every prompt.
-- **Context budget: 2400 characters.** The hook is paid for on every prompt, out of your own context window, so its size is capped; over the project corpus the worst case after trimming is 1729 characters. When it does not fit, it trims in a fixed order and only its own blocks — the run recommendation first, then the tail of the advisory list beyond three, then the "improved version" block in full. Your text is never cut in the middle: the block is whole or absent, and a single line says what was dropped ([CLAIMS](CLAIMS.md#the-hooks-cost-is-measurable-the-injected-context-has-a-ceiling)).
-- The hook resolves the package on its own: an installed `nativeprompt` first, then its own repository directory, then `NATIVEPROMPT_HOME` / `CLAUDE_PROJECT_DIR`. No path editing required, and it stays silent rather than failing if nothing resolves.
+Что хук добавляет в контекст: список правок со ссылками на правила (до 6 штук), улучшенную
+версию промпта, рекомендацию по запуску и просьбу уточнить у вас все, что осталось в `‹…›`.
 
-There is also a documented way to get the model *exactly*, which the hook does not use yet: only `SessionStart` hooks can receive a `model` field, and *"there is no `$CLAUDE_MODEL` environment variable"* ([hooks](https://code.claude.com/docs/en/hooks)). A `SessionStart` hook that caches that value would beat any settings-file read, because it also catches `--model` and the session-only `s` choice. Contributions welcome.
+**Сколько это стоит.** Хук висит на каждом промпте, значит его размер оплачивается всегда, из
+вашего же окна контекста. Потолок **2400 символов**, на корпусе проекта худший случай после
+урезания 1729 символов. Если не помещается, хук режет по фиксированному порядку и только свои
+блоки: сначала рекомендацию по запуску, потом хвост списка советов сверх трех, потом блок
+«улучшенная версия» целиком. Ваш текст не режется посередине никогда: блок либо есть целиком,
+либо его нет, а когда что-то урезано, об этом сказано отдельной строкой. Чем это проверено, в
+[CLAIMS.ru.md](CLAIMS.ru.md#цена-хука-измерима-у-подмешиваемого-контекста-есть-потолок).
 
-## Codex usage
+## Работа с Codex
 
-Root [`AGENTS.md`](AGENTS.md) governs agent work in this repo. Codex-specific integration lives entirely in [`codex/`](codex/):
+Для Codex в репозитории отдельная дорожка:
 
-- `codex/integration/plugins/nativeprompt/skills/nativeprompt/` — a standalone Codex skill.
-- `codex/integration/plugins/nativeprompt/skills/nativeprompt/scripts/improve_prompt.py` — a safe wrapper: stdin only, no shell, validates the JSON contract.
-- `codex/integration/AGENTS.md.snippet` — an optional block for your own project's `AGENTS.md` so Codex calls the tool when you ask it to improve a prompt.
-- `codex/REVIEW.md` — review notes. By convention, proposed core changes are staged as unified diffs in `codex/patches/` rather than applied to `nativeprompt/` directly.
+- [`AGENTS.md`](AGENTS.md) в корне, инструкции агенту, который работает **над самим репозиторием** (с явной границей: core не трогаем, работаем в `codex/`).
+- [`codex/integration/AGENTS.md.snippet`](codex/integration/AGENTS.md.snippet), фрагмент, который вы вставляете в **свой** `AGENTS.md`, чтобы Codex звал `nativeprompt` при просьбе улучшить промпт.
+- [`codex/integration/plugins/nativeprompt/`](codex/integration/plugins/nativeprompt/), skill-only плагин для Codex с безопасной оберткой `improve_prompt.py`: промпт только через stdin, без shell, с проверкой JSON-контракта.
 
-Local install for Codex:
+Локальная установка навыка для Codex:
 
 ```bash
 python3 -m pip install -e .
 mkdir -p ~/.agents/skills
-ln -s "$PWD/codex/integration/plugins/nativeprompt/skills/nativeprompt" ~/.agents/skills/nativeprompt
+ln -s "$PWD/codex/integration/plugins/nativeprompt/skills/nativeprompt" \
+  ~/.agents/skills/nativeprompt
 ```
 
-Then, in a new Codex session: `$nativeprompt improve this prompt for Codex: ‹prompt›`.
+Дальше новая сессия Codex и явный вызов:
 
-Note that Codex reads persistent project rules from `AGENTS.md` automatically, merged from `~/.codex` down through directories from the repo root to the current one, with deeper files overriding ([agents-md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)). Reasoning depth and answer length belong in `~/.codex/config.toml` (`model_reasoning_effort`, `model_verbosity`), not in prose inside your prompt ([config-reference](https://learn.chatgpt.com/docs/config-file/config-reference)) — `nativeprompt` will tell you so instead of rewriting the prompt around it.
-
-## How it works
-
-```
-detect  →  analyze  →  rewrite  →  harness  →  explain          (+ update, out of band)
+```text
+$nativeprompt улучши этот промпт для Codex: ‹промпт›
 ```
 
-1. **detect** (`detect.py`) — resolves model → **family + generation**. Keying on family means an unreleased id like `claude-opus-6` still gets Claude-family rules instead of nothing. Signals, in order: `--model`, active CLI session markers, `ANTHROPIC_MODEL` / `OPENAI_MODEL` / `CODEX_MODEL`, the `~/.claude/settings.json` cascade, `~/.codex/config.toml`. The `[1m]` suffix is split off and reported separately.
-2. **analyze** (`analyze.py`) — regex detectors for prompt smells (`forced_cot`, `verification_demand`, `pushy_caps`, `repetition`, `contradiction_hint`, `missing_verification`, `missing_output_contract`, `vague_ask`, …) plus a **task shape** classifier: `trivial | normal | planning | goal | loop | workflow`.
-3. **rewrite** (`rewrite.py`) — the deterministic pass. It lowers SHOUTING CAPS, drops the polite opener, and adds missing sections **as `‹placeholders›`**. It never deletes your content and never invents your task — anything the vendor recommends removing by meaning is flagged instead.
-4. **harness** (`harness.py`) — maps the task shape to a run mode from the `harness` block of the rules file: plan mode / `/goal` / `/loop` / dynamic workflow on Claude Code, `/plan` / `/goal` / delegation on Codex — each with its own source link.
-5. **explain** (`explain.py`) — assembles the report and the **meta-prompt**: a model-specific instruction, built from exactly the rules that fired, which your own Claude or Codex executes to do the full prose rewrite. That split is deliberate — the tool itself contains no model.
+Постоянные правила проекта для Codex держите в `AGENTS.md`, а глубину рассуждения и длину
+ответа задавайте в `~/.codex/config.toml` (`model_reasoning_effort`, `model_verbosity`), а не
+словами в промпте. Это, кстати, тоже одно из правил в шпаргалке.
 
-## Self-update
+## Как это устроено
 
-`nativeprompt/rules/*.json` is a human-curated, versioned cheat sheet, keyed by **model family + generation**, where every rule carries a `source` URL.
+Конвейер: **detect → analyze → rewrite → harness → explain → update**.
 
-`nativeprompt update` fetches the vendors' canonical `.md` / `llms.txt` pages (manifest: `nativeprompt/rules/_sources.json`), hashes them, and diffs against the stored snapshot:
+1. **detect** (`detect.py`) определяет модель по цепочке сигналов: явный `--model`, маркеры активной сессии CLI, переменные окружения, каскад `.claude/settings.json` и `~/.codex/config.toml`. Ключ это семейство плюс поколение, поэтому незнакомый идентификатор все равно получит правила семейства.
+2. **analyze** (`analyze.py`) прогоняет детекторы по тексту промпта: принудительный CoT, требование самопроверки, КАПС-императивы, повторы, противоречия, отсутствие контекста, критерия готовности, контракта вывода, мягкие формулировки вместо прямого поручения.
+3. **rewrite** (`rewrite.py`) делает детерминированную правку: **убрать** вредное для этой модели, **реструктурировать** (XML-теги для Claude, прямое действие), **добавить** недостающие секции строго **плейсхолдерами `‹…›`**, никогда не выдумывая содержание.
+4. **harness** (`harness.py`) по форме задачи (trivial / planning / goal / loop / workflow) советует режим запуска: `/goal`, `/loop`, plan mode, dynamic workflow у Claude Code, `/plan`, `/goal`, делегирование в облако у Codex.
+5. **explain** (`explain.py`) собирает отчет: каждая правка привязана к правилу и его `source`-URL, плюс готовит **мета-промпт**, инструкцию для вашей же модели.
+6. **update** (`update.py`) описан ниже.
 
-```
+Два слоя правки стоит различать честно. Детерминированный проход **структурный**: убрать,
+переставить, добавить плейсхолдеры. Полная литературная переписка делается **мета-промптом
+руками вашей же модели**. Никакого «ИИ внутри инструмента» нет, ядро считает все локально.
+
+## Самообновление
+
+Правила лежат в `nativeprompt/rules/*.json`, это версионированная шпаргалка, которую ведет
+человек, с полем `rules_version` и обязательным `source`-URL у каждого правила. Ключуется по
+семейству и поколению, поэтому новая модель того же семейства инструмент не ломает.
+
+`nativeprompt update` берет манифест канонических доков вендоров (`rules/_sources.json`,
+`.md`-версии страниц и `llms.txt`), скачивает их, считает хэши и диффует со снапшотом
+`rules/_snapshot.json`:
+
+```text
 [изменилось]       claude  https://code.claude.com/docs/en/goal.md
 [новое]            openai  https://learn.chatgpt.com/docs/prompting.md
 [без изменений]    claude  https://code.claude.com/docs/en/best-practices.md
 ...
 Итог: изменилось 1, новых 4, без изменений 17, недоступно 0 (из 24).
+→ Офиц. доки изменились. Сверьте правила rules/*.json с источником и обновите их
+  (при работе в CI — откроется PR). Затем: nativeprompt update --write.
 ```
 
-A weekly GitHub Actions job (`.github/workflows/update-rules.yml`) runs exactly that and fails when the official guidance moved. **The rules are never rewritten automatically** — a maintainer reads the changed doc, updates the JSON, and lands it in a PR, then records the new snapshot with `nativeprompt update --write`. That is a deliberate design choice: a cheat sheet you can audit is worth more than one that mutates silently.
+При обнаруженных изменениях команда возвращает ненулевой код выхода, это сигнал для CI.
+**Правила не меняются молча:** `update` только сообщает, что первоисточник поехал, а сами
+`rules/*.json` правит человек через PR. Выбор осознанный, шпаргалка должна оставаться
+проверяемой.
 
-## Boundaries
+## Границы
 
-Deliberately narrow, so the tool stays trustworthy:
+Полный честный список в [`CLAIMS.md`](CLAIMS.md). Коротко:
 
-- **It does not invent your task.** Missing details — file paths, done criteria, output format — become explicit `‹placeholders›`, never fabricated content.
-- **The deterministic rewrite is structural, not literary.** It lowers CAPS, drops the polite opener, and inserts placeholder sections — nothing else. The full prose rewrite is the **meta-prompt**, run by your own model. There is no LLM inside this tool.
-- **Detectors are regex heuristics.** Unusual phrasings will produce false positives and misses. It is an assistant, not an oracle.
-- **An alias is not a version.** `opus`, `sonnet`, `best` resolve differently per provider and plan, so generation-specific rules are withheld and family rules applied — and the CLI says so.
-- **No benchmark claims.** The tool applies the vendors' published rules; it does not measure that your prompt got "N% better", and it will never print such a number.
-- **v1 covers Claude Code and Codex.** The family architecture is ready for more vendors; nothing else is implemented.
+- **Не додумывает задачу за вас.** Недостающее (файлы, критерий «готово», формат вывода) вставляется плейсхолдерами `‹…›`, а не выдуманным содержанием.
+- **Детекторы это эвристики, регулярные выражения.** Возможны ложные срабатывания и пропуски на необычных формулировках. Ассистент, не оракул.
+- **Алиас не резолвится в версию.** Задана модель как `opus` / `sonnet` / `best`, точное поколение зависит от провайдера и плана, инструмент честно оставляет поколение пустым и применяет правила семейства.
+- **Детект настроек читает не все.** Сейчас разбирается каскад `.claude/settings.local.json`, `.claude/settings.json`, `~/.claude/settings.json` и `~/.codex/config.toml`. Managed-настройки Claude Code (высший приоритет в enterprise), проектный `.codex/config.toml` и переменная `CODEX_HOME` пока не учитываются. Сомневаетесь, сверьтесь с `/status` или задайте `--model` явно.
+- **Переменные сессии Codex это эвристика.** `CODEX_THREAD_ID`, `CODEX_SHELL`, `CODEX_CI`, `CODEX_SANDBOX` в список официально документированных не входят, определение активной сессии опирается на них как на догадку.
+- **Правила обновляются человеком.** `update` только сигналит.
+- **Глубина покрытия разная.** У Claude Code и Codex правила разобраны по поколениям, 18 и 8 правил. У Gemini, Qwen, Kimi и Grok по одному правилу и совету по запуску: вендоры публикуют о них меньше.
+- **Это не бенчмарк.** Инструмент применяет правила вендора, а не измеряет, что промпт стал «на X процентов лучше». Никаких процентов улучшения он не обещает.
 
-Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
+Проверяемость: `python -m pytest -q` дает 2433 теста (детект, детекторы, перепись, харнесс,
+целостность правил, frozen-снапшот набора правил, самопроверка, отказ переписывать, бюджет
+контекста хука, карточка воспроизводимости). `nativeprompt rules` показывает все правила с
+источниками, сверьте выборочно сами.
 
-## Contributing
+## Как внести вклад
 
-Verify first:
-
-```bash
-python3 -m pytest -q          # 2433 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot, self-check, refusal, hook context budget, reproducibility card
-```
-
-**Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:
+**Новое правило** принимается только с официальным первоисточником. Формат это объект в
+массиве `rules` внутри `nativeprompt/rules/<family>.json`:
 
 ```json
 {
-  "id": "opus5-remove-verification",
-  "scope": "opus-5",                 // "family" or a generation key
-  "check": "verification_demand",    // a detector in analyze.py
-  "action": "warn",                  // add | remove | restructure | warn
-  "title": "short imperative",
-  "why": "one or two sentences, concrete",
-  "source": "https://…"              // official vendor doc, must return 200
+  "id": "claude-xml",
+  "scope": "family",
+  "check": "missing_xml",
+  "action": "restructure",
+  "title": "Сложный промпт из нескольких частей — обернуть в XML-теги",
+  "why": "Короткое объяснение с примером «было → стало».",
+  "source": "https://platform.claude.com/docs/en/build-with-claude/..."
 }
 ```
 
-If your rule needs a new `check`, add the detector to `analyze.py` with a test. If the source page isn't in `rules/_sources.json`, add it there too so `update` starts watching it. There's a frozen-snapshot test over the rule set: rule changes are visible in the diff by design.
+- `scope` это `family` (все семейство) или конкретное поколение (`opus-5`).
+- `check` это идентификатор детектора из `analyze.py`, для нового условия добавьте детектор и тест к нему.
+- `action` это `remove` / `add` / `restructure` / `warn`.
+- `source` **обязателен**, ссылка на официальный док вендора. Блог-посты, треды и народные хаки не принимаются. Добавьте страницу и в `rules/_sources.json`, чтобы `update` следил за ее свежестью.
 
-**Adding a vendor.** Drop a new `nativeprompt/rules/<family>.json` with `detect` (id prefixes + aliases), `generations`, `rules`, and a `harness` block describing that CLI's run modes; register its docs in `_sources.json`. `catalog.py` discovers families from the directory — no code change needed for a well-formed file.
+**Новый вендор** это новый файл `nativeprompt/rules/<family>.json` с блоками `detect`,
+`generations`, `rules` и `harness` (какая команда CLI под какую форму задачи), плюс его
+источники в `_sources.json`. Код на семейства не завязан, каталог загружается динамически.
 
-Other useful contributions, in rough priority order: English CLI output, managed-settings and `CODEX_HOME` support in `detect.py`, a `SessionStart` hook for exact model resolution, and detector precision on non-Russian, non-English prompts.
+Требования к PR: ядро остается **zero-deps** (только stdlib), тесты зеленые
+(`python -m pytest -q`), принцип «не додумывать задачу за пользователя» сохраняется.
 
-## Why rules are not auto-merged
+## Почему правила не вливаются автоматически
 
-The robot detects the change, fetches it, shows the exact diff and opens the PR.
-The last step — deciding whether a *rule* changes — stays human, on purpose:
+Робот замечает изменение, скачивает его, показывает точный diff и открывает PR. Последний
+шаг, решить, меняется ли *правило*, оставлен человеку намеренно. Три причины.
 
-1. **A doc change is not a rule change.** Most edits are typos, rewordings, new examples.
-   Auto-applying would churn the rules for nothing.
-2. **A rule is a translation, not a copy.** The doc says, in prose, "Opus 5 verifies its own
-   work — remove explicit verification instructions". The rule is a detector plus a decision
-   about scope (whole family, or just this generation). That is judgement.
-3. **A wrong auto-update is worse than a stale rule.** It would hand you bad advice *carrying an
-   official source link* — that is, with maximum credibility. This package is installed by other
-   people; model-written changes should not merge themselves into it.
+1. **Изменение доки не равно изменению правила.** Большинство правок это опечатки, переформулировки, новые примеры. Автомат гонял бы правила туда-сюда на пустом месте.
+2. **Правило это перевод, а не копия.** Дока говорит прозой: «Opus 5 проверяет себя сам, уберите инструкции о проверке». А правило это распознаватель плюс решение об области действия, все семейство или только это поколение. Тут нужно суждение.
+3. **Ошибка автомата хуже устаревшего правила.** Он выдаст неверный совет **со ссылкой на официальный источник**, то есть с максимальным доверием. Пакет ставят другие люди, и правки, написанные моделью, не должны вливаться в него сами.
 
-## License
+## Лицензия
 
-MIT — see [LICENSE](LICENSE). Built by Edvard Grishin (Futura AI studio).
+MIT. Сделано для канала «Внутри FuturaAI», Эдвард Гришин.
