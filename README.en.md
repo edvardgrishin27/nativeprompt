@@ -1,5 +1,7 @@
 [🇷🇺 Русский](README.md) · 🇬🇧 English
 
+![nativeprompt: one phrase, two verdicts. Claude Code keeps it, Codex removes it](https://raw.githubusercontent.com/edvardgrishin27/nativeprompt/main/docs/og.png)
+
 # nativeprompt
 
 **Claude Code and Codex read the same prompt differently. nativeprompt rewrites it for the model you are actually sitting in front of, using that vendor's official rules, and links every edit to the doc it came from.**

@@ -1,5 +1,7 @@
 🇷🇺 Русский · [🇬🇧 English](README.en.md)
 
+![nativeprompt: одна фраза, два вердикта. Claude Code оставляет, Codex убирает](docs/og.png)
+
 # nativeprompt
 
 **Один и тот же промпт Claude Code и Codex читают по-разному. nativeprompt переписывает его
