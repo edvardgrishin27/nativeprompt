@@ -48,12 +48,94 @@ _СОВЕТОВ_УРЕЗАННО = 3
 _ПОСЛЕДНЯЯ_СТУПЕНЬ = 3
 
 
+def _корни_чужих_окружений():
+    """Куда pipx и uv кладут свои изолированные окружения.
+
+    Живой отзыв: «поставил хук по раздатке, а он молчал всегда». Человек сделал
+    `pipx install nativeprompt` — это первая строка в нашей же инструкции по
+    установке, — а хук в settings.json запускается системным `python3`, который
+    чужого окружения не видит. Раскладка у pipx и uv разная и зависит от системы,
+    поэтому перекладывать её на пользователя строкой вида
+    ~/Library/Application Support/pipx/venvs/... нельзя: путь машинозависимый
+    и ломается при переустановке.
+    """
+    дом = os.path.expanduser("~")
+    pipx = os.environ.get("PIPX_HOME") or (
+        os.path.join(дом, "Library", "Application Support", "pipx") if sys.platform == "darwin"
+        else os.path.join(дом, "pipx") if os.name == "nt"
+        else os.path.join(дом, ".local", "share", "pipx"))
+    uv = os.environ.get("UV_TOOL_DIR") or (
+        os.path.join(os.environ.get("APPDATA", дом), "uv", "tools") if os.name == "nt"
+        else os.path.join(дом, ".local", "share", "uv", "tools"))
+    return [os.path.join(pipx, "venvs", "nativeprompt"), os.path.join(uv, "nativeprompt")]
+
+
+def _site_packages(вэнв):
+    """site-packages внутри окружения, если пакет там правда лежит."""
+    import glob as _glob
+    шаблоны = [
+        os.path.join(вэнв, "lib", "python*", "site-packages"),   # posix
+        os.path.join(вэнв, "Lib", "site-packages"),              # windows
+    ]
+    for шаблон in шаблоны:
+        for site in sorted(_glob.glob(шаблон)):
+            if os.path.isdir(os.path.join(site, "nativeprompt")):
+                return site
+    return None
+
+
+def _искать_в_чужих_окружениях():
+    """Найти site-packages с пакетом в окружении pipx или uv.
+
+    Третий путь, через команду `nativeprompt` в PATH, идёт последним: у homebrew
+    и у ручных обёрток она может быть простым скриптом, который в venv не ведёт.
+    """
+    for вэнв in _корни_чужих_окружений():
+        site = _site_packages(вэнв)
+        if site:
+            return site
+    try:
+        import shutil as _shutil
+        команда = _shutil.which("nativeprompt")
+        if команда:
+            # <venv>/bin/nativeprompt → <venv>
+            site = _site_packages(os.path.dirname(os.path.dirname(os.path.realpath(команда))))
+            if site:
+                return site
+    except Exception:
+        pass
+    return None
+
+
+#: Жалоба печатается один раз за процесс: хук висит на каждом промпте, и
+#: повторять её значит засорять вывод ровно так же, как засорял бы сам совет.
+_ПОЖАЛОВАЛИСЬ = []
+
+
+def _пожаловаться_один_раз():
+    """Сказать вслух, что пакета нет.
+
+    Тихий ноль — правильное поведение при любой ошибке РАБОТЫ: сломать отправку
+    промпта хук не имеет права. Но когда пакета просто нет, молчание неотличимо
+    от «промпт хороший, править нечего», и человек полдня думает, что инструмент
+    работает. Это единственное место, где хук говорит вслух.
+    """
+    if _ПОЖАЛОВАЛИСЬ:
+        return
+    _ПОЖАЛОВАЛИСЬ.append(True)
+    sys.stderr.write(
+        "nativeprompt: пакет не найден, хук пропускает ход. "
+        "Поставьте `pipx install nativeprompt` либо укажите путь к клону "
+        "репозитория в переменной NATIVEPROMPT_HOME.\n")
+
+
 def _find_package():
     """Найти пакет nativeprompt, не завися от машины автора.
 
-    Порядок: уже установлен (pip/pipx) → каталог этого хука (клон репозитория) →
-    NATIVEPROMPT_HOME → CLAUDE_PROJECT_DIR. Хук должен работать у любого,
-    кто склонировал репозиторий куда угодно.
+    Порядок: уже установлен → окружения pipx и uv → каталог этого хука (клон
+    репозитория) → NATIVEPROMPT_HOME → CLAUDE_PROJECT_DIR. Хук должен работать
+    и у того, кто склонировал репозиторий куда угодно, и у того, кто поставил
+    пакет одной командой и клона в глаза не видел.
     """
     try:  # уже установлен в окружение
         import nativeprompt  # noqa: F401
@@ -69,6 +151,10 @@ def _find_package():
     for c in candidates:
         if c and os.path.isdir(os.path.join(os.path.expanduser(c), "nativeprompt")):
             return os.path.expanduser(c)
+    чужое = _искать_в_чужих_окружениях()
+    if чужое:
+        return чужое
+    _пожаловаться_один_раз()
     return None
 
 

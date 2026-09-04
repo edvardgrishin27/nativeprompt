@@ -9,10 +9,10 @@
 ![MIT](https://img.shields.io/badge/license-MIT-black)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![2433 tests](https://img.shields.io/badge/tests-2433%20passing-brightgreen)
+![2436 tests](https://img.shields.io/badge/tests-2436%20passing-brightgreen)
 ![no API keys](https://img.shields.io/badge/API%20keys-none-1f6feb)
 
-Claude Code · Codex · 2433 tests · zero dependencies · no API key · runs offline
+Claude Code · Codex · 2436 tests · zero dependencies · no API key · runs offline
 
 Scope: the **agentic CLIs** — Claude Code, Codex, Gemini CLI, Grok Build, Qwen Code and Kimi CLI. Not the API, not the web chat.
 
@@ -256,7 +256,8 @@ What it does and doesn't do:
 - **Budget: 30 seconds.** `UserPromptSubmit` lowers the default hook timeout from 600 s to 30 s ([hooks](https://code.claude.com/docs/en/hooks)). This hook is deterministic and makes no network calls, so it fits comfortably — don't add network calls of your own there.
 - Matchers are not supported for this event and are silently ignored; it fires on every prompt.
 - **Context budget: 2400 characters.** The hook is paid for on every prompt, out of your own context window, so its size is capped; over the project corpus the worst case after trimming is 1729 characters. When it does not fit, it trims in a fixed order and only its own blocks — the run recommendation first, then the tail of the advisory list beyond three, then the "improved version" block in full. Your text is never cut in the middle: the block is whole or absent, and a single line says what was dropped ([CLAIMS](CLAIMS.md#the-hooks-cost-is-measurable-the-injected-context-has-a-ceiling)).
-- The hook resolves the package on its own: an installed `nativeprompt` first, then its own repository directory, then `NATIVEPROMPT_HOME` / `CLAUDE_PROJECT_DIR`. No path editing required, and it stays silent rather than failing if nothing resolves.
+- The hook resolves the package on its own: an installed `nativeprompt` first, then its own repository directory, then `NATIVEPROMPT_HOME` / `CLAUDE_PROJECT_DIR`, and finally the **isolated environments of pipx and uv** at their standard paths. That last step matters: `pipx install` puts the package in an environment the plain `python3` from the config line above cannot see, and until 0.6.1 the hook silently did nothing in that case. It now finds it by itself — no need to hand-write `~/Library/Application Support/pipx/venvs/...`.
+- If the package is nowhere to be found, the hook writes one line to stderr and skips the turn. It **never blocks prompt submission**; on any other error it stays silent.
 
 There is also a documented way to get the model *exactly*, which the hook does not use yet: only `SessionStart` hooks can receive a `model` field, and *"there is no `$CLAUDE_MODEL` environment variable"* ([hooks](https://code.claude.com/docs/en/hooks)). A `SessionStart` hook that caches that value would beat any settings-file read, because it also catches `--model` and the session-only `s` choice. Contributions welcome.
 
@@ -327,7 +328,7 @@ Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 Verify first:
 
 ```bash
-python3 -m pytest -q          # 2433 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot, self-check, refusal, hook context budget, reproducibility card
+python3 -m pytest -q          # 2436 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot, self-check, refusal, hook context budget, reproducibility card
 ```
 
 **Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:
