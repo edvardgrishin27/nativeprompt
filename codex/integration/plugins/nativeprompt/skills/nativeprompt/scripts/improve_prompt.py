@@ -15,8 +15,17 @@ import subprocess
 import sys
 from pathlib import Path
 
+from safe_prompt import make_safe_report
 
-REQUIRED_KEYS = {"target", "findings", "harness", "improved", "metaprompt"}
+
+REQUIRED_KEYS = {
+    "original",
+    "target",
+    "findings",
+    "harness",
+    "improved",
+    "metaprompt",
+}
 
 
 def _nativeprompt_checkout() -> Path | None:
@@ -65,8 +74,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--model",
-        default="codex",
-        help="OpenAI/Codex model identifier (default: codex)",
+        help="OpenAI/Codex model identifier; omit to use nativeprompt detection",
     )
     parser.add_argument(
         "--executable",
@@ -87,6 +95,7 @@ def main(argv: list[str] | None = None) -> int:
     if not prompt.strip():
         print("Expected a non-empty prompt on stdin.", file=sys.stderr)
         return 2
+    prompt = prompt.strip()
     if args.timeout <= 0:
         print("--timeout must be greater than zero.", file=sys.stderr)
         return 2
@@ -95,14 +104,12 @@ def main(argv: list[str] | None = None) -> int:
         base_command, cwd = _command(args.executable)
         environment = dict(os.environ)
         environment["PYTHONDONTWRITEBYTECODE"] = "1"
+        command = [*base_command, "improve"]
+        if args.model:
+            command.extend(["--model", args.model])
+        command.append("--json")
         completed = subprocess.run(
-            [
-                *base_command,
-                "improve",
-                "--model",
-                args.model,
-                "--json",
-            ],
+            command,
             input=prompt,
             text=True,
             capture_output=True,
@@ -135,6 +142,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"nativeprompt returned invalid JSON: {exc}", file=sys.stderr)
         return 1
 
+    if not isinstance(report, dict):
+        print(
+            "nativeprompt report must be a JSON object.",
+            file=sys.stderr,
+        )
+        return 1
+
     missing = sorted(REQUIRED_KEYS.difference(report))
     if missing:
         print(
@@ -151,7 +165,16 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    json.dump(report, sys.stdout, ensure_ascii=False, indent=2)
+    try:
+        safe_report = make_safe_report(prompt, report)
+    except (TypeError, ValueError) as exc:
+        print(
+            f"nativeprompt safety adapter rejected the report: {exc}",
+            file=sys.stderr,
+        )
+        return 1
+
+    json.dump(safe_report, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
     return 0
 
