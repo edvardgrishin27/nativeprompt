@@ -285,8 +285,41 @@ def cmd_rules(args):
             for c in h.get("commands", []):
                 print("  [%s] %s → %s" % (c.get("when"), c.get("title"), c.get("command")))
                 print("      %s" % c.get("source"))
+        e = data.get("effort")
+        if e:
+            _print_effort(e, data.get("generations", {}))
         print("")
     return 0
+
+
+def _print_effort(e, gens):
+    """Таблица уровней усилий семейства: что значит уровень, у каких моделей какие
+    уровни и какой дефолт, какой уровень инструмент советует под форму задачи."""
+    print("\nУРОВЕНЬ УСИЛИЙ (%s): %s" % (e["cli"], e["set"]["command"].format(level="<уровень>")))
+    for g in e.get("levels_guide", []):
+        print("  %-10s %s" % (g["level"], g["text"]))
+    if e.get("levels_guide_source"):
+        print("      %s" % e["levels_guide_source"])
+    print("  Уровни по моделям (* — %s):" % e.get("default_mark", "дефолт"))
+    for gid, m in e["models"].items():
+        имя = (gens.get(gid) or {}).get("label", gid)
+        if m["levels"] is None:
+            print("    %-22s список уровней вендор не публикует%s"
+                  % (имя, "; стартовый: %s" % m["default"] if m["default"] else ""))
+            continue
+        if not m["levels"]:
+            print("    %-22s effort нет" % имя)
+            continue
+        print("    %-22s %s" % (имя, " · ".join(l + ("*" if l == m["default"] else "") for l in m["levels"])))
+    print("      %s" % e["levels_source"])
+    print("  Совет под форму задачи:")
+    основа = e.get("default_mark", "дефолт модели")
+    for форма, совет in e["by_shape"].items():
+        уровень = основа if совет["level"] == "default" else совет["level"]
+        if совет.get("floor"):
+            уровень += ", не ниже стартового"
+        print("    %-9s → %s" % (форма, уровень))
+        print("      %s" % совет["source"])
 
 
 def cmd_update(args):

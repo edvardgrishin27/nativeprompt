@@ -4,7 +4,7 @@
   "display": "Codex",
   "surface": "Codex CLI (агентный CLI). Правила — из Codex prompting + GPT-5 reasoning best-practices, НЕ из ChatGPT-чата.",
   "context_file": "AGENTS.md",
-  "rules_version": "2026-09-23",
+  "rules_version": "2026-09-27",
   "detect": {
     "id_prefixes": [
       "gpt-",
@@ -93,13 +93,14 @@
   },
   "config_notes": [
     "Постоянные правила проекта — в AGENTS.md (слитый из ~/.codex и каталогов от корня репо к текущему; глубже переопределяет), а не в каждом промпте.",
-    "Codex CLI (~/.codex/config.toml): глубина рассуждения — model_reasoning_effort (minimal|low|medium|high|xhigh; xhigh зависит от модели), длина ответа — model_verbosity (low|medium|high). Задавайте их в конфиге, а не словами в промпте.",
+    "Codex CLI (~/.codex/config.toml): глубина рассуждения — model_reasoning_effort (low|medium|high|xhigh|max|ultra; набор зависит от модели и клиента, у /plan свой plan_mode_reasoning_effort), длина ответа — model_verbosity (low|medium|high). Задавайте их в конфиге, а не словами в промпте.",
     "Responses API (те же модели GPT-6, но другой слой — НЕ путать с CLI-конфигом): reasoning.effort (none|low|medium|high|xhigh|max; у GPT-6 Astra «none» нет, у Sol и Luna есть), reasoning.mode: \"pro\" для сложных задач, text.verbosity (low|medium|high). При effort выше none у GPT-6 не передаются temperature, top_p и top_logprobs."
   ],
   "config_notes_sources": [
     "https://learn.chatgpt.com/docs/agent-configuration/agents-md",
     "https://learn.chatgpt.com/docs/config-file/config-reference",
-    "https://developers.openai.com/api/docs/guides/reasoning"
+    "https://developers.openai.com/api/docs/guides/reasoning",
+    "https://learn.chatgpt.com/docs/models"
   ],
   "rules": [
     {
@@ -293,5 +294,156 @@
         "source": "https://learn.chatgpt.com/docs/prompting"
       }
     ]
+  },
+  "effort": {
+    "cli": "Codex",
+    "default_label": "с него вендор советует начинать",
+    "default_mark": "стартовый уровень вендора",
+    "set": {
+      "command": "model_reasoning_effort = \"{level}\"  · в сессии: /model",
+      "how": "В ~/.codex/config.toml — ключ model_reasoning_effort, на один запуск — codex -c model_reasoning_effort=<уровень>. В CLI /model выбирает модель и уровень, в приложении и IDE уровень стоит под полем ввода. У /plan свой ключ plan_mode_reasoning_effort.",
+      "source": "https://learn.chatgpt.com/docs/config-file/config-reference"
+    },
+    "levels_source": "https://learn.chatgpt.com/docs/models#pick-a-reasoning-effort",
+    "levels_guide": [
+      {
+        "level": "low",
+        "text": "в приложении и IDE называется Light: быстрые задачи с понятными рамками"
+      },
+      {
+        "level": "medium",
+        "text": "баланс скорости и глубины для задач, где нужно больше планирования"
+      },
+      {
+        "level": "high",
+        "text": "трудная работа с несколькими шагами, источниками или компромиссами"
+      },
+      {
+        "level": "xhigh",
+        "text": "в приложении Extra High: вместе с high — для трудной многошаговой работы"
+      },
+      {
+        "level": "max",
+        "text": "больше времени на одну задачу: самые трудные задачи, где глубина важнее скорости и расхода"
+      },
+      {
+        "level": "ultra",
+        "text": "субагенты ведут части сложной задачи параллельно, если работу можно разбить; у GPT-6 Luna нет"
+      }
+    ],
+    "levels_guide_source": "https://learn.chatgpt.com/docs/models#pick-a-reasoning-effort",
+    "models": {
+      "gpt-6-sol": {
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "ultra"
+        ],
+        "default": "medium",
+        "note": "По подбору вендора: Sol на low — сфокусированное письмо, фактчек, простая работа в приложениях; на medium — повседневный код, исследования и задачи, где нужны суждение и полнота; на xhigh — глубокий анализ, тщательная проверка и ревью документов, данных и кода.",
+        "note_source": "https://learn.chatgpt.com/docs/model-selection"
+      },
+      "gpt-6-luna": {
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ],
+        "default": "high",
+        "note": "По подбору вендора: Luna на low — точечные правки и простое извлечение данных; на medium — работа по ясному брифу и согласованные правки; на xhigh — поиск контекста в нескольких приложениях и задачи с чёткими ограничениями. Ultra у Luna нет, потолок — max.",
+        "note_source": "https://learn.chatgpt.com/docs/model-selection"
+      },
+      "gpt-6-astra": {
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "ultra"
+        ],
+        "default": "low",
+        "note": "Astra — самая сильная модель линейки, поэтому вендор советует начинать с low (в приложении Light). По его подбору: low — сжатое письмо и адаптация текста без потери фактов, medium — амбициозные проекты с широким контекстом, xhigh — требовательный анализ и сложные результаты с точными требованиями.",
+        "note_source": "https://learn.chatgpt.com/docs/model-selection"
+      },
+      "gpt-5.6": {
+        "levels": null,
+        "default": "medium",
+        "note": "Без явного уровня GPT-5.6 работает на medium. Список уровней этой модели в Codex вендор не публикует: если уровня нет в /model, Codex его не предложит.",
+        "note_source": "https://developers.openai.com/api/docs/guides/reasoning#reasoning-mode"
+      },
+      "gpt-5": {
+        "levels": null,
+        "default": null
+      },
+      "codex": {
+        "levels": null,
+        "default": null
+      }
+    },
+    "fallback_as": {
+      "ultra": "xhigh"
+    },
+    "unsupported": {
+      "text": "У этой модели нет reasoning effort — совета по уровню не будет.",
+      "source": "https://learn.chatgpt.com/docs/config-file/config-reference"
+    },
+    "unknown_default": "Стартовый уровень для этой модели вендор не называет, а у моделей он разный: у GPT-6 Sol — medium, у Luna — high, у Astra — low (в приложении Light). Если работаете на одной из них, назовите её через --model.",
+    "raise_when": [
+      {
+        "text": "Уровни не совпадают между поколениями моделей: попробуйте знакомую задачу на уровне ниже и поправьте по результату. Поднимайте, когда задаче нужно больше планирования, анализа или проверки.",
+        "source": "https://learn.chatgpt.com/docs/models#pick-a-reasoning-effort"
+      }
+    ],
+    "by_shape": {
+      "trivial": {
+        "level": "low",
+        "why": "Быстрая точечная правка. Low у Codex (в приложении и IDE он называется Light) — для быстрых задач с понятными рамками.",
+        "source": "https://learn.chatgpt.com/docs/models#pick-a-reasoning-effort"
+      },
+      "normal": {
+        "level": "default",
+        "why": "Форма задачи по тексту не определилась. Начните с уровня, который вендор советует для вашей модели, и поднимайте, если задаче нужно больше планирования, анализа или проверки.",
+        "source": "https://learn.chatgpt.com/docs/models#pick-a-reasoning-effort"
+      },
+      "planning": {
+        "level": "medium",
+        "floor": true,
+        "why": "Задача, где сначала нужен план. Medium у Codex — баланс скорости и глубины для задач, которым нужно больше планирования. Ниже уровня, с которого вендор советует начинать на вашей модели, инструмент не опускает.",
+        "source": "https://learn.chatgpt.com/docs/models#pick-a-reasoning-effort",
+        "caution": {
+          "text": "У /plan свой уровень: без ключа plan_mode_reasoning_effort Codex берёт в режиме плана встроенный пресет, а не model_reasoning_effort.",
+          "source": "https://learn.chatgpt.com/docs/config-file/config-reference"
+        }
+      },
+      "goal": {
+        "level": "high",
+        "floor": true,
+        "why": "Долгая работа в несколько шагов до проверяемого результата. High и Extra High у Codex — для трудной работы с несколькими шагами, источниками или компромиссами.",
+        "source": "https://learn.chatgpt.com/docs/models#pick-a-reasoning-effort"
+      },
+      "loop": {
+        "level": "default",
+        "why": "Регулярный запуск: частая автоматизация быстрее копит расход. Вендор советует держать самый лёгкий уровень, который даёт нужное качество.",
+        "source": "https://learn.chatgpt.com/docs/model-selection#experiment"
+      },
+      "workflow": {
+        "level": "ultra",
+        "why": "Аудит или миграция по всему проекту делятся на части. Ultra раздаёт части задачи субагентам и ведёт их параллельно: вендор советует его, когда работу можно разбить на осмысленные куски.",
+        "source": "https://learn.chatgpt.com/docs/models#know-when-to-use-max-or-ultra",
+        "fallback_why": "У этой модели Ultra нет. Для ревью кода и аудита безопасности гайд OpenAI по рассуждению советует xhigh, но только если ваши замеры показывают пользу.",
+        "fallback_source": "https://developers.openai.com/api/docs/guides/reasoning#reasoning-effort",
+        "caution": {
+          "text": "Большинству задач не нужны ни Max, ни Ultra. Если Ultra нет в ползунке приложения, его включают в Settings → Configuration → Ultra in model picker slider.",
+          "source": "https://learn.chatgpt.com/docs/models#know-when-to-use-max-or-ultra"
+        }
+      }
+    },
+    "levels_unknown": "Список уровней этой модели вендор не публикует: если «{level}» нет в /model, берите ближайший уровень ниже."
   }
 }

@@ -6,6 +6,7 @@ import textwrap
 
 from . import __version__, catalog, detect as _detect
 from .analyze import analyze, mask_code, normalize_prompt, task_shape
+from .effort import recommend_effort
 from .harness import recommend_harness
 from .rewrite import (МАРКЕР_ПЛЕЙСХОЛДЕРА, rewrite, build_metaprompt,
                       strip_insertions)
@@ -158,12 +159,16 @@ def build_report(prompt, model=None, target=None):
     shape = task_shape(masked)
     findings = analyze(prompt, target)
     harness_rec = recommend_harness(masked, target, shape)
+    # Уровень усилий — настройка запуска, как и харнесс: в перепись и в
+    # мета-промпт он не идёт, только в отчёт человеку.
+    effort_rec = recommend_effort(target, shape)
     rw = rewrite(prompt, target, findings, shape)
     report.update(
         {
             "shape": shape,
             "findings": findings,
             "harness": harness_rec,
+            "effort": effort_rec,
             "improved": rw["improved"],
             "applied": rw["applied"],
             # Расписка сборщика: какие куски improved дописал сам инструмент.
@@ -438,6 +443,11 @@ def render_report(report, show_metaprompt=True):
             if extra.get("source"):
                 out.append("  правило: %s" % extra["source"])
 
+    e = report.get("effort")
+    if e:
+        out.append("")
+        out.extend(render_effort(e))
+
     # `нечего` посчитано выше одним вызовом: два вызова одной чистой функции
     # дали бы тот же ответ, но напечатанный отказ и напечатанный мета-промпт
     # обязаны следовать ОДНОМУ решению, а не двум одинаковым по случайности.
@@ -449,6 +459,41 @@ def render_report(report, show_metaprompt=True):
         out.append(report["metaprompt"])
 
     return "\n".join(out)
+
+
+def render_effort(e):
+    """Блок «Уровень усилий»: какой effort ставить и почему, со ссылкой на вендора."""
+    out = []
+    шапка = "УРОВЕНЬ УСИЛИЙ (%s · %s): " % (e["cli"], e["model"])
+    if not e["supported"]:
+        out.append(шапка + "у этой модели effort нет")
+        out.append(_wrap(e["why"], indent="  ", first="  "))
+        out.append("  правило: %s" % e["source"])
+        return out
+    if e["level"] is None:
+        out.append(шапка + "дефолт модели")
+    elif e["is_default"]:
+        out.append(шапка + "%s, %s" % (e["level"], e["default_label"]))
+    else:
+        out.append(шапка + e["level"])
+    out.append("  → %s" % e["command"])
+    out.append(_wrap(e["why"], indent="  ", first="  "))
+    out.append("  правило: %s" % e["source"])
+    for оговорка in (e.get("unknown_default"), e.get("levels_unknown")):
+        if оговорка:
+            out.append(_wrap(оговорка, indent="  ", first="  "))
+    последний = e["source"]
+    for доп in (e.get("model_note"), e.get("caution")):
+        if доп:
+            out.append(_wrap(доп["text"], indent="  ", first="  "))
+            # Та же ссылка второй строкой подряд ничего не сообщает.
+            if доп["source"] != последний:
+                out.append("  правило: %s" % доп["source"])
+                последний = доп["source"]
+    for i, совет in enumerate(e.get("raise_when") or []):
+        out.append(_wrap(совет["text"], indent="  ", first="  когда менять: " if i == 0 else "  "))
+        out.append("  правило: %s" % совет["source"])
+    return out
 
 
 #: Подпись каждой корзины: что она значит человеку, который видит её впервые.

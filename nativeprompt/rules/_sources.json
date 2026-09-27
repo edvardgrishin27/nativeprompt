@@ -12,7 +12,9 @@
         "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-4-8.md",
         "https://code.claude.com/docs/en/best-practices.md",
         "https://code.claude.com/docs/en/goal.md",
-        "https://code.claude.com/docs/en/workflows.md"
+        "https://code.claude.com/docs/en/workflows.md",
+        "https://code.claude.com/docs/en/model-config.md",
+        "https://platform.claude.com/docs/en/build-with-claude/effort.md"
       ],
       "index": "https://platform.claude.com/llms.txt"
     },
@@ -26,7 +28,9 @@
         "https://learn.chatgpt.com/docs/agent-configuration/agents-md.md",
         "https://learn.chatgpt.com/docs/build-skills.md",
         "https://developers.openai.com/api/docs/guides/latest-model.md",
-        "https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra.md"
+        "https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra.md",
+        "https://learn.chatgpt.com/docs/models.md",
+        "https://learn.chatgpt.com/docs/model-selection.md"
       ],
       "index": "https://developers.openai.com/llms.txt",
       "note": "latest-model.md — не источник правил, а сторож: в его шапке стоит имя текущей флагманской модели, и смена этого имени означает, что вышло новое поколение. Правила берём с закреплённого адреса модели (latest-model/gpt-6-astra.md), чтобы ссылки и якоря не переехали вместе со следующим релизом."

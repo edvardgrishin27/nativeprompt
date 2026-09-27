@@ -4,18 +4,26 @@
 
 # nativeprompt
 
-**Claude Code and Codex read the same prompt differently. nativeprompt rewrites it for the model you are actually sitting in front of, using that vendor's official rules, and links every edit to the doc it came from.**
+**Claude Code and Codex read the same prompt differently. nativeprompt rewrites it for the model you are actually sitting in front of, using that vendor's official rules, and links every edit to the doc it came from. It also tells you which effort level to run the task at.**
 
 ![MIT](https://img.shields.io/badge/license-MIT-black)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![2518 tests](https://img.shields.io/badge/tests-2518%20passing-brightgreen)
+![2589 tests](https://img.shields.io/badge/tests-2589%20passing-brightgreen)
 ![no API keys](https://img.shields.io/badge/API%20keys-none-1f6feb)
 ![latest models](https://img.shields.io/badge/Opus%205.5%20%C2%B7%20GPT--6-supported-d97757)
 
-Claude Code · Codex · 2518 tests · zero dependencies · no API key · runs offline
+Claude Code · Codex · 2589 tests · zero dependencies · no API key · runs offline
 
-> **Fresh.** Rules for **Claude Opus 5.5** landed on 23 September 2026, the day after
+> **Fresh in 0.9.0.** Since 27 September 2026 the tool recommends an **effort level**: which
+> `effort` to set in Claude Code and which `model_reasoning_effort` in Codex for the task at
+> hand. The advice follows each vendor's per-model tables and the task shape, names the
+> model's default and links the doc. Claude Opus 5.5 defaults to medium, and the tool reminds
+> you not to carry your Opus 5 level over. For Codex, OpenAI says to start GPT-6 Sol at
+> medium, Luna at high and Astra at low, and to hand project-wide audits to Ultra; Luna has no
+> Ultra, and the advice says so and falls back openly. See [Effort level](#effort-level).
+>
+> Rules for **Claude Opus 5.5** landed on 23 September 2026, the day after
 > the model shipped: five behaviours that show up in the prompt text itself. The whole
 > **GPT-6** line — Astra, Sol and Luna — landed the same day: OpenAI moved its main
 > prompting page onto GPT-6, and the three models share one guide. Rules for **GPT-6
@@ -176,7 +184,7 @@ printf '%s' 'Could you please FIX the login bug, think step by step and double-c
   | nativeprompt improve --model gpt-5.6
 ```
 
-Real output (trimmed to the findings and the harness advice):
+Real output (trimmed to the findings, the harness advice and the effort level):
 
 ```
 МОДЕЛЬ: Codex (gpt-5.6) · gpt-5.6
@@ -195,6 +203,10 @@ Real output (trimmed to the findings and the harness advice):
 
 КАК ЗАПУСКАТЬ (Codex) — форма задачи: normal
   → начните обычным запуском; при первой же неясности — /plan
+
+УРОВЕНЬ УСИЛИЙ (Codex · GPT-5.6 (sol/terra/luna/cyber)): medium, с него вендор советует начинать
+  → model_reasoning_effort = "medium"  · в сессии: /model
+  правило: https://learn.chatgpt.com/docs/models#pick-a-reasoning-effort
 ```
 
 The exact same prompt against Claude Opus 5 produces a *different* set — that contrast is the whole point of the tool.
@@ -216,20 +228,46 @@ python3 examples/contrast_demo.py
 
 More raw prompts to try are in [`examples/prompts.md`](examples/prompts.md).
 
+### Effort level
+
+Under the how-to-run advice the report prints an **effort level** block: the level, the command
+that sets it, why, and the vendor doc it comes from. The level is a run setting, not words, so it
+never lands in the rewritten prompt: both vendors ask you to steer reasoning depth with the
+setting, not with phrases like "think harder".
+
+| Task shape | Claude Code | Codex |
+|---|---|---|
+| small mechanical edit | `low` | `low` (Light in the app) |
+| shape unclear | model default | model's starting level |
+| plan across several files | model default | `medium`, never below the starting level |
+| long run to a checkable result | model default | `high`, never below the starting level |
+| scheduled repeat | model default | model's starting level |
+| project-wide audit or migration | `ultracode` | `ultra` |
+
+Why Claude gets the default almost everywhere: Anthropic writes that the default suits most coding
+tasks. Claude Code defaults are medium on Opus 5.5, xhigh on Opus 4.7 and high elsewhere; Haiku 4.5
+and Mythos have no effort at all, and the report says so. For Codex, OpenAI says to start GPT-6 Sol
+at medium, Luna at high and Astra at low, and to go up when a task needs more planning, analysis or
+checking.
+
+When a model lacks the advised level, the advice falls back the way the CLI itself does: ultracode
+on Opus 4.6 becomes high, Ultra on GPT-6 Luna becomes xhigh, and the report explains why. Full
+tables with sources: `nativeprompt rules claude` and `nativeprompt rules codex`.
+
 ### Commands
 
 | Command | Flags | What it does |
 |---|---|---|
-| `improve "<prompt>"` | `--model M`, `--json`, `--no-metaprompt`, `--verify` | detect → analyze → rewrite → harness advice → explain. Reads the prompt from stdin when the argument is omitted. Every report carries a **reproducibility card** — one line in the header, the full `meta` object under `--json`: tool version, family, rules version, vendor-docs snapshot date, generation and the signal it came from, task shape, the rule ids that fired and were applied, and the first 12 characters of the prompt's sha256. Without it, two reports from different tool and rule-sheet versions are indistinguishable. |
+| `improve "<prompt>"` | `--model M`, `--json`, `--no-metaprompt`, `--verify` | detect → analyze → rewrite → harness advice → effort advice → explain. Reads the prompt from stdin when the argument is omitted. Every report carries a **reproducibility card** — one line in the header, the full `meta` object under `--json`: tool version, family, rules version, vendor-docs snapshot date, generation and the signal it came from, task shape, the rule ids that fired and were applied, and the first 12 characters of the prompt's sha256. Without it, two reports from different tool and rule-sheet versions are indistinguishable. |
 | `detect` | `--model M`, `--json` | shows the resolved model, family/CLI, and **which signal** it came from. Exit 1 if nothing resolved. |
-| `rules [claude\|codex]` | — | prints every rule with its source URL, plus the harness table. No argument = all families. |
+| `rules [claude\|codex]` | — | prints every rule with its source URL, plus the harness table and the effort table (levels and default per model, level per task shape). No argument = all families. |
 | `update` | `--diff`, `--write`, `--timeout N`, `--json` | fetches the vendors' canonical docs and compares them with stored text snapshots. `--diff` prints the exact before/after lines. Non-zero exit when action is needed (CI signal). `--write` records the new snapshots after you've reviewed the rules. A weekly CI job opens a PR containing the diff — **rules themselves are always edited by a human** (see below). |
 | `coverage <file>` | `--model M`, `--models A,B`, `--json` | counts how many vendor rules your own prompts break, and how many the tool closes. On the project corpus: 227 findings, 87 closed (**38 %**), 140 left to you, **0 introduced**. That last number is the point — the tool must never add a violation that was not there. It is a count of rules, not a quality score: no model runs. |
 | `install` | `--dir DIR`, `--force` | installs the Claude Code skill into `~/.claude/skills/nativeprompt/`, read by both the terminal CLI and the desktop app. |
 
 `nativeprompt --version` prints the version.
 
-`improve` output has four blocks: **what to fix** (each with the vendor rule + link), the **rewritten prompt**, a **how-to-run** recommendation, and a **meta-prompt** you can hand to your own model for a full prose rewrite (suppress it with `--no-metaprompt`).
+`improve` output has five blocks: **what to fix** (each with the vendor rule + link), the **rewritten prompt**, a **how-to-run** recommendation, an **effort level** recommendation, and a **meta-prompt** you can hand to your own model for a full prose rewrite (suppress it with `--no-metaprompt`).
 
 `--verify` adds a fifth: the same detectors run a second time over the tool's own result, and the rules land in three buckets — *closed* (the finding is gone from your text), *left to you* (the rule still fires — that is the norm, those rules are flagged rather than cut) and *introduced by the tool* (there was no finding and now there is — that one is a defect of the tool). It is a count of rules, not a quality score: the tool has no opinion on whether your text got better.
 
@@ -333,14 +371,15 @@ Note that Codex reads persistent project rules from `AGENTS.md` automatically, m
 ## How it works
 
 ```
-detect  →  analyze  →  rewrite  →  harness  →  explain          (+ update, out of band)
+detect  →  analyze  →  rewrite  →  harness  →  effort  →  explain          (+ update, out of band)
 ```
 
 1. **detect** (`detect.py`) — resolves model → **family + generation**. Keying on family means an unreleased id like `claude-opus-6` still gets Claude-family rules instead of nothing. Signals, in order: `--model`, active CLI session markers, `ANTHROPIC_MODEL` / `OPENAI_MODEL` / `CODEX_MODEL`, the `~/.claude/settings.json` cascade, `~/.codex/config.toml`. The `[1m]` suffix is split off and reported separately.
 2. **analyze** (`analyze.py`) — regex detectors for prompt smells (`forced_cot`, `verification_demand`, `pushy_caps`, `repetition`, `contradiction_hint`, `missing_verification`, `missing_output_contract`, `vague_ask`, …) plus a **task shape** classifier: `trivial | normal | planning | goal | loop | workflow`.
 3. **rewrite** (`rewrite.py`) — the deterministic pass. It lowers SHOUTING CAPS, drops the polite opener, and adds missing sections **as `‹placeholders›`**. It never deletes your content and never invents your task — anything the vendor recommends removing by meaning is flagged instead.
 4. **harness** (`harness.py`) — maps the task shape to a run mode from the `harness` block of the rules file: plan mode / `/goal` / `/loop` / dynamic workflow on Claude Code, `/plan` / `/goal` / delegation on Codex — each with its own source link.
-5. **explain** (`explain.py`) — assembles the report and the **meta-prompt**: a model-specific instruction, built from exactly the rules that fired, which your own Claude or Codex executes to do the full prose rewrite. That split is deliberate — the tool itself contains no model.
+5. **effort** (`effort.py`) — recommends an effort level from the task shape and the model: `/effort` on Claude Code, `model_reasoning_effort` on Codex. Levels, defaults and advice come from the `effort` block of the rules file; every piece of advice links the vendor's docs.
+6. **explain** (`explain.py`) — assembles the report and the **meta-prompt**: a model-specific instruction, built from exactly the rules that fired, which your own Claude or Codex executes to do the full prose rewrite. That split is deliberate — the tool itself contains no model.
 
 ## Self-update
 
@@ -350,10 +389,10 @@ detect  →  analyze  →  rewrite  →  harness  →  explain          (+ updat
 
 ```
 [изменилось]       claude  https://code.claude.com/docs/en/goal.md
-[новое]            openai  https://learn.chatgpt.com/docs/prompting.md
-[без изменений]    claude  https://code.claude.com/docs/en/best-practices.md
+[без изменений]    claude  https://code.claude.com/docs/en/model-config.md
+[без изменений]    openai  https://learn.chatgpt.com/docs/models.md
 ...
-Итог: изменилось 1, новых 2, без изменений 24, недоступно 0 (из 28).
+Итог: изменилось 6, новых 0, без изменений 26, недоступно 0 (из 32).
 ```
 
 A weekly GitHub Actions job (`.github/workflows/update-rules.yml`) runs exactly that and fails when the official guidance moved. **The rules are never rewritten automatically** — a maintainer reads the changed doc, updates the JSON, and lands it in a PR, then records the new snapshot with `nativeprompt update --write`. That is a deliberate design choice: a cheat sheet you can audit is worth more than one that mutates silently.
@@ -366,6 +405,7 @@ Deliberately narrow, so the tool stays trustworthy:
 - **The deterministic rewrite is structural, not literary.** It lowers CAPS, drops the polite opener, and inserts placeholder sections — nothing else. The full prose rewrite is the **meta-prompt**, run by your own model. There is no LLM inside this tool.
 - **Detectors are regex heuristics.** Unusual phrasings will produce false positives and misses. It is an assistant, not an oracle.
 - **An alias is not a version.** `opus`, `sonnet`, `best` resolve differently per provider and plan, so generation-specific rules are withheld and family rules applied — and the CLI says so.
+- **The effort level is advice from the vendors' tables, not a measurement.** No model runs; both vendors ask you to test levels on your own work. OpenAI does not publish GPT-5.6's level list for Codex, and the report says so.
 - **No benchmark claims.** The tool applies the vendors' published rules; it does not measure that your prompt got "N% better", and it will never print such a number.
 - **Depth differs by vendor.** Claude Code and Codex are worked out per generation: 18 and 12 rules. Gemini CLI, Grok Build, Qwen Code and Kimi CLI get one rule and a harness hint each, because those vendors publish far less. Inventing rules and signing a vendor's name to them would defeat the whole point.
 
@@ -376,7 +416,7 @@ Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 Verify first:
 
 ```bash
-python3 -m pytest -q          # 2518 tests: detection, detectors, rewrite, harness, rules integrity, frozen snapshot, self-check, refusal, hook context budget, reproducibility card
+python3 -m pytest -q          # 2589 tests: detection, detectors, rewrite, harness, effort level, rules integrity, frozen snapshot, self-check, refusal, hook context budget, reproducibility card
 ```
 
 **Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:

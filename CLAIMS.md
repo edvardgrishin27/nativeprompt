@@ -49,9 +49,21 @@ The tool classifies the task into one of `trivial | planning | goal | loop | wor
 
 > Verified by: `nativeprompt/harness.py`, `harness` blocks in the rule files, 6 tests in `tests/test_harness.py`.
 
+### Effort level recommendation
+
+Since 0.9.0 the how-to-run advice is followed by effort advice: which `effort` to set in Claude Code and which `model_reasoning_effort` in Codex. It combines two vendor tables. The first holds each model's levels and default: for Claude Code, the `model-config` table (medium on Opus 5.5, xhigh on Opus 4.7, high on every other model with effort; Haiku 4.5, Mythos, Opus 4.5 and Sonnet 4.5 have none); for Codex, the starting level from the models page (Sol medium, Luna high, Astra low). The second maps the task shape — the same shape that picks the run mode — to a level.
+
+The two vendors advise differently, and the tool keeps the difference. Anthropic writes that the default suits most coding tasks, so on Claude almost every shape leads to the model default: `low` only for a mechanical edit, `ultracode` only for a project-wide audit or migration. OpenAI matches the level to the task: `medium` for planning, `high` for long multi-step work, `ultra` for work that splits into parts — never below the model's starting level.
+
+When a model lacks the advised level, the advice falls back the way the CLI itself does: the highest of its levels at or below the advised one. A composite level has its own ceiling: ultracode is xhigh plus workflows, so on Opus 4.6 it becomes high, not max. GPT-6 Luna has no Ultra, so the advice becomes xhigh, citing OpenAI's reasoning guide on code review. Models without effort get no level, and where the level list is unpublished (GPT-5.6, an unnamed Codex model) the report says so.
+
+Every piece of advice links the vendor's documentation, like the rules do — blogs are not accepted. The new pages (`model-config` and `effort` from Anthropic, `models` and `model-selection` from OpenAI) are in the self-update manifest. The level is a run setting, not text: it never lands in the rewritten prompt or the meta-prompt, and a test checks that.
+
+> Verified by: `nativeprompt/effort.py`, `effort` blocks in the rule files, `nativeprompt rules claude` and `nativeprompt rules codex`, 71 tests in `tests/test_effort.py`.
+
 ### Self-update actually fetches
 
-`nativeprompt update` downloads the 28 canonical `.md` / `llms.txt` vendor pages listed in `rules/_sources.json`, hashes them with SHA‑256, and diffs against `rules/_snapshot.json`. It exits non‑zero when something changed or is new, so CI can fail on it; `.github/workflows/update-rules.yml` runs it weekly.
+`nativeprompt update` downloads the 32 canonical `.md` / `llms.txt` vendor pages listed in `rules/_sources.json`, hashes them with SHA‑256, and diffs against `rules/_snapshot.json`. It exits non‑zero when something changed or is new, so CI can fail on it; `.github/workflows/update-rules.yml` runs it weekly.
 
 A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 unreachable → action needed.** That is the mechanism working, not a passing grade: it means a maintainer owes the cheatsheet a review pass.
 
@@ -287,6 +299,8 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 
 **It is not a benchmark.** The tool applies vendor *rules*; it does not measure that your prompt became "N% better". No percentage of quality improvement is claimed anywhere, and none should be.
 
+**The effort level is advice from the vendors' tables, not a measurement.** The tool runs no model and cannot know how a level behaves on your code. Both vendors ask you to test levels on your own work, and the advice repeats that. The task shape comes from the same regexes that pick the run mode, so a wrong shape also gives a wrong level. The tool treats Ultra as available on GPT-6 Sol and Astra because the vendor explicitly rules it out only on Luna.
+
 **The CLI speaks Russian.** Interface strings, findings text and the meta-prompt are currently in Russian, even though the rules and their sources are English vendor docs. An English UI is not implemented.
 
 **Published (2026-07-30).** `pip install nativeprompt` and `pipx install nativeprompt` work — verified by installing 0.1.0 from PyPI into a clean virtualenv and running the CLI. Repository: github.com/edvardgrishin27/nativeprompt. Released via PyPI Trusted Publishing from a workflow that runs the test suite first.
@@ -298,10 +312,10 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 2518 tests, no dependencies beyond pytest
+# 1. Test suite — 2589 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 2518 passed
-#   688 invariant · 528 hook budget · 479 reproducibility card · 361 self-check · 92 rule integrity · 73 regressions · 69 prompt-as-data · 32 detection · 30 opus-5.5-rules · 28 gpt-6-rules · 23 refusal · 23 capabilities · 23 fable-rules · 23 astra · 10 coverage · 10 install · 9 analysis · 8 rewrite · 6 harness · 3 update
+# 2589 passed
+#   688 invariant · 528 hook budget · 479 reproducibility card · 361 self-check · 92 rule integrity · 73 regressions · 71 effort level · 69 prompt-as-data · 32 detection · 30 opus-5.5-rules · 28 gpt-6-rules · 23 refusal · 23 capabilities · 23 fable-rules · 23 astra · 10 coverage · 10 install · 9 analysis · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
 python3 -m nativeprompt rules claude

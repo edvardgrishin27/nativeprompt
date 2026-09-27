@@ -3,7 +3,7 @@
   "vendor": "Anthropic",
   "display": "Claude Code",
   "surface": "Claude Code (агентный CLI). Правила — из best-practices Claude Code, НЕ из API/консоли.",
-  "rules_version": "2026-09-23",
+  "rules_version": "2026-09-27",
   "detect": {
     "id_prefixes": [
       "claude-",
@@ -477,5 +477,233 @@
         "source": "https://code.claude.com/docs/en/workflows"
       }
     ]
+  },
+  "effort": {
+    "cli": "Claude Code",
+    "set": {
+      "command": "/effort {level}",
+      "how": "/effort без аргументов открывает ползунок, /effort <уровень> ставит уровень и сохраняет его вашим дефолтом для этой модели, клавиша s в ползунке применяет уровень только к текущей сессии. На один запуск — claude --effort <уровень>. Текущий уровень виден в шапке сессии рядом с моделью.",
+      "source": "https://code.claude.com/docs/en/model-config#set-the-effort-level"
+    },
+    "levels_source": "https://code.claude.com/docs/en/model-config#adjust-effort-level",
+    "levels_guide": [
+      {
+        "level": "low",
+        "text": "короткие узкие задачи, где важна скорость, а не интеллект"
+      },
+      {
+        "level": "medium",
+        "text": "экономия токенов там, где можно уступить часть интеллекта; дефолт Opus 5.5"
+      },
+      {
+        "level": "high",
+        "text": "баланс токенов и интеллекта; дефолт всех моделей, кроме Opus 5.5 и Opus 4.7"
+      },
+      {
+        "level": "xhigh",
+        "text": "глубже рассуждает ценой большего расхода; дефолт Opus 4.7"
+      },
+      {
+        "level": "max",
+        "text": "может помочь на требовательных задачах, но отдача убывает и модель склонна передумывать: проверьте, прежде чем ставить везде; действует до конца сессии"
+      },
+      {
+        "level": "ultracode",
+        "text": "настройка Claude Code: dynamic workflow на каждую серьёзную задачу при уровне xhigh"
+      }
+    ],
+    "levels_guide_source": "https://code.claude.com/docs/en/model-config#choose-an-effort-level",
+    "models": {
+      "fable-5-1": {
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "ultracode"
+        ],
+        "default": "high",
+        "note": "Начните с дефолтного high. Xhigh или max — для самой требовательной агентной работы и кода, medium или low — для рутины и задач, где важна скорость.",
+        "note_source": "https://platform.claude.com/docs/en/build-with-claude/effort#recommended-effort-levels-for-claude-fable-5-1"
+      },
+      "mythos-5-1": {
+        "levels": [],
+        "default": null
+      },
+      "fable-5": {
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "ultracode"
+        ],
+        "default": "high",
+        "note": "High — дефолт для большинства задач, xhigh — для самых требовательных к интеллекту, medium и low — для рутины.",
+        "note_source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5#consider-all-effort-levels"
+      },
+      "mythos-5": {
+        "levels": [],
+        "default": null
+      },
+      "opus-5-5": {
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "ultracode"
+        ],
+        "default": "medium",
+        "note": "В тестах Anthropic Opus 5.5 на medium не уступает Opus 5 на high в задачах по коду и работе со знаниями, а на одном и том же уровне думает больше. При переходе с Opus 5 начните с medium, а не переносите прежний уровень.",
+        "note_source": "https://code.claude.com/docs/en/model-config#choose-an-effort-level"
+      },
+      "opus-5": {
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "ultracode"
+        ],
+        "default": "high",
+        "note": "Low и medium дают сильное качество за долю токенов и времени: опускайте уровень там, где качество держится, а xhigh берите для требовательной работы с кодом и агентами.",
+        "note_source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5"
+      },
+      "sonnet-5": {
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "ultracode"
+        ],
+        "default": "high",
+        "note": "Для самых трудных задач по коду и агентной работы вендор советует xhigh. На low и medium Sonnet 5 делает ровно то, что просили, и на средних по сложности задачах на low может недодумать.",
+        "note_source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5#calibrating-effort-and-thinking-depth"
+      },
+      "opus-4.8": {
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "ultracode"
+        ],
+        "default": "high",
+        "note": "Для кода и агентной работы вендор советует начинать с xhigh, для остальных задач, где важен интеллект, — high. Опускаться до medium или low — только когда замеры показали, что качество держится.",
+        "note_source": "https://platform.claude.com/docs/en/build-with-claude/effort#recommended-effort-levels-for-claude-opus-4-8"
+      },
+      "opus-4.7": {
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "ultracode"
+        ],
+        "default": "xhigh",
+        "note": "Для кода и агентной работы вендор советует начинать с xhigh, high — минимум для задач, где важен интеллект, max — только когда замеры показывают запас на xhigh.",
+        "note_source": "https://platform.claude.com/docs/en/build-with-claude/effort#recommended-effort-levels-for-claude-opus-4-7"
+      },
+      "opus-4.6": {
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "max"
+        ],
+        "default": "high"
+      },
+      "opus-4.5": {
+        "levels": [],
+        "default": null
+      },
+      "sonnet-4.6": {
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "max"
+        ],
+        "default": "high",
+        "note": "Вендор советует medium как лучший баланс скорости, цены и качества для большинства задач, включая агентный код; сам дефолт — high.",
+        "note_source": "https://platform.claude.com/docs/en/build-with-claude/effort#recommended-effort-levels-for-claude-sonnet-4-6"
+      },
+      "sonnet-4.5": {
+        "levels": [],
+        "default": null
+      },
+      "haiku-4.5": {
+        "levels": [],
+        "default": null
+      }
+    },
+    "fallback_as": {
+      "ultracode": "xhigh"
+    },
+    "unsupported": {
+      "text": "У этой модели в Claude Code нет effort: вендор перечисляет модели с уровнями, и этой в списке нет. Совета по уровню не будет.",
+      "source": "https://code.claude.com/docs/en/model-config#adjust-effort-level"
+    },
+    "unknown_default": "Модель не определилась точно, а дефолт у моделей разный: high у всех моделей с effort, кроме Opus 5.5 (medium) и Opus 4.7 (xhigh). Назовите модель через --model, и совет станет точным.",
+    "raise_when": [
+      {
+        "text": "Вендор советует: если на сложной задаче модель рассуждает поверхностно, поднимайте уровень, а не уговаривайте её в промпте.",
+        "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5#calibrating-effort-and-thinking-depth"
+      },
+      {
+        "text": "Нужно быстрее и дешевле — сначала опустите уровень: размышления, а с ними цену и задержку, он снижает надёжнее, чем инструкции в промпте.",
+        "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5#calibrate-effort"
+      }
+    ],
+    "by_shape": {
+      "trivial": {
+        "level": "low",
+        "why": "Механическая правка: опечатка, переименование, известный шаблон. Low в таблице Claude Code — для коротких узких задач, где важна скорость, а не интеллект.",
+        "source": "https://code.claude.com/docs/en/model-config#choose-an-effort-level"
+      },
+      "normal": {
+        "level": "default",
+        "why": "Форма задачи по тексту не определилась. Дефолт подходит для большинства задач по коду, а менять его стоит, когда нужен другой баланс расхода и интеллекта.",
+        "source": "https://code.claude.com/docs/en/model-config#choose-an-effort-level"
+      },
+      "planning": {
+        "level": "default",
+        "why": "План по нескольким файлам — не повод заранее поднимать уровень: дефолт подходит для большинства задач по коду.",
+        "source": "https://code.claude.com/docs/en/model-config#choose-an-effort-level"
+      },
+      "goal": {
+        "level": "default",
+        "why": "Долгая работа до проверяемого результата тоже начинается с дефолта: вендор пишет, что он подходит для большинства задач по коду.",
+        "source": "https://code.claude.com/docs/en/model-config#choose-an-effort-level"
+      },
+      "loop": {
+        "level": "default",
+        "why": "Для задач по расписанию отдельного совета по уровню у вендора нет, поэтому здесь дефолт модели.",
+        "source": "https://code.claude.com/docs/en/model-config#choose-an-effort-level"
+      },
+      "workflow": {
+        "level": "ultracode",
+        "why": "Аудит или миграция по всему проекту — работа для dynamic workflow. Ultracode — это xhigh плюс воркфлоу на каждую серьёзную задачу сессии. Для одной такой задачи хватит слова ultracode в самом промпте: уровень сессии не меняется.",
+        "source": "https://code.claude.com/docs/en/workflows#let-claude-decide-with-ultracode",
+        "commands": {
+          "ultracode": "ultracode: ‹задача› — один воркфлоу; /effort ultracode — вся сессия"
+        },
+        "fallback_why": "Ultracode на этой модели недоступен: он требует xhigh. В таком случае Claude Code запускает сессию без ultracode на самом высоком уровне, который позволяет модель, но не выше xhigh.",
+        "caution": {
+          "text": "На подписке токены ultracode идут в ваш лимит: сессия с ним упирается в лимит сессии или недели раньше, чем та же работа на high. К обычной работе возвращает /effort high.",
+          "source": "https://code.claude.com/docs/en/workflows#let-claude-decide-with-ultracode"
+        }
+      }
+    },
+    "levels_unknown": "Модель не определилась точно: если «{level}» ей недоступен, Claude Code возьмёт самый высокий из её уровней, не выше этого."
   }
 }
