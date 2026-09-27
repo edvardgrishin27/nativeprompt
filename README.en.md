@@ -15,13 +15,14 @@
 
 Claude Code · Codex · 2589 tests · zero dependencies · no API key · runs offline
 
-> **Fresh in 0.9.0.** Since 27 September 2026 the tool recommends an **effort level**: which
-> `effort` to set in Claude Code and which `model_reasoning_effort` in Codex for the task at
-> hand. The advice follows each vendor's per-model tables and the task shape, names the
-> model's default and links the doc. Claude Opus 5.5 defaults to medium, and the tool reminds
-> you not to carry your Opus 5 level over. For Codex, OpenAI says to start GPT-6 Sol at
-> medium, Luna at high and Astra at low, and to hand project-wide audits to Ultra; Luna has no
-> Ultra, and the advice says so and falls back openly. See [Effort level](#effort-level).
+> **New in 0.9.0 (27 September 2026): which effort level to run your task at.** The effort
+> level decides how much the model thinks and checks before it answers. Higher is smarter,
+> but costs more and takes longer. In Claude Code it is the `/effort` command, in Codex the
+> `model_reasoning_effort` setting or the slider in the app. nativeprompt now looks at your
+> task and model and tells you which level to set, why, and where the vendor says so. For
+> everyday work on Claude Opus 5.5 you change nothing, it already defaults to medium. A
+> project-wide audit in Codex, the vendor says, is a job for Ultra mode. See
+> [Effort level](#effort-level).
 >
 > Rules for **Claude Opus 5.5** landed on 23 September 2026, the day after
 > the model shipped: five behaviours that show up in the prompt text itself. The whole
@@ -230,8 +231,10 @@ More raw prompts to try are in [`examples/prompts.md`](examples/prompts.md).
 
 ### Effort level
 
-Under the how-to-run advice the report prints an **effort level** block: the level, the command
-that sets it, why, and the vendor doc it comes from. The level is a run setting, not words, so it
+The effort level decides how much the model thinks and checks before it answers: higher is
+smarter, but costs more and takes longer. Under the how-to-run advice the report prints an
+**effort level** block: which level to set, with which command, why, and the vendor doc it comes
+from. The level is a run setting, not words, so it
 never lands in the rewritten prompt: both vendors ask you to steer reasoning depth with the
 setting, not with phrases like "think harder".
 
