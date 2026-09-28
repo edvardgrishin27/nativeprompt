@@ -129,6 +129,12 @@ for examples and approval tradeoffs.
         "Local Markdown policy instructions for automatic review. Managed `guardian_policy_config` takes precedence. Blank values are ignored.",
     },
     {
+      key: "auto_review.extra_policy",
+      type: "string",
+      description:
+        "Additional local Markdown policy for automatic review, included alongside the main policy. Managed `guardian_extra_policy` takes precedence. Blank values are ignored.",
+    },
+    {
       key: "allow_login_shell",
       type: "boolean",
       description:
@@ -166,15 +172,9 @@ for examples and approval tradeoffs.
     },
     {
       key: "windows.sandbox",
-      type: "unelevated | elevated",
+      type: "unelevated | elevated | mxc",
       description:
         "Windows-only native sandbox mode when running Codex natively on Windows.",
-    },
-    {
-      key: "windows.sandbox_private_desktop",
-      type: "boolean",
-      description:
-        "Run the final sandboxed child process on a private desktop by default on native Windows. Set `false` only for compatibility with the older `Winsta0\\\\Default` behavior.",
     },
     {
       key: "browser_use.allow_history_access",
@@ -1885,6 +1885,35 @@ from either one wins.
         "Managed Markdown policy instructions for automatic review. This takes precedence over local `[auto_review].policy`. Blank values are ignored.",
     },
     {
+      key: "guardian_extra_policy",
+      type: "string",
+      description:
+        "Additional managed Markdown policy for automatic review, included alongside the main policy. This takes precedence over local `[auto_review].extra_policy`. Blank values are ignored.",
+    },
+    {
+      key: "additional_developer_instructions",
+      type: "string",
+      description:
+        "Managed developer instructions added as a separate developer message. Codex rejects instructions that exceed a limit of 10,000 estimated tokens, including context markers.",
+    },
+    {
+      key: "auto_review",
+      type: "table",
+      description: "Managed automatic-review requirements.",
+    },
+    {
+      key: "auto_review.required_on_models",
+      type: "array<string>",
+      description:
+        "Model slugs that must use automatic review. Slugs must be non-empty, omit provider namespaces, and have no surrounding whitespace. Lists from multiple requirements sources are combined.",
+    },
+    {
+      key: "auto_review.ignore_rules",
+      type: "array<string>",
+      description:
+        "Full model slugs for which Codex ignores `allow` prefix rules in command execution policy. Match the slug exactly, including its provider namespace when present; unlike `required_on_models`, this does not accept a namespace-free alias. Deny and network rules still apply.",
+    },
+    {
       key: "allowed_permission_profiles",
       type: "table<boolean>",
       description:
@@ -1907,6 +1936,24 @@ from either one wins.
       type: "string",
       description:
         "Require Codex service traffic to use a supported data residency. Currently accepts `us`.",
+    },
+    {
+      key: "model_provider",
+      type: "string",
+      description:
+        "Enforce the model provider ID, overriding local and session configuration.",
+    },
+    {
+      key: "model_providers",
+      type: "map<string, table>",
+      description:
+        "Managed model provider definitions. Each entry replaces the complete configured provider with the same ID; fields aren't merged with the user's definition. Providers with other IDs remain available.",
+    },
+    {
+      key: "model_providers.<id>",
+      type: "table",
+      description:
+        "Complete managed provider definition. Uses the same provider fields as `config.toml`, including `name`, `base_url`, authentication, and transport settings.",
     },
     {
       key: "models",
@@ -1963,13 +2010,7 @@ from either one wins.
       key: "windows.allowed_sandbox_implementations",
       type: "array<string>",
       description:
-        "Allowed native Windows sandbox implementations for `windows.sandbox` (`elevated` and `unelevated`). The list must not be empty. When both are allowed and no mode is selected, Codex prefers `elevated`.",
-    },
-    {
-      key: "windows.sandbox_private_desktop",
-      type: "boolean",
-      description:
-        "Enforce whether the native Windows sandbox starts its child process on a private desktop.",
+        "Allowed legacy native Windows sandbox implementations (`elevated` and `unelevated`). The list must not be empty. When both are allowed and no mode is selected, Codex prefers `elevated`. This list does not restrict the `mxc` sandbox when it is available.",
     },
     {
       key: "remote_sandbox_config",
@@ -2056,6 +2097,24 @@ from either one wins.
         "Set to `false` in `requirements.toml` to disable the built-in browser pane that users open and control directly.",
     },
     {
+      key: "features.in_app_chat",
+      type: "boolean",
+      description:
+        "Set to `false` to hide ChatGPT and ChatGPT Work conversation screens and related cloud automation UI in the ChatGPT desktop app. This setting does not block ChatGPT Voice or stop existing cloud tasks. Setting it to `true` does not bypass account, workspace-permission, or rollout checks.",
+    },
+    {
+      key: "features.in_app_dictation",
+      type: "boolean",
+      description:
+        "Set to `false` to disable in-app dictation in the desktop app. Setting it to `true` does not bypass other availability checks.",
+    },
+    {
+      key: "features.in_app_local_automation",
+      type: "boolean",
+      description:
+        "Set to `false` to disable local scheduled tasks in the desktop app. Setting it to `true` does not bypass other availability checks.",
+    },
+    {
       key: "features.browser_use",
       type: "boolean",
       description:
@@ -2105,6 +2164,12 @@ from either one wins.
       type: "boolean",
       description:
         "Pin remote plugin catalog availability on or off for managed users.",
+    },
+    {
+      key: "features.realtime_conversation",
+      type: "boolean",
+      description:
+        "Set to `false` to disable the experimental `/voice` command in the Codex CLI. Do not rely on this setting to block [ChatGPT Voice](https://learn.chatgpt.com/docs/features/voice) in the desktop app or app-server voice sessions. Setting it to `true` does not bypass client or rollout checks.",
     },
     {
       key: "features.computer_use",
@@ -2393,6 +2458,12 @@ from either one wins.
         "Map-shaped administrator domain policy for sandboxed networking. Supports exact hosts, `*.example.com` for subdomains only, `**.example.com` for apex plus subdomains, and global `*` allow rules; prefer scoped rules because `*` broadly opens public outbound access. `deny` wins on conflicts. Do not combine this with `experimental_network.allowed_domains` or `experimental_network.denied_domains`.",
     },
     {
+      key: "experimental_network.domains.<pattern>",
+      type: "allow | deny",
+      description:
+        "Allow or deny sandboxed network access for the matching domain pattern. A deny rule wins when several patterns match.",
+    },
+    {
       key: "experimental_network.allowed_domains",
       type: "array<string>",
       description:
@@ -2414,7 +2485,13 @@ from either one wins.
       key: "experimental_network.unix_sockets",
       type: "map<string, allow | deny>",
       description:
-        "Administrator-managed Unix socket policy for sandboxed networking.",
+        "Administrator-managed Unix socket allowlist for sandboxed networking on macOS. Paths must be absolute.",
+    },
+    {
+      key: "experimental_network.unix_sockets.<path>",
+      type: "allow | deny",
+      description:
+        "On macOS, `allow` adds an absolute Unix socket path to the allowlist; `deny` leaves it out. A `deny` entry cannot block a socket when allow-all Unix sockets is enabled.",
     },
     {
       key: "experimental_network.allow_local_binding",
