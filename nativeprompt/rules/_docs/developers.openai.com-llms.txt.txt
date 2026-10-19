@@ -1,12 +1,13 @@
 # OpenAI Developers
 
-> Complete documentation hub for OpenAI API, Ads, Plugins, Workspace Agents, Codex, Agentic Commerce, the developer blog, Cookbook, learning resources, and learning tracks.
+> Complete documentation hub for OpenAI API, Ads, Sign in with ChatGPT, Plugins, Workspace Agents, Codex, Agentic Commerce, the developer blog, Cookbook, learning resources, and learning tracks.
 
 Start with the product index that matches your task. Product indexes route to detailed pages; documentation indexes also provide Markdown pages and full-document exports.
 
 ## Documentation sets
 - [OpenAI API guides and reference](https://developers.openai.com/api/llms.txt): Quickstart, Responses API, text and image generation, audio, Realtime and WebRTC, tools and function calling, evals, fine-tuning, models, and endpoint reference.
 - [Ads API and campaign documentation](https://developers.openai.com/ads/llms.txt): Partner setup, campaigns, targeting, creatives, product feeds, conversions, measurement, and Ads API reference.
+- [Sign in with ChatGPT](https://developers.openai.com/siwc/llms.txt): Quickstart, website and ChatGPT plugin integration, token sharing for open-source clients, and client ID registration.
 - [ChatGPT plugins and Apps SDK](https://developers.openai.com/plugins/llms.txt): Build plugins with MCP servers, tools, UI components, authentication, metadata, testing, deployment, review, and submission.
 - [Workspace Agents API](https://developers.openai.com/workspace-agents/llms.txt): Authenticate API calls, trigger published workspace agent runs, and inspect run results.
 - [Codex developer tools](https://developers.openai.com/codex/llms.txt): Codex CLI, IDE, cloud, config.toml, authentication, customization, automation, and security.
@@ -19,6 +20,7 @@ Start with the product index that matches your task. Product indexes route to de
 
 ## Common tasks
 - [OpenAI API quickstart](https://developers.openai.com/api/docs/quickstart.md): Make your first API request with the OpenAI SDK and Responses API.
+- [Sign in with ChatGPT quickstart](https://developers.openai.com/siwc/quickstart.md): Add ChatGPT sign-in to your application.
 - [Plugin submission guide](https://developers.openai.com/plugins/deploy/submission.md): Prepare, review, submit, and publish a ChatGPT plugin.
 - [Image generation guide](https://developers.openai.com/api/docs/guides/image-generation.md): Generate and edit images with OpenAI image models and the API.
 - [Create a response API reference](https://developers.openai.com/api/reference/resources/responses/methods/create.md): Parameters and response schema for the Responses API create method.

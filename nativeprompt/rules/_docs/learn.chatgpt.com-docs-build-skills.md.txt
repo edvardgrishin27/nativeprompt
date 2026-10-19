@@ -34,11 +34,14 @@ Skills use **progressive disclosure** to manage context efficiently. ChatGPT and
 Codex start with each skill's name and description, then load the full
 `SKILL.md` instructions when they decide to use that skill.
 
-In Codex, the initial list also includes each skill's file path. To avoid
-crowding out the rest of the prompt, this list uses at most 2% of the model's
+In Codex, the initial list also includes each skill's file path. By default,
+this list uses at most 2% of the model's
 context window, or 8,000 characters when the context window is unknown. If many
 skills are installed, Codex shortens skill descriptions first. For large skill
 sets, Codex may omit some skills from the initial list and show a warning.
+
+Use [`skills.max_context_tokens`](https://learn.chatgpt.com/docs/config-file/config-reference) to set a
+different budget, up to 10,000 tokens.
 
 This budget applies only to the initial skills list. When Codex selects a skill, it still reads the full SKILL.md instructions for that skill.
 
