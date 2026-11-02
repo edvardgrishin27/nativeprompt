@@ -54,13 +54,15 @@ Preserve explicit user values. When the correct value is implicit, provide decis
 
 Add stopping conditions:
 
-    Resolve the request in the fewest useful tool loops, but do not let loop
-    minimization outrank correctness, required evidence, calculations, or
-    required citations.
+```text
+Resolve the request in the fewest useful tool loops, but do not let loop
+minimization outrank correctness, required evidence, calculations, or
+required citations.
 
-    After each result, ask whether the core request can now be answered with
-    useful evidence. If yes, answer. If required evidence is still missing,
-    name the missing fact and use the smallest useful fallback.
+After each result, ask whether the core request can now be answered with
+useful evidence. If yes, answer. If required evidence is still missing,
+name the missing fact and use the smallest useful fallback.
+```
 
 ## Personality, collaboration, and response length
 
@@ -77,27 +79,33 @@ Keep both short. Personality should shape the user experience; collaboration ins
 
 When a task calls for a shorter answer, identify the information the model must preserve and the detail it can omit. For example:
 
-    Lead with the conclusion. Include the evidence needed to support it, any material
-    caveat, and the next action. Omit secondary detail and repetition.
+```text
+Lead with the conclusion. Include the evidence needed to support it, any material
+caveat, and the next action. Omit secondary detail and repetition.
 
-    Keep all required facts, decisions, caveats, and next steps. Trim introductions,
-    repetition, generic reassurance, and optional background first.
+Keep all required facts, decisions, caveats, and next steps. Trim introductions,
+repetition, generic reassurance, and optional background first.
+```
 
 This gives the model a clear priority order: preserve the content needed to complete the task, then remove lower-value detail.
 
 Broad labels such as “friendly” or “empathetic” can be ambiguous. Describe the writing choices that define your product's tone, such as how directly to state the answer, when to acknowledge a problem, and whether reassurance or a sign-off is appropriate.
 
-    State the answer directly. If the user reports a problem, acknowledge the
-    specific issue before giving the next step. Use reassurance only when it is
-    relevant. Omit generic praise and unnecessary sign-offs.
+```text
+State the answer directly. If the user reports a problem, acknowledge the
+specific issue before giving the next step. Use reassurance only when it is
+relevant. Omit generic praise and unnecessary sign-offs.
+```
 
 Avoid blanket language rules such as “always respond in the user's language” unless that is truly the product requirement. Specify the intended output language and when it should change.
 
 For editing, rewriting, summaries, and customer-facing drafts, tell the model what to preserve:
 
-    Preserve the requested artifact, length, structure, genre, and factual claims
-    first. Improve clarity, flow, and correctness without adding new claims,
-    sections, or a more promotional tone unless requested.
+```text
+Preserve the requested artifact, length, structure, genre, and factual claims
+first. Improve clarity, flow, and correctness without adding new claims,
+sections, or a more promotional tone unless requested.
+```
 
 ## Define autonomy and approval boundaries
 
@@ -105,15 +113,17 @@ GPT-5.6 can be proactive and persistent when carrying out multi-step tasks. Defi
 
 A compact policy is usually sufficient:
 
-    For requests to answer, explain, review, diagnose, or plan, inspect the
-    relevant materials and report the result. Do not implement changes unless
-    the request also asks for them.
+```text
+For requests to answer, explain, review, diagnose, or plan, inspect the
+relevant materials and report the result. Do not implement changes unless
+the request also asks for them.
 
-    For requests to change, build, or fix, make the requested in-scope local
-    changes and run relevant non-destructive validation without asking first.
+For requests to change, build, or fix, make the requested in-scope local
+changes and run relevant non-destructive validation without asking first.
 
-    Require confirmation for external writes, destructive actions, purchases,
-    or a material expansion of scope.
+Require confirmation for external writes, destructive actions, purchases,
+or a material expansion of scope.
+```
 
 Name safe local actions explicitly, such as reading files, inspecting logs, editing in-scope code, and running tests. Keep the policy in one place and state each rule once. Repeating instructions such as “ask first,” “do not mutate,” or “wait for approval” can cause unnecessary approval requests for safe, expected actions.
 
@@ -125,9 +135,11 @@ Expose only task-relevant tools. Tool descriptions should state what the tool do
 
 When correctness depends on prerequisite retrieval or lookup, say so:
 
-    Before taking an action, resolve required discovery, retrieval, and
-    validation steps. Do not skip a prerequisite because the intended final
-    state seems obvious.
+```text
+Before taking an action, resolve required discovery, retrieval, and
+validation steps. Do not skip a prerequisite because the intended final
+state seems obvious.
+```
 
 When several reads are independent, parallelize them. When one result determines the next action, keep the work sequential. After parallel retrieval, synthesize before acting.
 
@@ -157,11 +169,13 @@ Prefer direct tool calls when:
 
 Do not rely on generic instructions such as “use Programmatic Tool Calling efficiently.” State the bounded stage, eligible tools, output schema, retry limit, stop condition, and handoff back to direct model judgment.
 
-    Use Programmatic Tool Calling only for the bounded record-reduction stage.
-    Call only the documented read-only tools. Filter and deduplicate the
-    intermediate results, then emit exactly the required compact schema with
-    evidence fields. Retry transient failures at most twice. Use direct tool
-    calls for approval, semantic judgment, citations, and final validation.
+```text
+Use Programmatic Tool Calling only for the bounded record-reduction stage.
+Call only the documented read-only tools. Filter and deduplicate the
+intermediate results, then emit exactly the required compact schema with
+evidence fields. Retry transient failures at most twice. Use direct tool
+calls for approval, semantic judgment, citations, and final validation.
+```
 
 If both routes are needed, define one clear handoff and tell the model not to switch routes or repeat completed work.
 
@@ -173,17 +187,19 @@ Compare direct and programmatic calling on the same representative tasks. Check 
 
 For grounded answers, citation behavior should be part of the prompt. Define what needs support, what counts as enough evidence, and how to behave when evidence is missing. Absence of evidence should not automatically become a factual “no.”
 
-    For ordinary Q&A, start with one broad search using short, discriminative
-    keywords. If the top results contain enough support for the core request,
-    answer from those results.
+```text
+For ordinary Q&A, start with one broad search using short, discriminative
+keywords. If the top results contain enough support for the core request,
+answer from those results.
 
-    Make another retrieval call only when a required fact, owner, date, ID, or
-    source is missing; the user asked for exhaustive coverage or comparison; a
-    specific artifact must be read; or an important claim would otherwise be
-    unsupported.
+Make another retrieval call only when a required fact, owner, date, ID, or
+source is missing; the user asked for exhaustive coverage or comparison; a
+specific artifact must be read; or an important claim would otherwise be
+unsupported.
 
-    Do not search again only to improve phrasing, add examples, or support
-    nonessential detail.
+Do not search again only to improve phrasing, add examples, or support
+nonessential detail.
+```
 
 For research and synthesis:
 
@@ -199,10 +215,12 @@ For creative drafting, distinguish source-backed facts from creative wording. Do
 
 For multi-step or tool-heavy tasks, prompt for a short visible preamble before the first tool call, then sparse outcome-based updates at major phase changes. Do not ask the model to narrate routine tool calls.
 
-    Before tool calls for a multi-step task, send a one- or two-sentence
-    user-visible update that states the first step. During the task, update only
-    when a major phase begins or a finding changes the plan. Each update should
-    state one concrete outcome and the next step.
+```text
+Before tool calls for a multi-step task, send a one- or two-sentence
+user-visible update that states the first step. During the task, update only
+when a major phase begins or a finding changes the plan. Each update should
+state one concrete outcome and the next step.
+```
 
 Preserve assistant phase values when replaying history so the model can distinguish commentary from the final answer. If using previous_response_id, prior assistant state is preserved automatically. If replaying history manually, preserve each original phase value unchanged.
 
@@ -256,9 +274,11 @@ If validation cannot be run, explain why and describe the next best check.
 
 For visual artifacts:
 
-    Render the artifact before finalizing. Inspect layout, clipping, spacing,
-    missing content, and visual consistency. Revise until the rendered output
-    matches the requirements.
+```text
+Render the artifact before finalizing. Inspect layout, clipping, spacing,
+missing content, and visual consistency. Revise until the rendered output
+matches the requirements.
+```
 
 For implementation plans, include requirements, named resources or files, state transitions or data flow, validation checks, failure behavior, privacy or security considerations, and open questions that materially affect implementation.
 
@@ -266,21 +286,23 @@ For implementation plans, include requirements, named resources or files, state 
 
 Use this structure as a starting point for complex prompts. Keep each section short. Add detail only where it changes behavior.
 
-    Role: [the model's function and context]
+```text
+Role: [the model's function and context]
 
-    Personality: [tone and collaboration style]
+Personality: [tone and collaboration style]
 
-    Goal: [user-visible outcome]
+Goal: [user-visible outcome]
 
-    Success criteria: [what must be true before the final answer]
+Success criteria: [what must be true before the final answer]
 
-    Constraints: [policy, safety, business, evidence, and side-effect limits]
+Constraints: [policy, safety, business, evidence, and side-effect limits]
 
-    Tools: [which tools to use, when, and what not to use]
+Tools: [which tools to use, when, and what not to use]
 
-    Output: [sections, length, format, and tone]
+Output: [sections, length, format, and tone]
 
-    Stop rules: [when to retry, fallback, abstain, ask, or stop]
+Stop rules: [when to retry, fallback, abstain, ask, or stop]
+```
 
 ## Prompt migration workflow
 

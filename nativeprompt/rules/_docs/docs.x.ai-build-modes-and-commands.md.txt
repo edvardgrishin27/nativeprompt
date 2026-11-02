@@ -65,7 +65,8 @@ Use `/context` to check current context usage.
 | `/compact-mode` | Toggle denser UI layout |
 | `/multiline` (alias `/ml`) | Toggle multiline input |
 | `/vim-mode` | Toggle vim-style scrollback keybindings |
-| `/timestamps` | Toggle message timestamps |
+| `/timestamps <mode>` | Set which messages show the clock time: `off`, `minimal`, or `on` |
+| `/density <level>` | Set how much of each tool call the transcript shows: `Detailed`, `Diff focus`, `Balanced`, `Grouped`, or `Compact` |
 | `/terminal-setup` | Check terminal and clipboard setup |
 | `/config-agents` (alias `/agents`) | Manage agent definitions |
 | `/personas` | Manage personas |
@@ -88,17 +89,56 @@ Use `/context` to check current context usage.
 
 | Command | What it does |
 | ------- | ------------ |
+| `/goal <objective>` | Work toward an objective until it is verified complete — see [Goals](#goals) |
 | `/flush` | Flush conversation memory to disk now |
 | `/memory` (alias `/mem`) | Browse, view, and manage your memories |
 | `/dream` | Run memory consolidation |
-
-These appear when cross-session memory is enabled.
 
 ## Skills as commands
 
 Any user-invocable skill can also appear as a slash command, for example `/<skill-name>`.
 
 If names collide, use the qualified form, such as `/local:commit`.
+
+## Goals
+
+`/goal` gives Grok an objective and lets it work toward it across many rounds, without you prompting each step. Goals work best for long-running, hard tasks with measurable success criteria.
+
+### How it works
+
+* **After every round**, Grok checks its progress and decides whether to keep working, stop because it needs something from you, or treat the goal as done.
+* **When the goal looks done**, a panel of reviewer subagents checks the work against the evidence. The goal is marked complete only when most of them agree.
+* **If the reviewers find gaps**, Grok keeps working on them. If it gets stuck on the same gaps, it pauses and shows you what's missing.
+
+### Writing a good goal
+
+Say what "done" looks like, so the reviewers have something concrete to check.
+
+```text
+/goal [objective]. Keep going until [verifiable end state].
+```
+
+**Weak:** no way to tell when it's done.
+
+```text
+/goal Migrate the auth module to the new API
+```
+
+**Strong:** clear finish line and limits.
+
+```text
+/goal Migrate the auth module to the new API, verified by the auth test suite passing, without changing public endpoints.
+```
+
+### Commands
+
+| Command | What it does |
+| ------- | ------------ |
+| `/goal <objective>` | Start a goal. Add `--budget <tokens>` to cap the tokens it may spend. |
+| `/goal` or `/goal status` | Show the goal, its status, tokens used, and time elapsed. |
+| `/goal pause` | Pause the goal. |
+| `/goal resume` | Continue a paused goal. |
+| `/goal clear` | Remove the goal. |
 
 ## Workflows
 
