@@ -11,18 +11,21 @@
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
 ![2721 tests](https://img.shields.io/badge/tests-2721%20passing-brightgreen)
 ![no API keys](https://img.shields.io/badge/API%20keys-none-1f6feb)
-![latest models](https://img.shields.io/badge/Opus%205.5%20%C2%B7%20GPT--6-supported-d97757)
+![latest models](https://img.shields.io/badge/Fable%205.2%20%C2%B7%20GPT--6.1-supported-d97757)
 
 Claude Code · Codex · 2721 tests · zero dependencies · no API key · runs offline
 
-> **New in 0.9.0 (27 September 2026): which effort level to run your task at.** The effort
-> level decides how much the model thinks and checks before it answers. Higher is smarter,
-> but costs more and takes longer. In Claude Code it is the `/effort` command, in Codex the
-> `model_reasoning_effort` setting or the slider in the app. nativeprompt now looks at your
-> task and model and tells you which level to set, why, and where the vendor says so. For
-> everyday work on Claude Opus 5.5 you change nothing, it already defaults to medium. A
-> project-wide audit in Codex, the vendor says, is a job for Ultra mode. See
-> [Effort level](#effort-level).
+> **New in 0.11.0 (11 November 2026): Fable 5.2 and a check for instruction files.**
+> Claude Fable 5.2 is out, and its prompting page is mostly about lines written for earlier
+> models. "Answer without deliberating" no longer turns thinking off, a bare "never" piles
+> up caution, a standing "use subagents" gets expensive. Such lines live in CLAUDE.md,
+> AGENTS.md, skills and memory rather than in one-off prompts. The new `nativeprompt audit`
+> checks those files and prints `file:line: rule`; `nativeprompt migrate --from <old> --to
+> <new>` shows what changes when you switch models. Also new: Sonnet 5.5, Haiku 5.5,
+> GPT-6.1 Sol and Terra, Kimi Code in place of the archived Kimi CLI, first rules for Gemini.
+>
+> 0.9.0 (27 September) added effort-level advice: which level to set for the task, why,
+> and where the vendor says so. See [Effort level](#effort-level).
 >
 > Rules for **Claude Fable 5.2** landed on 11 November 2026, two days after release,
 > together with **Sonnet 5.5** and **Haiku 5.5**. The headline for 5.2: lines written for
