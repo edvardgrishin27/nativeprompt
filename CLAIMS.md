@@ -20,13 +20,15 @@ Keying is by **family + generation**, so an id the cheatsheet has never seen (`c
 
 ### Rules come from vendor documentation
 
-Every rule in `nativeprompt/rules/*.json` carries a `source` URL pointing at an official Anthropic or OpenAI page. There are **69 rules** today across six families:
+Every rule in `nativeprompt/rules/*.json` carries a `source` URL pointing at an official vendor page (Anthropic, OpenAI, Google, Moonshot). There are **79 rules** today across six families:
 
 | Family | Rules | Scope split | Harness recommendations |
 |---|---|---|---|
-| Claude Code (`claude.json`) | 53 | 12 family-wide + 41 pinned to a generation (`fable-5-2`, `sonnet-5-5`, `haiku-5-5`, `opus-5-5`, `opus-5`, `fable-5-1`, `fable-5`, `opus-4.8`) | 6 |
+| Claude Code (`claude.json`) | 57 | 12 family-wide + 45 pinned to a generation (`fable-5-2`, `sonnet-5-5`, `haiku-5-5`, `opus-5-5`, `opus-5`, `fable-5-1`, `fable-5`, `opus-4.8`, `sonnet-5`) | 6 |
 | Codex (`openai.json`) | 12 | 8 family-wide + 4 for the `gpt-6-astra` line (inherited by Sol, Luna, GPT-6.1 Sol and Terra) | 6 |
-| Gemini CLI, Grok, Kimi, Qwen | 1 each | family-wide | 7–8 |
+| Gemini CLI | 5 | family-wide; 4 from Google's Gemini 3 prompting principles | 7–8 |
+| Kimi Code | 3 | family-wide; 2 from Moonshot's prompt best practices | 7–8 |
+| Grok, Qwen | 1 each | family-wide | 7–8 |
 
 The imbalance is stated plainly: the last four are stubs carrying a run-mode
 recommendation, not full sets. Claiming the same depth for them would be false.
@@ -63,7 +65,7 @@ Every piece of advice links the vendor's documentation, like the rules do — bl
 
 ### Self-update actually fetches
 
-`nativeprompt update` downloads the 40 canonical `.md` / `llms.txt` vendor pages listed in `rules/_sources.json`, hashes them with SHA‑256, and diffs against `rules/_snapshot.json`. It exits non‑zero when something changed or is new, so CI can fail on it; `.github/workflows/update-rules.yml` runs it weekly.
+`nativeprompt update` downloads the 42 canonical `.md` / `llms.txt` vendor pages listed in `rules/_sources.json`, hashes them with SHA‑256, and diffs against `rules/_snapshot.json`. It exits non‑zero when something changed or is new, so CI can fail on it; `.github/workflows/update-rules.yml` runs it weekly.
 
 A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 unreachable → action needed.** That is the mechanism working, not a passing grade: it means a maintainer owes the cheatsheet a review pass.
 
@@ -312,10 +314,10 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 2707 tests, no dependencies beyond pytest
+# 1. Test suite — 2721 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 2707 passed
-#   688 invariant · 528 hook budget · 479 reproducibility card · 361 self-check · 118 new-models · 92 rule integrity · 73 regressions · 71 effort level · 69 prompt-as-data · 32 detection · 30 opus-5.5-rules · 28 gpt-6-rules · 23 refusal · 23 capabilities · 23 fable-rules · 23 astra · 10 coverage · 10 install · 9 analysis · 8 rewrite · 6 harness · 3 update
+# 2721 passed
+#   688 invariant · 528 hook budget · 479 reproducibility card · 361 self-check · 121 new-models · 11 audit · 92 rule integrity · 73 regressions · 71 effort level · 69 prompt-as-data · 32 detection · 30 opus-5.5-rules · 28 gpt-6-rules · 23 refusal · 23 capabilities · 23 fable-rules · 23 astra · 10 coverage · 10 install · 9 analysis · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
 python3 -m nativeprompt rules claude

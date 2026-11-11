@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nativeprompt"
-version = "0.10.0"
+version = "0.11.0"
 description = "Rewrite your prompt into the native dialect of the model you're actually using (Claude Opus 5.5, Fable 5.1, GPT-6 Astra/Sol/Luna, Codex) by each vendor's OFFICIAL rules, tell you why, and recommend the effort level to run it at."
 readme = "README.en.md"
 requires-python = ">=3.9"

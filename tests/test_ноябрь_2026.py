@@ -233,3 +233,27 @@ def test_предел_для_goal_только_при_явном_goal():
         "/goal все тесты auth зелёные или остановись после 20 ходов", "claude-opus-5")
     assert "claude-goal-stop-bound" not in находки(
         "Добавь тест в @src/foo.py; прогони pytest и почини, пока не пройдёт.", "claude-opus-5")
+
+
+# ── Gemini 3 и Kimi: общие принципы вендоров ────────────────────────
+
+ДАННЫЕ = "\n\n".join(["Строка отчёта номер %d: выручка росла, расходы падали." % i for i in range(60)])
+
+
+def test_вопрос_в_начале_длинного_контекста():
+    assert чек("instruction_first_long", "Сравни два квартала?\n\n" + ДАННЫЕ)
+    assert not чек("instruction_first_long", ДАННЫЕ + "\n\nНа основе данных выше сравни два квартала.")
+    assert not чек("instruction_first_long", "Сравни два квартала?\n\nкоротко")
+
+
+def test_разделители_вперемешку():
+    assert чек("mixed_delimiters", "# Задача\nсделай\n<context>данные</context>")
+    assert not чек("mixed_delimiters", "<task>сделай</task>\n<context>данные</context>")
+    assert not чек("mixed_delimiters", "# Задача\nсделай\n## Контекст\nданные")
+
+
+def test_правила_gemini_и_kimi_ведут_к_вендору():
+    for fam, домен in (("gemini", "aistudio.google.com"), ("kimi", "platform.kimi.ai")):
+        d = json.load(open(os.path.join(КОРЕНЬ, "nativeprompt", "rules", fam + ".json"), encoding="utf-8"))
+        новые = [r for r in d["rules"] if not r["id"].endswith("context-file")]
+        assert новые and all(домен in r["source"] for r in новые), fam

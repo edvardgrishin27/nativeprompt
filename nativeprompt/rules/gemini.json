@@ -4,16 +4,27 @@
   "display": "Gemini CLI",
   "surface": "Gemini CLI (открытый агентный CLI). Правила — из доки самого CLI, НЕ из веб-чата Gemini и не из AI Studio.",
   "context_file": "GEMINI.md",
-  "rules_version": "2026-08-04",
+  "rules_version": "2026-11-11",
   "vendor_publishes_model_rules": false,
-  "coverage_note": "Google НЕ публикует страницы правил промптинга под конкретную модель для этого харнесса — нет документа уровня «на этой модели не пиши X», как у Anthropic и OpenAI. Документация Gemini CLI описывает возможности (режим плана, субагенты, навыки, память), а не грамматику промпта. Поэтому здесь только задокументированное.",
+  "coverage_note": "Под Gemini CLI отдельной страницы правил промптинга нет: документация CLI описывает возможности (режим плана, субагенты, навыки, память). Но Google публикует общие принципы промптинга для моделей Gemini 3 (страница Prompt design strategies в AI Studio), и четыре правила взяты оттуда. Правил под конкретную модель уровня «на этой модели не пиши X», как у Anthropic и OpenAI, нет.",
   "detect": {
-    "id_prefixes": ["gemini", "gemma", "google"],
-    "aliases": ["gemini", "gemini-cli", "google", "gemma"]
+    "id_prefixes": [
+      "gemini",
+      "gemma",
+      "google"
+    ],
+    "aliases": [
+      "gemini",
+      "gemini-cli",
+      "google",
+      "gemma"
+    ]
   },
   "generations": {
     "gemini": {
-      "match": ["gemini"],
+      "match": [
+        "gemini"
+      ],
       "label": "Gemini (модель не указана)",
       "note": "Gemini CLI умеет маршрутизировать запрос между моделями сам (model routing). Своей страницы правил промптинга у поколений нет — применяются правила семейства и рекомендации по харнессу."
     }
@@ -29,6 +40,50 @@
       "why": "Повторяющиеся установки (стиль, команды, границы) выносите в GEMINI.md — Gemini CLI подхватывает его как контекст. Промпт тогда — только про конкретную задачу.",
       "unless": "Если GEMINI.md уже заведён и эта установка в нём записана, либо вы работаете в чужом репозитории, где файл создавать нельзя, — оставьте установку в промпте.",
       "source": "https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/gemini-md.md"
+    },
+    {
+      "id": "gemini-no-persuasion",
+      "scope": "family",
+      "check": "pushy_caps",
+      "action": "warn",
+      "priority": 3,
+      "title": "Без нажима и капса: Gemini 3 лучше понимает прямую просьбу",
+      "why": "Google для Gemini 3: формулируйте цель ясно и коротко, избегайте лишних и чрезмерно убеждающих слов. КАПС, «КРИТИЧНО», «ты ОБЯЗАН» — как раз такие слова. Хватит обычной строки о том, что нужно и когда.",
+      "unless": "Если КАПС — имя константы, флаг или цитата из лога (ERROR, TODO), регистр значим и совет мимо.",
+      "source": "https://aistudio.google.com/docs/prompting-strategies#core-prompting-principles"
+    },
+    {
+      "id": "gemini-question-last",
+      "scope": "family",
+      "check": "instruction_first_long",
+      "action": "warn",
+      "priority": 2,
+      "title": "Длинный контекст: вопрос — в конец, после данных",
+      "why": "Google для Gemini 3: когда в промпте много контекста (документы, код), сначала дайте весь контекст, а конкретный вопрос или инструкцию поставьте в самый конец. После большого блока данных помогает связка вроде «На основе информации выше…». Важные ограничения, роль и формат ответа при этом — в системной инструкции или в самом начале.",
+      "unless": "Если вопрос в начале — короткая постановка задачи, а в конце он повторён, порядок уже такой, как советует Google.",
+      "source": "https://aistudio.google.com/docs/prompting-strategies#core-prompting-principles"
+    },
+    {
+      "id": "gemini-one-delimiter-style",
+      "scope": "family",
+      "check": "mixed_delimiters",
+      "action": "warn",
+      "priority": 3,
+      "title": "Один формат разделителей: XML-теги или заголовки, не вперемешку",
+      "why": "Google для Gemini 3: разделяйте части промпта явными разделителями, XML-тегами вроде <context> и <task> или markdown-заголовками, но выберите один формат и держитесь его в пределах промпта.",
+      "unless": "Если заголовки и теги — часть данных (вставленный документ или HTML), а не разметка самого промпта, совет мимо.",
+      "source": "https://aistudio.google.com/docs/prompting-strategies#core-prompting-principles"
+    },
+    {
+      "id": "gemini-no-reasoning-in-response",
+      "scope": "family",
+      "check": "show_thinking",
+      "action": "warn",
+      "priority": 3,
+      "title": "Не просите расписывать рассуждение в ответе: Gemini думает сама",
+      "why": "Google: модели Gemini 2.5 и 3 сами строят внутреннее рассуждение, поэтому обычно не нужно просить их расписывать план или шаги рассуждения в ответе. Для задач, где нужно много думать, помогает простая просьба вроде «Think very hard before answering», ценой лишних токенов мышления.",
+      "unless": "Если рассуждение — это сам результат (объяснение решения для ученика, разбор для отчёта), просьба по делу.",
+      "source": "https://aistudio.google.com/docs/prompting-strategies#enhancing-reasoning-and-planning"
     }
   ],
   "harness": {

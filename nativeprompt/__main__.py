@@ -332,6 +332,30 @@ def cmd_update(args):
     return 1 if res["summary"]["action_needed"] and not args.write else 0
 
 
+def cmd_audit(args):
+    from .audit import audit_paths, render_audit
+    res = audit_paths(args.paths, model=args.model)
+    if args.json:
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+    else:
+        print(render_audit(res))
+    if res.get("error"):
+        return 1
+    # По умолчанию находки — совет, а не ошибка: код 0. В CI ставят
+    # --fail-on any, и тогда каждая неотмеченная строка роняет job.
+    return 1 if args.fail_on == "any" and res["findings"] else 0
+
+
+def cmd_migrate(args):
+    from .migrate import migrate, render_migrate
+    res = migrate(args.src, args.dst)
+    if args.json:
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+    else:
+        print(render_migrate(res))
+    return 1 if res.get("error") else 0
+
+
 def build_parser():
     p = argparse.ArgumentParser(
         prog="nativeprompt",
@@ -369,6 +393,20 @@ def build_parser():
     pin.add_argument("--dir", help="куда ставить (по умолчанию ~/.claude/skills)")
     pin.add_argument("--force", action="store_true", help="перезаписать существующий")
     pin.set_defaults(func=cmd_install)
+
+    pa = sub.add_parser("audit", help="проверить CLAUDE.md, AGENTS.md, скиллы и память: файл:строка: правило")
+    pa.add_argument("paths", nargs="+", help="файлы или каталоги")
+    pa.add_argument("--model", help="целевая модель: claude-fable-5-2 / gpt-6.1-sol …")
+    pa.add_argument("--json", action="store_true")
+    pa.add_argument("--fail-on", choices=["never", "any"], default="never",
+                    help="any — код 1 при любой находке (для CI и pre-commit)")
+    pa.set_defaults(func=cmd_audit)
+
+    pm = sub.add_parser("migrate", help="что меняется при переходе с одной модели на другую")
+    pm.add_argument("--from", dest="src", required=True, help="модель, с которой переходите")
+    pm.add_argument("--to", dest="dst", required=True, help="модель, на которую переходите")
+    pm.add_argument("--json", action="store_true")
+    pm.set_defaults(func=cmd_migrate)
 
     pu = sub.add_parser("update", help="сверить свежесть офиц. доков (self-update)")
     pu.add_argument("--write", action="store_true", help="записать снимки (после ревью правил)")

@@ -1,4 +1,5 @@
 {
+  "https://aistudio.google.com/docs/prompting-strategies.md": "533a333c248dedaa38d6bed294dd7df6a659b1fba4956b20c0508c2050c1e9fe",
   "https://code.claude.com/docs/en/best-practices.md": "d09b172b56558006be6213bb7decec61fcb90040473b0d3915e77e189f716a23",
   "https://code.claude.com/docs/en/goal.md": "9f76fc8fc67771b934c70401dbb423ee25f2e52c8aa762871f9c7b0a81bd8739",
   "https://code.claude.com/docs/en/model-config.md": "0e325cb75431cdc7eb73758ee6f8f1b80e2c90e762913c24eb5bebe79b5a831d",
@@ -33,6 +34,7 @@
   "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5-5.md": "0826ae2afb34141ee8abda47c9044ec7ecd5f5c6511c1d2516066b20eb6b8d18",
   "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5.md": "a4ea39b6f0a7fc3b23a8883434d2a55f7f6bafeeddb0f669566ebc0fe289e644",
   "https://platform.claude.com/llms.txt": "64ad4c75cdb789ad796a882db9f36eda660d3cf9942fc2ac5385b6ee2b4937d1",
+  "https://platform.kimi.ai/docs/guide/prompt-best-practice.md": "9caf32e3dd4b4d9a2698e5bc13c2d5067e84f379ac3e69bbf97a260f008055ac",
   "https://raw.githubusercontent.com/MoonshotAI/kimi-cli/main/docs/en/reference/slash-commands.md": "4981127a26ee4d81b251bfb931855d6053977a1604935f94b4cefb582468f567",
   "https://raw.githubusercontent.com/MoonshotAI/kimi-code/main/docs/en/guides/interaction.md": "57f52a448c7e0036071171257e1ee99c6c1f11fd2432921b7e005e963f6e09bc",
   "https://raw.githubusercontent.com/MoonshotAI/kimi-code/main/docs/en/reference/slash-commands.md": "c0e45c298e536ece6e85a79f002ce2c6389474ccaa3ae7ac78d31739701c8859",

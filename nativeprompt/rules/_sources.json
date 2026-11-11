@@ -50,7 +50,8 @@
     "kimi": {
       "docs": [
         "https://raw.githubusercontent.com/MoonshotAI/kimi-code/main/docs/en/reference/slash-commands.md",
-        "https://raw.githubusercontent.com/MoonshotAI/kimi-code/main/docs/en/guides/interaction.md"
+        "https://raw.githubusercontent.com/MoonshotAI/kimi-code/main/docs/en/guides/interaction.md",
+        "https://platform.kimi.ai/docs/guide/prompt-best-practice.md"
       ]
     },
     "grok": {
@@ -65,7 +66,8 @@
         "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/cli/plan-mode.md",
         "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/cli/cli-reference.md",
         "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/cli/gemini-md.md",
-        "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/core/subagents.md"
+        "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/docs/core/subagents.md",
+        "https://aistudio.google.com/docs/prompting-strategies.md"
       ]
     }
   }

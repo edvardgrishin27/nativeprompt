@@ -411,6 +411,9 @@ def render_report(report, show_metaprompt=True):
                              first="%d. %s " % (i, mark)))
             out.append(_wrap(f["why"], indent="      ", first="   почему: "))
             _добавь_неприменимость(out, f, indent="      ", first="   ")
+            for у in (f.get("evidence") or [])[:2]:
+                out.append(_wrap("строка %d: «%s»" % (у["line"], у["text"]),
+                                 indent="      ", first="   где: "))
             out.append("   правило: %s" % f["source"])
     else:
         out.append("ЧТО УЛУЧШИТЬ: существенных правок правила не требуют.")

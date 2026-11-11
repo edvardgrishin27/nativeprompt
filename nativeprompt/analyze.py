@@ -699,8 +699,28 @@ _ABSOLUTE_RULE = re.compile(
 )
 
 
+#: Признак того, что у запрета уже есть причина, область или замена: «—
+#: используй X», «потому что», «кроме», «если», «unless». Вендор просит именно
+#: этого, и такой запрет — не находка.
+_ПРИЧИНА = re.compile(
+    r"(?i)(?:\s[—–-]\s|:\s|\bпотому\b|\bтак\s+как\b|\bиначе\b|\bкроме\b|\bесли\b|\bвместо\b|"
+    r"\bиспользуй\b|\bbecause\b|\bsince\b|\botherwise\b|\bexcept\b|\bunless\b|\bif\b|"
+    r"\binstead\b|\buse\b|\bso\s+that\b)"
+)
+
+
+def _абсолюты_без_причины(p):
+    """Запреты «никогда», у которых в той же фразе нет причины или области."""
+    for m in _ABSOLUTE_RULE.finditer(p):
+        начало = max(p.rfind(c, 0, m.start()) for c in ".!?\n") + 1
+        концы = [i for i in (p.find(c, m.end()) for c in ".!?\n") if i != -1]
+        фраза = p[начало:min(концы) if концы else len(p)]
+        if not _ПРИЧИНА.search(фраза):
+            yield m
+
+
 def _c_absolute_rule(p, low, t):
-    return bool(_ABSOLUTE_RULE.search(p))
+    return next(_абсолюты_без_причины(p), None) is not None
 
 
 #: Постоянная просьба делегировать субагентам.
@@ -895,8 +915,42 @@ def _c_no_stop_bound(p, low, t):
     return "/goal" in low and not _STOP_BOUND.search(p)
 
 
+# ── Gemini 3: Core prompting principles (aistudio.google.com) ──────────
+
+#: Длинный контекст, а вопрос стоит в начале. Google: сначала весь контекст,
+#: конкретный вопрос или инструкция — в самом конце. Порог по длине — чтобы
+#: не трогать обычные короткие просьбы, где «начало» и «конец» одно и то же.
+_ДЛИННЫЙ_КОНТЕКСТ = 2000
+_ПРОСЬБА = re.compile(
+    r"(?i)(?:\?|\b(?:сделай|напиши|найди|объясни|сравни|перечисли|ответь|выдели|переведи|"
+    r"summari[sz]e|explain|find|list|compare|write|answer|translate|extract)\b)"
+)
+
+
+def _c_instruction_first_long(p, low, t):
+    текст = p.strip()
+    if len(текст) < _ДЛИННЫЙ_КОНТЕКСТ:
+        return False
+    абзацы = [a for a in re.split(r"\n\s*\n", текст) if a.strip()]
+    if len(абзацы) < 3:
+        return False
+    return bool(_ПРОСЬБА.search(абзацы[0])) and not _ПРОСЬБА.search(абзацы[-1])
+
+
+#: XML-теги и markdown-заголовки вперемешку. Google: выберите один формат
+#: разделителей и держитесь его в пределах промпта.
+_XML_TAG = re.compile(r"<([a-zA-Z_][\w-]*)>[\s\S]*?</\1>")
+_MD_HEADING = re.compile(r"(?m)^#{1,6}\s+\S")
+
+
+def _c_mixed_delimiters(p, low, t):
+    return bool(_XML_TAG.search(p)) and bool(_MD_HEADING.search(p))
+
+
 _CHECKS = {
     "always": _c_always,
+    "instruction_first_long": _c_instruction_first_long,
+    "mixed_delimiters": _c_mixed_delimiters,
     "think_hard": _c_think_hard,
     "keep_going": _c_keep_going,
     "undecided": _c_undecided,
@@ -937,6 +991,58 @@ _CHECKS = {
     "frontend_task": _c_frontend_task,
 }
 
+
+#: Улика: где в тексте сработал детектор. Детекторы — регулярки и ошибаются по
+#: построению; найденный фрагмент рядом с советом позволяет человеку сразу
+#: увидеть ложное срабатывание, а режиму `audit` — указать строку файла.
+#: Только для детекторов, которые ищут ФРАЗУ. У тех, что судят о промпте
+#: целиком («нет контракта результата», «задача длинная»), фрагмента нет.
+_УЛИКИ = {
+    "think_less": _THINK_LESS, "approval_rule": _APPROVAL_RULE,
+    "absolute_rule": _ABSOLUTE_RULE, "delegate_push": _DELEGATE_PUSH,
+    "token_budget": _TOKEN_BUDGET, "treat_done": _TREAT_DONE,
+    "hard_style_limit": _HARD_STYLE, "discourage_tools": _DISCOURAGE_TOOLS,
+    "hold_findings": _HOLD_FINDINGS, "search_task": _SEARCH_TASK,
+    "chatbot_prompt": _CHATBOT, "think_hard": _THINK_HARD,
+    "keep_going": _KEEP_GOING, "undecided": _UNDECIDED,
+    "forced_cot": _FORCED_COT, "show_thinking": _SHOW_THINKING,
+    "antiformatting": _ANTIFORMAT, "ideas_request": _IDEAS_REQUEST,
+    "report_request": _REPORT_WORD,
+}
+_УЛИК_НА_ПРАВИЛО = 5
+
+
+def evidence(check, masked, original=None):
+    """Список мест, где детектор `check` нашёл свою фразу.
+
+    Ищем по маскированному тексту (код — данные), а строку берём из исходного:
+    маскировка сохраняет длину, поэтому позиции совпадают.
+    """
+    рег = _УЛИКИ.get(check)
+    if рег is None:
+        return []
+    исходный = original if original is not None else masked
+    out = []
+    совпадения = _абсолюты_без_причины(masked) if check == "absolute_rule" else рег.finditer(masked)
+    были = set()
+    for m in совпадения:
+        if check == "forced_cot" and _ОТРИЦАНИЕ_ПЕРЕД.search(masked[max(0, m.start() - 12):m.start()]):
+            continue
+        строка = исходный.count("\n", 0, m.start()) + 1
+        if строка in были:
+            continue                    # одна строка — одна улика
+        были.add(строка)
+        начало = исходный.rfind("\n", 0, m.start()) + 1
+        конец = исходный.find("\n", m.end())
+        конец = len(исходный) if конец == -1 else конец
+        текст = исходный[начало:конец].strip()
+        if len(текст) > 140:
+            центр = m.start() - начало
+            текст = "…" + исходный[начало:конец][max(0, центр - 60):центр + 80].strip() + "…"
+        out.append({"line": строка, "match": m.group(0), "text": текст})
+        if len(out) >= _УЛИК_НА_ПРАВИЛО:
+            break
+    return out
 
 #: Код как ДАННЫЕ: закрытый блок, НЕзакрытый блок до конца текста, инлайн-код.
 #: Единственное определение на весь пакет — `rewrite` импортирует это же. Раньше
@@ -1377,6 +1483,7 @@ def analyze(prompt, target):
     # спросить «есть ли здесь блок кода» станет уже не у кого.
     target = dict(target, context_file=data.get("context_file"),
                   has_code_block=_смешаны_текст_и_код(prompt))
+    исходный = prompt
     prompt = mask_code(prompt)             # код — данные, а не инструкции
     low = prompt.lower()
     shape = None
@@ -1413,7 +1520,9 @@ def analyze(prompt, target):
             findings.append(_as_finding(rule, always=True))
             continue
         if fn(prompt, low, target):
-            findings.append(_as_finding(rule, always=False))
+            f = _as_finding(rule, always=False)
+            f["evidence"] = evidence(check, prompt, исходный)
+            findings.append(f)
     # Порядок находок — по важности, а не по тому, как правила легли в файл.
     # Раньше «нет контракта результата» могло оказаться ниже совета убрать
     # КАПС: человек читает сверху вниз и первым правит то, что напечатано

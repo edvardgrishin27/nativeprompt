@@ -32,6 +32,7 @@ FROZEN = {
         "opus55-explore-multi-app",
         "opus55-finish-unattended",
         "opus55-frontend-antipatterns",
+        "opus48-report-all", "sonnet5-report-all", "opus5-limit-subagents", "opus5-doc-length",
         # 11.11.2026, осознанно: Fable 5.2, Sonnet 5.5, Haiku 5.5 по их страницам
         # промптинга; раздел «What you can stop doing» в best practices Claude Code;
         # отказ reasoning_extraction переехал с Opus 5.5 на Opus 5 (5.5 наследует).
@@ -75,9 +76,10 @@ FROZEN = {
         "astra-bias-to-action", "astra-user-over-skill",
         "astra-slop-blocklist", "astra-tests-restraint",
     },
-    "gemini": {"gemini-context-file"},
+    "gemini": {"gemini-context-file", "gemini-no-persuasion", "gemini-question-last",
+               "gemini-one-delimiter-style", "gemini-no-reasoning-in-response"},
     "grok": {"grok-context-file"},
-    "kimi": {"kimi-context-file"},
+    "kimi": {"kimi-context-file", "kimi-output-contract", "kimi-delimiters"},
     "qwen": {"qwen-context-file"},
 }
 

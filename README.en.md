@@ -9,11 +9,11 @@
 ![MIT](https://img.shields.io/badge/license-MIT-black)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![2707 tests](https://img.shields.io/badge/tests-2707%20passing-brightgreen)
+![2721 tests](https://img.shields.io/badge/tests-2721%20passing-brightgreen)
 ![no API keys](https://img.shields.io/badge/API%20keys-none-1f6feb)
 ![latest models](https://img.shields.io/badge/Opus%205.5%20%C2%B7%20GPT--6-supported-d97757)
 
-Claude Code · Codex · 2707 tests · zero dependencies · no API key · runs offline
+Claude Code · Codex · 2721 tests · zero dependencies · no API key · runs offline
 
 > **New in 0.9.0 (27 September 2026): which effort level to run your task at.** The effort
 > level decides how much the model thinks and checks before it answers. Higher is smarter,
@@ -78,7 +78,9 @@ them together means guessing.
 | **Claude Fable 5.1** | 4 + family | 2026-09-02, the day after release | [prompting-fable-5-1](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) |
 | Claude Opus 5 | 4 + family | 2026-07-29 | [prompting-opus-5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
 | Claude Sonnet 5, Opus 4.8 | family | 2026-07-29 | general best practices |
-| Gemini CLI, Grok Build, Qwen Code, Kimi Code | one each | 2026-08-04, commands rechecked 2026-11-11 | vendors publish no prompting rules |
+| Gemini CLI | 5 | 2026-08-04, 4 rules from Gemini 3 principles on 2026-11-11 | [prompting-strategies](https://aistudio.google.com/docs/prompting-strategies) |
+| Kimi Code | 3 | 2026-08-04, 2 rules on 2026-11-11 | [prompt-best-practice](https://platform.kimi.ai/docs/guide/prompt-best-practice) |
+| Grok Build, Qwen Code | one each | 2026-08-04, commands rechecked 2026-11-11 | vendors publish no prompting rules |
 
 **What changed in Opus 5.5.** Thinking can no longer be disabled, and asking the model
 to spell out its reasoning in the answer now hits a new refusal category,
@@ -275,6 +277,8 @@ tables with sources: `nativeprompt rules claude` and `nativeprompt rules codex`.
 | `rules [claude\|codex]` | — | prints every rule with its source URL, plus the harness table and the effort table (levels and default per model, level per task shape). No argument = all families. |
 | `update` | `--diff`, `--write`, `--timeout N`, `--json` | fetches the vendors' canonical docs and compares them with stored text snapshots. `--diff` prints the exact before/after lines. Non-zero exit when action is needed (CI signal). `--write` records the new snapshots after you've reviewed the rules. A weekly CI job opens a PR containing the diff — **rules themselves are always edited by a human** (see below). |
 | `coverage <file>` | `--model M`, `--models A,B`, `--json` | counts how many vendor rules your own prompts break, and how many the tool closes. On the project corpus: 227 findings, 87 closed (**38 %**), 140 left to you, **0 introduced**. That last number is the point — the tool must never add a violation that was not there. It is a count of rules, not a quality score: no model runs. |
+| `audit <paths…>` | `--model M`, `--json`, `--fail-on any` | checks standing instructions — CLAUDE.md, AGENTS.md, GEMINI.md, SKILL.md, `.md` in `agents/`, `commands/`, `rules/`, `memory/`, `skills/` — for lines written for earlier models: bare "never", standing "use subagents", "answer without deliberating", hard word limits. Prints `file:line: rule-id` like a compiler. A line `nativeprompt: ignore <id>` in the file silences that rule there. `--fail-on any` exits 1 on any finding, for CI and pre-commit. |
+| `migrate --from A --to B` | `--json` | shows only what changes when you move a prompt from model A to model B: rules that start and stop applying, and the default effort level. |
 | `install` | `--dir DIR`, `--force` | installs the Claude Code skill into `~/.claude/skills/nativeprompt/`, read by both the terminal CLI and the desktop app. |
 
 `nativeprompt --version` prints the version.
@@ -404,7 +408,7 @@ detect  →  analyze  →  rewrite  →  harness  →  effort  →  explain     
 [без изменений]    claude  https://code.claude.com/docs/en/model-config.md
 [без изменений]    openai  https://learn.chatgpt.com/docs/models.md
 ...
-Итог: изменилось 6, новых 0, без изменений 26, недоступно 0 (из 40).
+Итог: изменилось 6, новых 0, без изменений 26, недоступно 0 (из 42).
 ```
 
 A weekly GitHub Actions job (`.github/workflows/update-rules.yml`) runs exactly that and fails when the official guidance moved. **The rules are never rewritten automatically** — a maintainer reads the changed doc, updates the JSON, and lands it in a PR, then records the new snapshot with `nativeprompt update --write`. That is a deliberate design choice: a cheat sheet you can audit is worth more than one that mutates silently.
@@ -419,7 +423,7 @@ Deliberately narrow, so the tool stays trustworthy:
 - **An alias is not a version.** `opus`, `sonnet`, `best` resolve differently per provider and plan, so generation-specific rules are withheld and family rules applied — and the CLI says so.
 - **The effort level is advice from the vendors' tables, not a measurement.** No model runs; both vendors ask you to test levels on your own work. OpenAI does not publish GPT-5.6's level list for Codex, and the report says so.
 - **No benchmark claims.** The tool applies the vendors' published rules; it does not measure that your prompt got "N% better", and it will never print such a number.
-- **Depth differs by vendor.** Claude Code and Codex are worked out per generation: 53 and 12 rules. Gemini CLI, Grok Build, Qwen Code and Kimi Code get one rule and a harness hint each, because those vendors publish far less. Inventing rules and signing a vendor's name to them would defeat the whole point.
+- **Depth differs by vendor.** Claude Code and Codex are worked out per generation: 57 and 12 rules. Gemini CLI, Grok Build, Qwen Code and Kimi Code get one rule and a harness hint each, because those vendors publish far less. Inventing rules and signing a vendor's name to them would defeat the whole point.
 
 Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 
@@ -428,7 +432,7 @@ Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 Verify first:
 
 ```bash
-python3 -m pytest -q          # 2707 tests: detection, detectors, rewrite, harness, effort level, rules integrity, frozen snapshot, self-check, refusal, hook context budget, reproducibility card
+python3 -m pytest -q          # 2721 tests: detection, detectors, rewrite, harness, effort level, rules integrity, frozen snapshot, self-check, refusal, hook context budget, reproducibility card
 ```
 
 **Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:
