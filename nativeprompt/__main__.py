@@ -339,11 +339,13 @@ def cmd_audit(args):
         print(json.dumps(res, ensure_ascii=False, indent=2))
     else:
         print(render_audit(res))
-    if res.get("error"):
+    # Опечатка в пути — ошибка всегда: иначе CI молча проверил бы ничего.
+    if res.get("error") or res.get("missing"):
         return 1
     # По умолчанию находки — совет, а не ошибка: код 0. В CI ставят
-    # --fail-on any, и тогда каждая неотмеченная строка роняет job.
-    return 1 if args.fail_on == "any" and res["findings"] else 0
+    # --fail-on any, и тогда каждая неотмеченная строка и каждый файл,
+    # который не удалось прочитать, роняют job.
+    return 1 if args.fail_on == "any" and (res["findings"] or res["skipped"]) else 0
 
 
 def cmd_migrate(args):

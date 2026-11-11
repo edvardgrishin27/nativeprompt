@@ -9,11 +9,11 @@
 ![MIT](https://img.shields.io/badge/license-MIT-black)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![2721 tests](https://img.shields.io/badge/tests-2721%20passing-brightgreen)
+![2749 tests](https://img.shields.io/badge/tests-2749%20passing-brightgreen)
 ![no API keys](https://img.shields.io/badge/API%20keys-none-1f6feb)
 ![latest models](https://img.shields.io/badge/Fable%205.2%20%C2%B7%20GPT--6.1-supported-d97757)
 
-Claude Code · Codex · 2721 tests · zero dependencies · no API key · runs offline
+Claude Code · Codex · 2749 tests · zero dependencies · no API key · runs offline
 
 > **New in 0.11.0 (11 November 2026): Fable 5.2 and a check for instruction files.**
 > Claude Fable 5.2 is out, and its prompting page is mostly about lines written for earlier
@@ -435,7 +435,7 @@ Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 Verify first:
 
 ```bash
-python3 -m pytest -q          # 2721 tests: detection, detectors, rewrite, harness, effort level, rules integrity, frozen snapshot, self-check, refusal, hook context budget, reproducibility card
+python3 -m pytest -q          # 2749 tests: detection, detectors, rewrite, harness, effort level, rules integrity, frozen snapshot, self-check, refusal, hook context budget, reproducibility card
 ```
 
 **Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:

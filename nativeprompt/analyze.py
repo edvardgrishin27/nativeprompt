@@ -647,11 +647,12 @@ def _c_frontend_task(p, low, t):
 #: она не останавливает мышление, и советует опустить effort. Ищем именно
 #: просьбу к модели («без размышлений», «не раздумывая»), а не слово «думать».
 _THINK_LESS = re.compile(
-    r"(?i)(?:\bбез\s+(?:лишних\s+|долгих\s+|всяких\s+)?(?:размышлени\w*|раздумий|раздумывани\w*|рассуждени\w*)|"
-    r"\bне\s+(?:раздумывая|размышляя|рассуждая)\b|"
+    r"(?i)(?:\b(?:отвечай|ответь|пиши|напиши|делай|сделай|действуй|реагируй|решай|реши)\b[^.!?\n]{0,30}"
+    r"(?:\bбез\s+(?:лишних\s+|долгих\s+|всяких\s+)?(?:размышлени\w*|раздумий|раздумывани\w*|рассуждени\w*)|"
+    r"\bне\s+(?:раздумывая|размышляя|рассуждая)\b)|"
     r"\bне\s+(?:думай|размышляй|раздумывай|рассуждай)\s+(?:долго|много|лишн\w*)|"
-    r"\bwithout\s+(?:deliberat\w*|thinking|overthinking|reasoning)\b|"
-    r"\bdon'?t\s+(?:overthink|deliberate)\b|\bno\s+(?:deliberation|thinking)\b)"
+    r"\b(?:answer|respond|reply|act|proceed|decide)\b[^.!?\n]{0,30}\bwithout\s+(?:deliberat\w*|thinking|overthinking|reasoning)\b|"
+    r"\bdon'?t\s+(?:overthink|deliberate)\b)"
 )
 
 
@@ -700,49 +701,103 @@ _ABSOLUTE_RULE = re.compile(
 
 
 #: Признак того, что у запрета уже есть причина, область или замена: «—
-#: используй X», «потому что», «кроме», «если», «unless». Вендор просит именно
-#: этого, и такой запрет — не находка.
+#: возьми X», «потому что», «кроме», «если», «unless». Вендор просит именно
+#: этого, и такой запрет — не находка. Ищем только ПОСЛЕ слова «никогда»:
+#: дефис в начале строки — маркер списка, а не тире перед причиной.
+#: «use» и «используй» сюда не входят: «Never use eval» — запрет без причины.
 _ПРИЧИНА = re.compile(
-    r"(?i)(?:\s[—–-]\s|:\s|\bпотому\b|\bтак\s+как\b|\bиначе\b|\bкроме\b|\bесли\b|\bвместо\b|"
-    r"\bиспользуй\b|\bbecause\b|\bsince\b|\botherwise\b|\bexcept\b|\bunless\b|\bif\b|"
-    r"\binstead\b|\buse\b|\bso\s+that\b)"
+    r"(?i)(?:\s[—–]\s|\s-\s|\bпотому\b|\bтак\s+как\b|\bиначе\b|\bкроме\b|\bесли\b|\bвместо\b|"
+    r"\bbecause\b|\bsince\b|\botherwise\b|\bexcept\b|\bunless\b|\bif\b|"
+    r"\binstead\b|\bso\s+that\b)"
+)
+#: «Никогда»/«never» — запрет, только когда стоит в начале фразы или пункта
+#: (после маркера списка, жирного, «и»/«но»). «The server never returns null»
+#: и «Why does Python never release memory?» — повествование, не правило.
+#: «Ни в коем случае» и «under no circumstances» запретом бывают где угодно.
+_НАЧАЛО_ФРАЗЫ = re.compile(r"(?i)^[\s>*_#\-–—•\d.)\]\[«\"']*(?:(?:и|но|а|and|but|also|ты|you|you\s+must|you\s+should)\s+)?$")
+_ВСЕГДА_ЗАПРЕТ = re.compile(r"(?i)^(?:ни\s|under\s)")
+
+
+#: Запрет о том, как писать код: «in source code», «в коде», «hardcode».
+#: Словарь _CODE_NOUN для этого слишком широк: в нём «вызов» и «конфиг», а
+#: «never retry a failed call» — как раз про осторожность агента.
+_ПРО_КОД = re.compile(
+    r"(?i)(?:\b(?:source\s+code|in\s+(?:the\s+)?code|codebase)\b|\bв\s+код\w*|\bисходн\w+\s+код\w*|"
+    r"\bhard-?cod\w*|\bхардкод\w*|\bзахардкод\w*)"
+)
+
+
+#: Действия агента, которые страница Fable 5.2 приводит как примеры
+#: накопленной осторожности: повторы, согласования, сообщения людям, обычная
+#: работа с файлами и командами. «Never use eval», «Never swallow errors» —
+#: правила о том, как писать код, а не об осторожности агента.
+_ДЕЙСТВИЕ_АГЕНТА = re.compile(
+    r"(?i)^[\s*_]*(?:не\s+)?(?:\w+\s+){0,2}?(?:"
+    r"retr(?:y|ies)|re-?run|ask|wait|stop|proceed|continue|message|send|email|contact|call|ping|notify|"
+    r"run|execute|push|commit|merge|deploy|delete|remove|touch|modify|change|edit|install|create|open|"
+    r"повтор\w*|перезапуск\w*|спрашива\w*|спроси\w*|жди|ожида\w*|останавлива\w*|отправля\w*|отправ\w*|"
+    r"пиши\s+(?:людям|коллегам|клиентам)|звон\w*|запуска\w*|выполня\w*|пушь|пуш\w*|коммит\w*|сливай|мерж\w*|"
+    r"деплой\w*|удаля\w*|удали\w*|трога\w*|трожь|меняй|измени\w*|правь|редактир\w*|устанавлива\w*|став\w*|"
+    r"созда\w*|открыва\w*|обраща\w*)\b"
 )
 
 
 def _абсолюты_без_причины(p):
-    """Запреты «никогда», у которых в той же фразе нет причины или области."""
+    """Запреты «никогда» без причины, области или замены в той же фразе.
+
+    Запреты о том, как писать КОД («Never hardcode secrets in source code»),
+    тоже не находка: страница Fable 5.2 говорит об осторожности агента —
+    повторах, согласованиях, обычной работе, — а правило про код задаёт
+    область само.
+    """
     for m in _ABSOLUTE_RULE.finditer(p):
         начало = max(p.rfind(c, 0, m.start()) for c in ".!?\n") + 1
         концы = [i for i in (p.find(c, m.end()) for c in ".!?\n") if i != -1]
-        фраза = p[начало:min(концы) if концы else len(p)]
-        if not _ПРИЧИНА.search(фраза):
-            yield m
+        конец = min(концы) if концы else len(p)
+        if конец < len(p) and p[конец] == "?":
+            continue                    # вопрос, а не правило
+        if not _ВСЕГДА_ЗАПРЕТ.match(m.group(0)) and not _НАЧАЛО_ФРАЗЫ.match(p[начало:m.start()]):
+            continue
+        хвост = p[m.end():конец]
+        if not _ДЕЙСТВИЕ_АГЕНТА.match(хвост):
+            continue                    # правило о коде, а не об осторожности агента
+        if _ПРИЧИНА.search(хвост) or "`" in хвост or _ПРО_КОД.search(хвост):
+            continue
+        yield m
 
 
 def _c_absolute_rule(p, low, t):
     return next(_абсолюты_без_причины(p), None) is not None
 
 
-#: Постоянная просьба делегировать субагентам.
+#: Постоянная просьба делегировать субагентам. Голое «delegate» не берём:
+#: в C# это тип, а «Do not delegate» — обратная просьба.
 _DELEGATE_PUSH = re.compile(
     r"(?i)(?:\b(?:используй|запускай|запусти|задействуй|подключай|подключи|порождай|привлекай)\b"
-    r"[^.!?\n]{0,30}(?:субагент|сабагент|подагент|параллельн\w*\s+агент|агент\w*\s+параллельно)|"
-    r"\bделегируй\b|"
-    r"\b(?:use|spawn|launch|start)\s+(?:multiple\s+|parallel\s+|several\s+)?(?:sub-?agents?|parallel\s+agents)\b|"
-    r"\bdelegate\b)"
+    r"[^.!?\n]{0,30}(?:субагент|сабагент|подагент|агент)|\bделегируй\b|"
+    r"\b(?:use|spawn|launch|start|delegate)\b[^.!?\n]{0,25}\b(?:sub-?agents?|parallel\s+agents|agents)\b)"
 )
 
 
+def _без_отрицания(рег, p):
+    """Совпадения, перед которыми нет «не»/«don't»: «не используй субагентов»
+    — противоположная просьба."""
+    for m in рег.finditer(p):
+        if not _ОТРИЦАНИЕ_ПЕРЕД.search(p[max(0, m.start() - 12):m.start()]):
+            yield m
+
+
 def _c_delegate_push(p, low, t):
-    return bool(_DELEGATE_PUSH.search(p))
+    return next(_без_отрицания(_DELEGATE_PUSH, p), None) is not None
 
 
 #: Бюджет токенов на задачу, вписанный в текст промпта. Не путать с длиной
 #: ответа: «ответ до 200 токенов» — формат результата.
 _TOKEN_BUDGET = re.compile(
-    r"(?i)(?:\bбюджет\w*[^.!?\n]{0,25}\bтокен\w*|\bтокен\w*[^.!?\n]{0,15}\bбюджет\w*|"
+    r"(?i)(?:\bбюджет\w*[^.!?\n]{0,25}\d[^.!?\n]{0,15}\bтокен\w*|\bтокен\w*[^.!?\n]{0,15}\bбюджет\w*[^.!?\n]{0,15}\d|"
     r"\bосталось\s+(?:~|около\s+|примерно\s+)?\d[\d\s.,]*\s*(?:k|к|тыс\.?\s*)?токен\w*|"
-    r"\btoken\s+budget\b|\bbudget\s+of\s+[\d,.]+\s*k?\s+tokens\b|\btokens?\s+(?:left|remaining)\b)"
+    r"\btoken\s+budget\s*(?:[:=]|is|of)?\s*~?\d|\bbudget\s+of\s+[\d,.]+\s*k?\s+tokens\b|"
+    r"\d[\d,.]*\s*k?\s+tokens?\s+(?:left|remaining)\b)"
 )
 
 
@@ -767,7 +822,7 @@ _HARD_STYLE = re.compile(
     r"(?i)(?:(?:не\s+(?:длиннее|больше|более)|до|максимум)\s+\d+\s+слов[^.!?\n]{0,20}предложени\w*|"
     r"предложени\w*[^.!?\n]{0,25}(?:не\s+(?:длиннее|больше|более)|до|максимум)\s+\d+\s+слов|"
     r"\bодн\w+\s+(?:мысл\w*|иде\w*|инструкци\w*|действи\w*)\s+(?:в|на)\s+(?:одно\s+|каждом\s+)?предложени\w*|"
-    r"\b(?:in|of)\s+\d+\s+words\s+or\s+(?:fewer|less)\b|"
+    r"\b(?:in|of)\s+\d+\s+words\s+or\s+(?:fewer|less)\s+(?:per|each|a)\s+sentence\b|"
     r"\bone\s+(?:idea|instruction|thought)\s+per\s+sentence\b|"
     r"\bsentences?\s+(?:of\s+)?(?:at\s+most|no\s+more\s+than|under)\s+\d+\s+words\b)"
 )
@@ -868,7 +923,7 @@ _THINK_HARD = re.compile(
 
 
 def _c_think_hard(p, low, t):
-    return bool(_THINK_HARD.search(p))
+    return next(_без_отрицания(_THINK_HARD, p), None) is not None
 
 
 #: «Не ленись, работай пока не закончишь». На большинстве моделей вендор
@@ -909,10 +964,14 @@ _STOP_BOUND = re.compile(
 )
 
 
+#: Команда /goal, а не путь вроде src/goals/ или docs/goal.md.
+_GOAL_CMD = re.compile(r"(?:^|\s)/goal(?=\s|$)")
+
+
 def _c_no_stop_bound(p, low, t):
     """Только явный /goal: совет вендора про условие этой команды. Задача
     «почини, пока не пройдёт» без /goal — обычный ход, предел ей не нужен."""
-    return "/goal" in low and not _STOP_BOUND.search(p)
+    return bool(_GOAL_CMD.search(low)) and not _STOP_BOUND.search(p)
 
 
 # ── Gemini 3: Core prompting principles (aistudio.google.com) ──────────
@@ -939,12 +998,21 @@ def _c_instruction_first_long(p, low, t):
 
 #: XML-теги и markdown-заголовки вперемешку. Google: выберите один формат
 #: разделителей и держитесь его в пределах промпта.
-_XML_TAG = re.compile(r"<([a-zA-Z_][\w-]*)>[\s\S]*?</\1>")
+_XML_OPEN = re.compile(r"<([a-zA-Z_][\w-]*)>")
+_XML_CLOSE = re.compile(r"</([a-zA-Z_][\w-]*)>")
 _MD_HEADING = re.compile(r"(?m)^#{1,6}\s+\S")
 
 
 def _c_mixed_delimiters(p, low, t):
-    return bool(_XML_TAG.search(p)) and bool(_MD_HEADING.search(p))
+    """Линейно: сначала последнее место каждого закрывающего тега, потом
+    открывающие. Регулярка «<x>…</x>» с ленивым хвостом на файле в полмегабайта
+    из незакрытых тегов работала десятки секунд."""
+    if not _MD_HEADING.search(p):
+        return False
+    последний = {}
+    for m in _XML_CLOSE.finditer(p):
+        последний[m.group(1)] = m.start()
+    return any(последний.get(m.group(1), -1) > m.end() for m in _XML_OPEN.finditer(p))
 
 
 _CHECKS = {
@@ -1011,23 +1079,32 @@ _УЛИКИ = {
 }
 _УЛИК_НА_ПРАВИЛО = 5
 
+#: Детекторы, у которых найти фразу мало: отрицание, повествование, причина.
+#: Улики берутся теми же функциями, что и решение детектора, иначе фрагмент
+#: показал бы место, на котором детектор как раз НЕ сработал.
+_ИСКАТЕЛИ = {
+    "absolute_rule": _абсолюты_без_причины,
+    "delegate_push": lambda p: _без_отрицания(_DELEGATE_PUSH, p),
+    "think_hard": lambda p: _без_отрицания(_THINK_HARD, p),
+    "forced_cot": lambda p: _без_отрицания(_FORCED_COT, p),
+}
 
-def evidence(check, masked, original=None):
+
+def evidence(check, masked, original=None, limit=_УЛИК_НА_ПРАВИЛО):
     """Список мест, где детектор `check` нашёл свою фразу.
 
     Ищем по маскированному тексту (код — данные), а строку берём из исходного:
-    маскировка сохраняет длину, поэтому позиции совпадают.
+    маскировка сохраняет длину, поэтому позиции совпадают. `limit=None` —
+    все места (так зовёт audit: файл:строка обещана для каждой строки).
     """
     рег = _УЛИКИ.get(check)
     if рег is None:
         return []
     исходный = original if original is not None else masked
-    out = []
-    совпадения = _абсолюты_без_причины(masked) if check == "absolute_rule" else рег.finditer(masked)
-    были = set()
+    искатель = _ИСКАТЕЛИ.get(check)
+    совпадения = искатель(masked) if искатель else рег.finditer(masked)
+    out, были = [], set()
     for m in совпадения:
-        if check == "forced_cot" and _ОТРИЦАНИЕ_ПЕРЕД.search(masked[max(0, m.start() - 12):m.start()]):
-            continue
         строка = исходный.count("\n", 0, m.start()) + 1
         if строка in были:
             continue                    # одна строка — одна улика
@@ -1040,7 +1117,7 @@ def evidence(check, masked, original=None):
             центр = m.start() - начало
             текст = "…" + исходный[начало:конец][max(0, центр - 60):центр + 80].strip() + "…"
         out.append({"line": строка, "match": m.group(0), "text": текст})
-        if len(out) >= _УЛИК_НА_ПРАВИЛО:
+        if limit is not None and len(out) >= limit:
             break
     return out
 
@@ -1464,7 +1541,7 @@ def _смешаны_текст_и_код(text):
     return len("".join(вне).strip()) >= _МИНИМУМ_ИНСТРУКЦИИ
 
 
-def analyze(prompt, target):
+def analyze(prompt, target, evidence_limit=_УЛИК_НА_ПРАВИЛО):
     """Вернуть список сработавших правил (findings) для данной модели.
 
     target: {family, generation}. Правила scope='family' проверяются всегда;
@@ -1521,7 +1598,7 @@ def analyze(prompt, target):
             continue
         if fn(prompt, low, target):
             f = _as_finding(rule, always=False)
-            f["evidence"] = evidence(check, prompt, исходный)
+            f["evidence"] = evidence(check, prompt, исходный, evidence_limit)
             findings.append(f)
     # Порядок находок — по важности, а не по тому, как правила легли в файл.
     # Раньше «нет контракта результата» могло оказаться ниже совета убрать

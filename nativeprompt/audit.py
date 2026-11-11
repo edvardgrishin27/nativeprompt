@@ -17,7 +17,7 @@ import os
 import re
 
 from . import detect as _detect
-from .analyze import analyze, normalize_prompt
+from .analyze import analyze
 
 #: Детекторы фраз, которые имеют смысл в постоянных инструкциях. Детекторы
 #: задачи («нет контракта», «задача длинная», «про код») сюда не входят.
@@ -35,34 +35,55 @@ _КАТАЛОГИ = {"agents", "commands", "rules", "memory", "skills"}
 _ПРОПУСК = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".tox"}
 _ПРЕДЕЛ_ФАЙЛОВ = 500
 _ПРЕДЕЛ_РАЗМЕРА = 1_000_000
-_IGNORE = re.compile(r"nativeprompt:\s*ignore\s+([\w.,\s-]+)", re.I)
+#: Список id — до конца строки: следующая строка файла в него не попадает.
+_IGNORE = re.compile(r"nativeprompt:[^\S\n]*ignore[^\S\n]+([\w.,\-]+(?:[^\S\n]*,?[^\S\n]*[\w.\-]+)*)", re.I)
 
 
-def _это_инструкция(путь):
+def _это_инструкция(путь, корень=""):
+    """Файл инструкции? Каталоги смотрим только НИЖЕ корня обхода: иначе
+    `audit .` и `audit /abs/…/skills/x` давали бы разный набор файлов."""
     имя = os.path.basename(путь).lower()
     if имя in _ИМЕНА:
         return True
     if not имя.endswith(".md"):
         return False
-    части = {ч.lower() for ч in путь.replace("\\", "/").split("/")[:-1]}
+    # Считаем от РОДИТЕЛЯ корня: `audit ~/.claude/rules` должен видеть, что
+    # сам корень называется rules.
+    внутри = os.path.relpath(путь, os.path.dirname(os.path.abspath(корень))) if корень else путь
+    части = {ч.lower() for ч in внутри.replace("\\", "/").split("/")[:-1]}
     return bool(части & _КАТАЛОГИ)
 
 
-def collect_files(paths):
-    """Файлы инструкций из путей: файл берём как есть, каталог обходим."""
-    out = []
+def collect_files(paths, skipped=None, missing=None):
+    """Файлы инструкций из путей: файл берём как есть, каталог обходим.
+
+    Каталоги-симлинки обходим (скиллы часто подключают симлинком), а
+    настоящие пути запоминаем, чтобы цикл ссылок не обходился вечно.
+    """
+    out, были = [], set()
     for путь in paths:
         if os.path.isfile(путь):
             out.append(путь)
             continue
-        for корень, каталоги, файлы in os.walk(путь):
+        if not os.path.isdir(путь):
+            if missing is not None:
+                missing.append(путь)
+            continue
+        for корень, каталоги, файлы in os.walk(путь, followlinks=True):
+            настоящий = os.path.realpath(корень)
+            if настоящий in были:
+                каталоги[:] = []
+                continue
+            были.add(настоящий)
             каталоги[:] = sorted(к for к in каталоги if к not in _ПРОПУСК)
             for имя in sorted(файлы):
                 полный = os.path.join(корень, имя)
-                if _это_инструкция(полный):
-                    out.append(полный)
+                if _это_инструкция(полный, путь):
                     if len(out) >= _ПРЕДЕЛ_ФАЙЛОВ:
+                        if skipped is not None:
+                            skipped.append({"file": путь, "reason": "больше %d файлов, остальные не проверены" % _ПРЕДЕЛ_ФАЙЛОВ})
                         return out
+                    out.append(полный)
     return out
 
 
@@ -75,10 +96,12 @@ def _ignored(text):
 
 def audit_text(text, target, path="<stdin>"):
     """Находки по одному тексту: по строке на каждое место, где сработало правило."""
-    text = normalize_prompt(text)
+    # Без normalize_prompt: он срезает пустые строки в начале, и номер строки
+    # в выводе разошёлся бы с файлом.
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     выкл = _ignored(text)
     out = []
-    for f in analyze(text, target):
+    for f in analyze(text, target, evidence_limit=None):
         if f.get("check") not in AUDIT_CHECKS or f["id"] in выкл:
             continue
         for у in f.get("evidence") or []:
@@ -95,21 +118,23 @@ def audit_paths(paths, model=None, target=None):
         target = _detect.resolve(model)
     if not target.get("family"):
         return {"error": "model_unknown", "target": target, "files": [], "findings": []}
-    файлы = collect_files(paths)
-    находки, пропущены = [], []
+    находки, пропущены, нет = [], [], []
+    файлы = collect_files(paths, пропущены, нет)
+    for путь in нет:
+        пропущены.append({"file": путь, "reason": "нет такого файла или каталога"})
     for путь in файлы:
         try:
             if os.path.getsize(путь) > _ПРЕДЕЛ_РАЗМЕРА:
                 пропущены.append({"file": путь, "reason": "больше 1 МБ"})
                 continue
-            with open(путь, encoding="utf-8") as fh:
+            with open(путь, encoding="utf-8-sig") as fh:
                 текст = fh.read()
         except (OSError, UnicodeDecodeError) as e:
             пропущены.append({"file": путь, "reason": str(e)})
             continue
         находки.extend(audit_text(текст, target, путь))
     находки.sort(key=lambda x: (x["priority"], x["file"], x["line"]))
-    return {"target": target, "files": файлы, "skipped": пропущены, "findings": находки}
+    return {"target": target, "files": файлы, "skipped": пропущены, "missing": нет, "findings": находки}
 
 
 def render_audit(res):

@@ -50,6 +50,7 @@ def migrate(src, dst):
         "effort": {"from_default": ea.get("default"), "to_default": eb.get("default"),
                    "note": eb.get("note"), "source": eb.get("note_source")},
         "same_family": a["family"] == b["family"],
+        "unresolved": [x for x, t in ((src, a), (dst, b)) if not t.get("generation")],
     }
 
 
@@ -62,8 +63,12 @@ def render_migrate(res):
     if res["to"].get("note"):
         out.append("")
         out.append("О модели: %s" % res["to"]["note"])
+    if res.get("unresolved"):
+        out.append("")
+        out.append("Версия модели не определилась (%s): сравниваю только общие правила семейства. "
+                   "Назовите модель полностью, например claude-opus-5-5." % ", ".join(res["unresolved"]))
     e = res["effort"]
-    if e["from_default"] != e["to_default"]:
+    if e["from_default"] and e["to_default"] and e["from_default"] != e["to_default"]:
         out.append("")
         out.append("УРОВЕНЬ УСИЛИЙ ПО УМОЛЧАНИЮ: %s → %s. Подобранный на старой модели уровень не переносите."
                    % (e["from_default"] or "нет", e["to_default"] or "нет"))

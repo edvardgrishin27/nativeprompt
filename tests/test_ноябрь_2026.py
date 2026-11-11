@@ -257,3 +257,39 @@ def test_правила_gemini_и_kimi_ведут_к_вендору():
         d = json.load(open(os.path.join(КОРЕНЬ, "nativeprompt", "rules", fam + ".json"), encoding="utf-8"))
         новые = [r for r in d["rules"] if not r["id"].endswith("context-file")]
         assert новые and all(домен in r["source"] for r in новые), fam
+
+
+# ── ложные срабатывания из ревью Fable 5.2 ──────────────────────────
+
+@pytest.mark.parametrize("имя,текст", [
+    ("absolute_rule", "Why does Python never release memory to the OS?"),
+    ("absolute_rule", "The server never returns null here."),
+    ("absolute_rule", "Never hardcode secrets in source code"),
+    ("absolute_rule", "- Never use raw new — use smart pointers"),
+    # Правило о том, как писать код, а не об осторожности агента: страница
+    # Fable 5.2 говорит о повторах, согласованиях и обычной работе.
+    ("absolute_rule", "Never use eval."),
+    ("absolute_rule", "- Never silently swallow errors"),
+    ("delegate_push", "Do not delegate anything to subagents."),
+    ("delegate_push", "The C# delegate type is fine."),
+    ("think_less", "Users click without thinking."),
+    ("think_less", "Он сделал это без размышлений."),
+    ("think_hard", "Don't think hard about it"),
+    ("token_budget", "Explain what a token budget is"),
+    ("hard_style_limit", "Summarize in 50 words or fewer."),
+])
+def test_ложное_срабатывание_закрыто(имя, текст):
+    assert not чек(имя, текст), "%s сработал зря: %r" % (имя, текст)
+
+
+@pytest.mark.parametrize("имя,текст", [
+    ("absolute_rule", "  - Never push to main"),
+    ("absolute_rule", "Никогда не отправляй письма клиентам."),
+    ("absolute_rule", "- **Never** retry a failed call"),
+])
+def test_частые_формы_запрета_видны(имя, текст):
+    assert чек(имя, текст), "%s не увидел: %r" % (имя, текст)
+
+
+def test_goal_в_пути_не_команда():
+    assert "claude-goal-stop-bound" not in находки("Fix the bug in src/goals/api.py and update docs/goal.md", "claude-opus-5")
