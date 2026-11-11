@@ -65,11 +65,15 @@ def recommend_effort(target, shape):
     if not eff:
         return None
     by_shape = eff["by_shape"]
-    # Неизвестная форма идёт в `normal`, как и у харнесса: это корзина для
-    # всего, в чём форма не определилась, и совет там — дефолт модели.
-    advice = by_shape.get(shape) or by_shape["normal"]
     gen = target.get("generation")
     model = eff["models"].get(gen) if gen else None
+    # Совет под форму задачи бывает своим у модели. В Claude Code дефолт
+    # Fable 5.2, Sonnet 5.5 и Haiku 5.5 — medium, а для долгой работы без
+    # человека вендор советует им high: на medium они чаще закрывают ход
+    # раньше времени. Общий совет «начни с дефолта» тут спорил бы с вендором.
+    # Неизвестная форма идёт в `normal`, как и у харнесса: это корзина для
+    # всего, в чём форма не определилась, и совет там — дефолт модели.
+    advice = ((model or {}).get("by_shape") or {}).get(shape) or by_shape.get(shape) or by_shape["normal"]
     label = (data.get("generations", {}).get(gen) or {}).get("label") if gen else None
 
     rec = {

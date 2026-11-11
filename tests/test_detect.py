@@ -146,7 +146,8 @@ def test_project_settings_win_over_home(tmp_path, monkeypatch):
 
 
 def test_fable_resolves_deterministically():
-    """fable — единственный алиас с однозначным резолвингом (Claude Fable 5)."""
+    """fable — единственный алиас с однозначным резолвингом (Claude Fable 5.2)."""
+    # До 9 ноября 2026 алиас вёл на Fable 5; model-config теперь ведёт его на 5.2.
     r = detect._build_result("fable", "тест")
     assert r["family"] == "claude"
     assert r["generation_source"] == "alias-fixed"

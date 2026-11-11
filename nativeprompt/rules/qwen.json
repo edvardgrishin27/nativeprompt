@@ -4,7 +4,7 @@
   "display": "Qwen Code",
   "surface": "Qwen Code (открытый агентный CLI). Правила — из доки самого CLI, НЕ из чата Qwen.",
   "context_file": "QWEN.md",
-  "rules_version": "2026-08-04",
+  "rules_version": "2026-11-11",
   "vendor_publishes_model_rules": false,
   "coverage_note": "Вендор НЕ публикует правил промптинга под конкретную модель — нет страницы уровня «на этой модели не пиши X», как у Anthropic или OpenAI. Поэтому здесь только то, что задокументировано: команды харнесса и контекстный файл. Выдумывать правила и подписывать их вендором нельзя — вся ценность инструмента в том, что каждая правка со ссылкой на источник.",
   "detect": {
@@ -65,9 +65,9 @@
       {
         "id": "goal",
         "when": "goal",
-        "command": "/goal",
+        "command": "/goal <цель>",
         "title": "Есть проверяемое условие готовности — /goal",
-        "why": "Дословно из доки: «Set a goal — keep working until condition met». Задаёте условие, агент крутит до его выполнения. Формулировки вида «пока все тесты не пройдут» — это ровно оно.",
+        "why": "Дословно из доки: «Set a Goal — keep working until a verifier confirms it». Независимый проверяющий судит по записи сессии и сам команд не запускает, поэтому пишите условие, которое видно в выводе: «пока все тесты не пройдут». /goal-draft <намерение> составит формулировку за вас.",
         "source": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/commands.md"
       },
       {
@@ -99,7 +99,7 @@
         "when": "workflow",
         "command": "/workflows",
         "title": "Широкий обход по файлам — смотреть через /workflows",
-        "why": "Дословно из доки: «Inspect workflow runs». Для задач, разложенных на много параллельных шагов, состояние видно отсюда, а не из переписки.",
+        "why": "Дословно из доки: «Inspect workflow runs». Для задач, разложенных на много параллельных шагов, состояние видно отсюда, а не из переписки. Команда есть, только если включена настройка tools.workflowsEnabled или переменная QWEN_CODE_ENABLE_WORKFLOWS=1.",
         "source": "https://github.com/QwenLM/qwen-code/blob/main/docs/users/features/commands.md"
       }
     ]

@@ -4,16 +4,26 @@
   "display": "Grok Build",
   "surface": "Grok Build (терминальный агент xAI, команда `grok`). Правила — из доки самого CLI, НЕ из чата Grok.",
   "context_file": "AGENTS.md",
-  "rules_version": "2026-08-04",
+  "rules_version": "2026-11-11",
   "vendor_publishes_model_rules": false,
   "coverage_note": "xAI НЕ публикует страницы правил промптинга под конкретную модель — нет документа уровня «на этой модели не пиши X», как у Anthropic и OpenAI. Зато подробно документирован сам харнесс: режимы, команды, права, субагенты. Поэтому здесь только задокументированное. Выдумывать правила и подписывать их вендором нельзя — вся ценность в том, что каждая находка со ссылкой.",
   "detect": {
-    "id_prefixes": ["grok", "xai"],
-    "aliases": ["grok", "grok-build", "xai", "spacexai"]
+    "id_prefixes": [
+      "grok",
+      "xai"
+    ],
+    "aliases": [
+      "grok",
+      "grok-build",
+      "xai",
+      "spacexai"
+    ]
   },
   "generations": {
     "grok": {
-      "match": ["grok"],
+      "match": [
+        "grok"
+      ],
       "label": "Grok (модель не указана)",
       "note": "Grok Build ходит на кодовую модель xAI. Своей страницы правил промптинга у поколений нет — применяются правила семейства и рекомендации по харнессу."
     }
@@ -53,9 +63,9 @@
       {
         "id": "goal",
         "when": "goal",
-        "command": "(в Grok Build нет /goal — критерий готовности пишите в промпте)",
-        "title": "Условие «пока не сойдётся» — команды нет",
-        "why": "Отдельной команды «крути до выполнения условия» у Grok Build нет. Сформулируйте критерий готовности прямо в задаче и попросите прогнать проверку самому; ход длинной работы смотрите через /tasks.",
+        "command": "/goal <цель>",
+        "title": "Есть проверяемое условие готовности — /goal",
+        "why": "Дословно из доки: «Work toward an objective until it is verified complete». Grok работает к цели много ходов без ваших подсказок. Напишите, как выглядит «готово», например «…, verified by the auth test suite passing»: так проверяющим есть что сверить. --budget <tokens> ограничивает расход.",
         "source": "https://docs.x.ai/build/modes-and-commands"
       },
       {

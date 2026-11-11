@@ -20,12 +20,12 @@ Keying is by **family + generation**, so an id the cheatsheet has never seen (`c
 
 ### Rules come from vendor documentation
 
-Every rule in `nativeprompt/rules/*.json` carries a `source` URL pointing at an official Anthropic or OpenAI page. There are **39 rules** today across six families:
+Every rule in `nativeprompt/rules/*.json` carries a `source` URL pointing at an official Anthropic or OpenAI page. There are **69 rules** today across six families:
 
 | Family | Rules | Scope split | Harness recommendations |
 |---|---|---|---|
-| Claude Code (`claude.json`) | 23 | 8 family-wide + 15 pinned to a generation (`opus-5-5`, `opus-5`, `fable-5-1`, `fable-5`, `opus-4.8`) | 6 |
-| Codex (`openai.json`) | 12 | 8 family-wide + 4 for the `gpt-6-astra` line (inherited by Sol and Luna) | 6 |
+| Claude Code (`claude.json`) | 53 | 12 family-wide + 41 pinned to a generation (`fable-5-2`, `sonnet-5-5`, `haiku-5-5`, `opus-5-5`, `opus-5`, `fable-5-1`, `fable-5`, `opus-4.8`) | 6 |
+| Codex (`openai.json`) | 12 | 8 family-wide + 4 for the `gpt-6-astra` line (inherited by Sol, Luna, GPT-6.1 Sol and Terra) | 6 |
 | Gemini CLI, Grok, Kimi, Qwen | 1 each | family-wide | 7–8 |
 
 The imbalance is stated plainly: the last four are stubs carrying a run-mode
@@ -63,7 +63,7 @@ Every piece of advice links the vendor's documentation, like the rules do — bl
 
 ### Self-update actually fetches
 
-`nativeprompt update` downloads the 32 canonical `.md` / `llms.txt` vendor pages listed in `rules/_sources.json`, hashes them with SHA‑256, and diffs against `rules/_snapshot.json`. It exits non‑zero when something changed or is new, so CI can fail on it; `.github/workflows/update-rules.yml` runs it weekly.
+`nativeprompt update` downloads the 40 canonical `.md` / `llms.txt` vendor pages listed in `rules/_sources.json`, hashes them with SHA‑256, and diffs against `rules/_snapshot.json`. It exits non‑zero when something changed or is new, so CI can fail on it; `.github/workflows/update-rules.yml` runs it weekly.
 
 A real run on 2026‑07‑30: **14 fetched — 9 unchanged, 1 changed, 4 new, 0 unreachable → action needed.** That is the mechanism working, not a passing grade: it means a maintainer owes the cheatsheet a review pass.
 
@@ -151,7 +151,7 @@ The trimming order is fixed and runs from the cheapest to the most expensive: fi
 
 When something was trimmed, one line says so right under the header, and it names only what was actually removed: "3 advisories out of 7" is not printed where there were two. A note that names something that did not happen is worse than no note — it sends the reader looking for a loss that is not there.
 
-Over the corpus (57 live prompts × 3 models, 123 runs with a non-empty context) the worst case after trimming is 1729 characters; the trimming fires on 3 of those runs.
+Over the corpus (57 live prompts × 3 models, 123 runs with a non-empty context) the worst case after trimming is 1761 characters; the trimming fires on 3 of those runs.
 
 > Verified by: 528 tests in `tests/test_context_budget.py`. The ceiling holds over the whole corpus × 3 models; a separate test proves the ceiling actually CUTS (without trimming the corpus breaks through it) — otherwise it is decoration. The user's text is whole or absent: when the "improved version" block is gone, none of its long lines leaked past it. The order of the steps is pinned, including a synthetic input for the MIDDLE step — the corpus never reaches it, and without that input the step would be dead code under green tests. The note appears exactly when something was trimmed and never names what was not. There is also a real run of the hook file over stdin. Such a ceiling has a known trap: when the test guards only the ceiling, the published number quietly drifts from the code. Hence two separate tests here — one for the guarantee, one for the published number itself: change the corpus, a rule, or a word in a clause, and `test_опубликованный_худший_случай_не_устарел` goes red along with the figure above.
 
@@ -312,10 +312,10 @@ Separately, on why the project's own tests missed all of this. There were 67 and
 ## How to verify
 
 ```bash
-# 1. Test suite — 2589 tests, no dependencies beyond pytest
+# 1. Test suite — 2707 tests, no dependencies beyond pytest
 cd nativeprompt && python3 -m pytest -q
-# 2589 passed
-#   688 invariant · 528 hook budget · 479 reproducibility card · 361 self-check · 92 rule integrity · 73 regressions · 71 effort level · 69 prompt-as-data · 32 detection · 30 opus-5.5-rules · 28 gpt-6-rules · 23 refusal · 23 capabilities · 23 fable-rules · 23 astra · 10 coverage · 10 install · 9 analysis · 8 rewrite · 6 harness · 3 update
+# 2707 passed
+#   688 invariant · 528 hook budget · 479 reproducibility card · 361 self-check · 118 new-models · 92 rule integrity · 73 regressions · 71 effort level · 69 prompt-as-data · 32 detection · 30 opus-5.5-rules · 28 gpt-6-rules · 23 refusal · 23 capabilities · 23 fable-rules · 23 astra · 10 coverage · 10 install · 9 analysis · 8 rewrite · 6 harness · 3 update
 
 # 2. Every rule with its official source — spot-check the links
 python3 -m nativeprompt rules claude

@@ -9,11 +9,11 @@
 ![MIT](https://img.shields.io/badge/license-MIT-black)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)
-![2589 tests](https://img.shields.io/badge/tests-2589%20passing-brightgreen)
+![2707 tests](https://img.shields.io/badge/tests-2707%20passing-brightgreen)
 ![no API keys](https://img.shields.io/badge/API%20keys-none-1f6feb)
 ![latest models](https://img.shields.io/badge/Opus%205.5%20%C2%B7%20GPT--6-supported-d97757)
 
-Claude Code · Codex · 2589 tests · zero dependencies · no API key · runs offline
+Claude Code · Codex · 2707 tests · zero dependencies · no API key · runs offline
 
 > **New in 0.9.0 (27 September 2026): which effort level to run your task at.** The effort
 > level decides how much the model thinks and checks before it answers. Higher is smarter,
@@ -24,6 +24,11 @@ Claude Code · Codex · 2589 tests · zero dependencies · no API key · runs of
 > project-wide audit in Codex, the vendor says, is a job for Ultra mode. See
 > [Effort level](#effort-level).
 >
+> Rules for **Claude Fable 5.2** landed on 11 November 2026, two days after release,
+> together with **Sonnet 5.5** and **Haiku 5.5**. The headline for 5.2: lines written for
+> earlier models now get in the way — "answer without deliberating" no longer works, a bare
+> "never" piles up caution, hard word limits make prose choppy. The tool finds those lines.
+>
 > Rules for **Claude Opus 5.5** landed on 23 September 2026, the day after
 > the model shipped: five behaviours that show up in the prompt text itself. The whole
 > **GPT-6** line — Astra, Sol and Luna — landed the same day: OpenAI moved its main
@@ -31,12 +36,12 @@ Claude Code · Codex · 2589 tests · zero dependencies · no API key · runs of
 > Astra** landed on 7 September, for **Claude Fable 5.1** on 2 September, the day after
 > its release. Full model list below.
 
-Scope: the **agentic CLIs** — Claude Code, Codex, Gemini CLI, Grok Build, Qwen Code and Kimi CLI. Not the API, not the web chat.
+Scope: the **agentic CLIs** — Claude Code, Codex, Gemini CLI, Grok Build, Qwen Code and Kimi Code. Not the API, not the web chat.
 
 Coverage differs by vendor, and the tool says so out loud. Anthropic and OpenAI publish
 model-specific prompting rules, so for Claude Code and Codex you get both halves: what to
 change in the prompt *and* which command to launch with. Google, xAI, Alibaba and Moonshot publish no
-such rules — for Gemini CLI, Grok Build, Qwen Code and Kimi CLI you get the harness half only. Inventing rules and
+such rules — for Gemini CLI, Grok Build, Qwen Code and Kimi Code you get the harness half only. Inventing rules and
 attributing them to a vendor would defeat the point: every finding here cites a source.
 
 ---
@@ -63,13 +68,17 @@ them together means guessing.
 
 | Model | Rules | Added | Vendor guide |
 |---|:--:|---|---|
+| **Claude Fable 5.2** (and Mythos 5.2) | 14 + family | 2026-11-11, two days after release | [prompting-fable-5-2](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2) |
+| **Claude Haiku 5.5** | 5 + family | 2026-11-11 | [prompting-haiku-5-5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-haiku-5-5) |
+| **Claude Sonnet 5.5** | 7 + Sonnet 5 rules + family | 2026-11-11 | [prompting-sonnet-5-5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5-5) |
+| **GPT-6.1 Sol / Terra** | Astra rules + family | 2026-11-11 | shared GPT-6 guide |
 | **Claude Opus 5.5** | 5 + Opus 5 rules + family | 2026-09-23, the day after release | [prompting-opus-5-5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5) |
 | **GPT-6 Astra / Sol / Luna** | 4 for the line + family | Astra 2026-09-07, Sol and Luna 2026-09-23 | [latest-model/gpt-6-astra](https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra) |
 | GPT-5.6 (sol / terra / luna / cyber) | family | 2026-07-29 | [prompt-guidance-gpt-5p6](https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6) |
 | **Claude Fable 5.1** | 4 + family | 2026-09-02, the day after release | [prompting-fable-5-1](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) |
 | Claude Opus 5 | 4 + family | 2026-07-29 | [prompting-opus-5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5) |
 | Claude Sonnet 5, Opus 4.8 | family | 2026-07-29 | general best practices |
-| Gemini CLI, Grok Build, Qwen Code, Kimi CLI | one each | 2026-08-04 | vendors publish no prompting rules |
+| Gemini CLI, Grok Build, Qwen Code, Kimi Code | one each | 2026-08-04, commands rechecked 2026-11-11 | vendors publish no prompting rules |
 
 **What changed in Opus 5.5.** Thinking can no longer be disabled, and asking the model
 to spell out its reasoning in the answer now hits a new refusal category,
@@ -395,7 +404,7 @@ detect  →  analyze  →  rewrite  →  harness  →  effort  →  explain     
 [без изменений]    claude  https://code.claude.com/docs/en/model-config.md
 [без изменений]    openai  https://learn.chatgpt.com/docs/models.md
 ...
-Итог: изменилось 6, новых 0, без изменений 26, недоступно 0 (из 32).
+Итог: изменилось 6, новых 0, без изменений 26, недоступно 0 (из 40).
 ```
 
 A weekly GitHub Actions job (`.github/workflows/update-rules.yml`) runs exactly that and fails when the official guidance moved. **The rules are never rewritten automatically** — a maintainer reads the changed doc, updates the JSON, and lands it in a PR, then records the new snapshot with `nativeprompt update --write`. That is a deliberate design choice: a cheat sheet you can audit is worth more than one that mutates silently.
@@ -410,7 +419,7 @@ Deliberately narrow, so the tool stays trustworthy:
 - **An alias is not a version.** `opus`, `sonnet`, `best` resolve differently per provider and plan, so generation-specific rules are withheld and family rules applied — and the CLI says so.
 - **The effort level is advice from the vendors' tables, not a measurement.** No model runs; both vendors ask you to test levels on your own work. OpenAI does not publish GPT-5.6's level list for Codex, and the report says so.
 - **No benchmark claims.** The tool applies the vendors' published rules; it does not measure that your prompt got "N% better", and it will never print such a number.
-- **Depth differs by vendor.** Claude Code and Codex are worked out per generation: 18 and 12 rules. Gemini CLI, Grok Build, Qwen Code and Kimi CLI get one rule and a harness hint each, because those vendors publish far less. Inventing rules and signing a vendor's name to them would defeat the whole point.
+- **Depth differs by vendor.** Claude Code and Codex are worked out per generation: 53 and 12 rules. Gemini CLI, Grok Build, Qwen Code and Kimi Code get one rule and a harness hint each, because those vendors publish far less. Inventing rules and signing a vendor's name to them would defeat the whole point.
 
 Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 
@@ -419,7 +428,7 @@ Honest limits are tracked in [`CLAIMS.md`](CLAIMS.md).
 Verify first:
 
 ```bash
-python3 -m pytest -q          # 2589 tests: detection, detectors, rewrite, harness, effort level, rules integrity, frozen snapshot, self-check, refusal, hook context budget, reproducibility card
+python3 -m pytest -q          # 2707 tests: detection, detectors, rewrite, harness, effort level, rules integrity, frozen snapshot, self-check, refusal, hook context budget, reproducibility card
 ```
 
 **Adding or changing a rule.** Rules live in `nativeprompt/rules/<family>.json`. A rule is only accepted with a **link to the vendor's own documentation** — no folklore, no blog posts, no "it worked for me". Shape:

@@ -4,7 +4,7 @@
   "display": "Codex",
   "surface": "Codex CLI (агентный CLI). Правила — из Codex prompting + GPT-5 reasoning best-practices, НЕ из ChatGPT-чата.",
   "context_file": "AGENTS.md",
-  "rules_version": "2026-09-27",
+  "rules_version": "2026-11-11",
   "detect": {
     "id_prefixes": [
       "gpt-",
@@ -27,6 +27,30 @@
     ]
   },
   "generations": {
+    "gpt-6.1-sol": {
+      "match": [
+        "gpt-6.1-sol",
+        "gpt-6-1-sol",
+        "gpt-61-sol",
+        "gpt6.1-sol"
+      ],
+      "label": "GPT-6.1 Sol",
+      "doc": "https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra#prompting-best-practices",
+      "rules_of": "gpt-6-astra",
+      "note": "Вендор: «GPT-6.1 Sol for complex work at lower cost», Astra — для самой требовательной работы. Своей страницы промптинга нет: гайд у линейки GPT-6 общий, поэтому применяются правила Astra. По рантайму: в API уровни low–max, дефолт medium, «none» и «minimal» не поддерживаются. В Codex вендор советует начинать с уровня, который клиент ставит по умолчанию."
+    },
+    "gpt-6.1-terra": {
+      "match": [
+        "gpt-6.1-terra",
+        "gpt-6-1-terra",
+        "gpt-61-terra",
+        "gpt6.1-terra"
+      ],
+      "label": "GPT-6.1 Terra",
+      "doc": "https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra#prompting-best-practices",
+      "rules_of": "gpt-6-astra",
+      "note": "Вендор: «GPT-6.1 Terra for visual reasoning and writing». Своей страницы промптинга нет, применяются правила Astra. В Codex нужна версия CLI 0.159.0 или новее (codex -m gpt-6.1-terra). По рантайму: в API уровни none–max, дефолт medium."
+    },
     "gpt-6-sol": {
       "match": [
         "gpt-6-sol",
@@ -36,7 +60,7 @@
       "label": "GPT-6 Sol",
       "doc": "https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra#prompting-best-practices",
       "rules_of": "gpt-6-astra",
-      "note": "Средняя модель линейки GPT-6: сильное рассуждение на требовательных задачах. Гайд промптинга у семейства GPT-6 ОДИН: вендор пишет, что приведённые промпты — отправная точка для всей линейки, а наблюдали поведение на Astra. Поэтому правила Astra применяются и здесь; проверяйте их на своей нагрузке. Отличие от Astra по рантайму: reasoning effort «none» поддерживается."
+      "note": "Средняя модель линейки GPT-6: сильное рассуждение на требовательных задачах. Гайд промптинга у семейства GPT-6 ОДИН: вендор пишет, что приведённые промпты — отправная точка для всей линейки, а наблюдали поведение на Astra. Поэтому правила Astra применяются и здесь; проверяйте их на своей нагрузке. Отличие от Astra по рантайму: reasoning effort «none» поддерживается. В Codex при входе через ChatGPT вендор теперь советует брать GPT-6.1 Sol, когда она доступна."
     },
     "gpt-6-luna": {
       "match": [
@@ -73,7 +97,7 @@
       ],
       "label": "GPT-5.6 (sol/terra/luna/cyber)",
       "doc": "https://developers.openai.com/api/docs/guides/prompt-guidance-gpt-5p6",
-      "note": "Прошлое поколение, ещё в каталоге. sol / terra / luna — ТРИ РАЗНЫЕ модели одного поколения (уровни цены и потолка качества), а не режимы; отдельно стоит cyber — модель под разрешённый поиск уязвимостей. Алиас gpt-5.6 ведёт на sol. Гайд промптинга у них ОБЩИЙ, и с выходом GPT-6 вендор перенёс его на отдельный адрес prompt-guidance-gpt-5p6: главная страница промптинга теперь описывает GPT-6. Имена sol и luna в GPT-6 переиспользованы, поэтому пишите версию: «sol» без неё читается как 5.6."
+      "note": "Прошлое поколение, ещё в каталоге. sol / terra / luna — ТРИ РАЗНЫЕ модели одного поколения (уровни цены и потолка качества), а не режимы; отдельно стоит cyber — модель под разрешённый поиск уязвимостей. Алиас gpt-5.6 ведёт на sol. Гайд промптинга у них ОБЩИЙ, и с выходом GPT-6 вендор перенёс его на отдельный адрес prompt-guidance-gpt-5p6: главная страница промптинга теперь описывает GPT-6. Имена sol, luna и terra в GPT-6 и 6.1 переиспользованы, поэтому пишите версию: «sol» без неё читается как 5.6."
     },
     "gpt-5": {
       "match": [
@@ -94,7 +118,7 @@
   "config_notes": [
     "Постоянные правила проекта — в AGENTS.md (слитый из ~/.codex и каталогов от корня репо к текущему; глубже переопределяет), а не в каждом промпте.",
     "Codex CLI (~/.codex/config.toml): глубина рассуждения — model_reasoning_effort (low|medium|high|xhigh|max|ultra; набор зависит от модели и клиента, у /plan свой plan_mode_reasoning_effort), длина ответа — model_verbosity (low|medium|high). Задавайте их в конфиге, а не словами в промпте.",
-    "Responses API (те же модели GPT-6, но другой слой — НЕ путать с CLI-конфигом): reasoning.effort (none|low|medium|high|xhigh|max; у GPT-6 Astra «none» нет, у Sol и Luna есть), reasoning.mode: \"pro\" для сложных задач, text.verbosity (low|medium|high). При effort выше none у GPT-6 не передаются temperature, top_p и top_logprobs."
+    "Responses API (те же модели GPT-6, но другой слой — НЕ путать с CLI-конфигом): reasoning.effort (none|low|medium|high|xhigh|max; «none» нет у GPT-6 Astra и GPT-6.1 Sol (у 6.1 Sol нет и «minimal»), есть у GPT-6.1 Terra, GPT-6 Sol и GPT-6 Luna), reasoning.mode: \"pro\" для сложных задач, text.verbosity (low|medium|high). При effort выше none у GPT-6 не передаются temperature, top_p и top_logprobs."
   ],
   "config_notes_sources": [
     "https://learn.chatgpt.com/docs/agent-configuration/agents-md",
@@ -227,7 +251,7 @@
       "action": "add",
       "priority": 2,
       "title": "Пишете текст: дайте Astra список запрещённых оборотов",
-      "why": "У Astra есть опубликованный вендором блоклист оборотов, по которым текст опознают как машинный. В списке «delve», «leverage», «it's worth noting», «Bottom Line:», «In short:», канцелярские связки и, что заметнее всего, конструкция противопоставления «This isn't about X. It's about Y» и любое «X, not Y». Просто попросить «пиши живее» слабее: работает именно перечень.",
+      "why": "У Astra есть опубликованный вендором блоклист оборотов, по которым текст опознают как машинный. В списке «delve», «leverage», «it's worth noting», «Bottom Line:», «In short:», канцелярские связки и, что заметнее всего, противопоставление «X, not Y», которое вводит альтернативу, о которой никто не спрашивал. Просто попросить «пиши живее» слабее: работает именно перечень.",
       "unless": "Если текст служебный и его читает не человек, а парсер (json, лог, спецификация), список оборотов ни к чему.",
       "source": "https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra#personality-and-writing-style"
     },
@@ -333,6 +357,18 @@
     ],
     "levels_guide_source": "https://learn.chatgpt.com/docs/models#pick-a-reasoning-effort",
     "models": {
+      "gpt-6.1-sol": {
+        "levels": null,
+        "default": null,
+        "note": "Для GPT-6.1 Sol в Codex вендор советует начинать с уровня, который клиент ставит по умолчанию, и менять его под задачу. По подбору вендора: medium — сложная техническая работа и связанные результаты, которые вы будете дорабатывать; xhigh — отшлифованные результаты и решения из противоречивых данных. Список уровней в Codex вендор не публикует.",
+        "note_source": "https://learn.chatgpt.com/docs/model-selection"
+      },
+      "gpt-6.1-terra": {
+        "levels": null,
+        "default": null,
+        "note": "Стартовый уровень и список уровней GPT-6.1 Terra в Codex вендор не публикует. В API дефолт medium, доступны none–max.",
+        "note_source": "https://developers.openai.com/api/docs/models/gpt-6.1-terra"
+      },
       "gpt-6-sol": {
         "levels": [
           "low",
@@ -343,8 +379,8 @@
           "ultra"
         ],
         "default": "medium",
-        "note": "По подбору вендора: Sol на low — сфокусированное письмо, фактчек, простая работа в приложениях; на medium — повседневный код, исследования и задачи, где нужны суждение и полнота; на xhigh — глубокий анализ, тщательная проверка и ревью документов, данных и кода.",
-        "note_source": "https://learn.chatgpt.com/docs/model-selection"
+        "note": "Sol линейки 6.0 больше не в подборе вендора для Codex: там теперь GPT-6.1 Sol. Дефолт medium подтверждён страницей API: «GPT-6.1 Sol, GPT-6 Sol, and GPT-6 Luna also default to medium reasoning effort».",
+        "note_source": "https://developers.openai.com/api/docs/guides/reasoning#reasoning-mode"
       },
       "gpt-6-luna": {
         "levels": [
@@ -355,7 +391,7 @@
           "max"
         ],
         "default": "high",
-        "note": "По подбору вендора: Luna на low — точечные правки и простое извлечение данных; на medium — работа по ясному брифу и согласованные правки; на xhigh — поиск контекста в нескольких приложениях и задачи с чёткими ограничениями. Ultra у Luna нет, потолок — max.",
+        "note": "По подбору вендора: Luna на low — точечные правки и простое извлечение данных; на xhigh — поиск контекста в нескольких приложениях и задачи с чёткими ограничениями. Ultra у Luna нет, потолок — max.",
         "note_source": "https://learn.chatgpt.com/docs/model-selection"
       },
       "gpt-6-astra": {
@@ -393,7 +429,7 @@
       "text": "У этой модели нет reasoning effort — совета по уровню не будет.",
       "source": "https://learn.chatgpt.com/docs/config-file/config-reference"
     },
-    "unknown_default": "Стартовый уровень для этой модели вендор не называет, а у моделей он разный: у GPT-6 Sol — medium, у Luna — high, у Astra — low (в приложении Light). Если работаете на одной из них, назовите её через --model.",
+    "unknown_default": "Стартовый уровень для этой модели вендор не называет, а у моделей он разный: у GPT-6 Sol — medium, у Luna — high, у Astra — low (в приложении Light). У GPT-6.1 Sol и Terra вендор советует начинать с уровня по умолчанию вашего клиента. Если работаете на одной из них, назовите её через --model.",
     "raise_when": [
       {
         "text": "Уровни не совпадают между поколениями моделей: попробуйте знакомую задачу на уровне ниже и поправьте по результату. Поднимайте, когда задаче нужно больше планирования, анализа или проверки.",

@@ -423,8 +423,15 @@ _SHOW_THINKING = re.compile(
 )
 
 
+#: Отрицание прямо перед глаголом: «не думай пошагово», «don't think step by
+#: step». Это противоположная просьба, и совет «уберите "думай пошагово"»
+#: к ней мимо (Fable 5.2 нашла это при сверке 11.11.2026).
+_ОТРИЦАНИЕ_ПЕРЕД = re.compile(r"(?i)(?:\bне|\bdon'?t|\bdo\s+not|\bno\s+need\s+to)\s*$")
+
+
 def _c_forced_cot(p, low, t):
-    return bool(_FORCED_COT.search(p))
+    return any(not _ОТРИЦАНИЕ_ПЕРЕД.search(p[max(0, m.start() - 12):m.start()])
+               for m in _FORCED_COT.finditer(p))
 
 
 def _c_show_thinking(p, low, t):
@@ -630,8 +637,284 @@ def _c_frontend_task(p, low, t):
     return task_shape(p) != "trivial"
 
 
+# ── Fable 5.2, Sonnet 5.5, Haiku 5.5 ─────────────────────────────────
+# Страницы промптинга этих моделей говорят о строках, которые писали под
+# прошлые модели и которые теперь мешают: «отвечай без раздумий», постоянное
+# «запускай субагентов», бюджет токенов в тексте, жёсткий счёт слов. Ищем
+# каждую такую строку отдельно: совет к ней свой, и вендор даёт его свой.
+
+#: Просьба думать меньше. На 5.2, Sonnet 5.5 и Haiku 5.5 вендор пишет, что
+#: она не останавливает мышление, и советует опустить effort. Ищем именно
+#: просьбу к модели («без размышлений», «не раздумывая»), а не слово «думать».
+_THINK_LESS = re.compile(
+    r"(?i)(?:\bбез\s+(?:лишних\s+|долгих\s+|всяких\s+)?(?:размышлени\w*|раздумий|раздумывани\w*|рассуждени\w*)|"
+    r"\bне\s+(?:раздумывая|размышляя|рассуждая)\b|"
+    r"\bне\s+(?:думай|размышляй|раздумывай|рассуждай)\s+(?:долго|много|лишн\w*)|"
+    r"\bwithout\s+(?:deliberat\w*|thinking|overthinking|reasoning)\b|"
+    r"\bdon'?t\s+(?:overthink|deliberate)\b|\bno\s+(?:deliberation|thinking)\b)"
+)
+
+
+def _c_think_less(p, low, t):
+    return bool(_THINK_LESS.search(p))
+
+
+#: Голое согласие вместо указания, что делать. Вендор 5.2: «Yes, run the
+#: migration on the staging database» вместо «go» или пальца вверх. Весь
+#: промпт должен состоять из таких слов: «продолжай чинить авторизацию» уже
+#: называет, что делать.
+_BARE_WORDS = {
+    "продолжай", "продолжи", "продолжаем", "дальше", "давай", "го", "ок", "окей",
+    "да", "ага", "угу", "делай", "жми", "вперед", "вперёд", "поехали", "continue",
+    "go", "on", "ok", "okay", "yes", "yep", "sure", "proceed", "keep", "going", "👍", "+",
+}
+
+
+def _c_bare_continue(p, low, t):
+    слова = re.findall(r"[\w+]+|👍", low)
+    return 0 < len(слова) <= 3 and all(с in _BARE_WORDS for с in слова)
+
+
+#: Правило согласования: когда спрашивать разрешения. Fable 5.2 применяет
+#: его буквально, поэтому вендор просит перечислить действия точно.
+_APPROVAL_RULE = re.compile(
+    r"(?i)(?:\b(?:спрашивай|спроси|согласуй|согласовывай|уточняй|уточни|жди|получи|запрашивай)\b"
+    r"[^.!?\n]{0,40}\b(?:перед|прежде\s+чем|до\s+того\s+как)\b|"
+    r"\bбез\s+(?:моего\s+|нашего\s+|явного\s+)?(?:одобрения|разрешения|подтверждения|согласия|согласования)\b|"
+    r"\bask\b[^.!?\n]{0,40}\bbefore\b|"
+    r"\b(?:get|require|need|request)\s+(?:my\s+)?(?:approval|permission|confirmation)\b|"
+    r"\bwithout\s+(?:my\s+|explicit\s+)?(?:approval|permission|confirmation)\b)"
+)
+
+
+def _c_approval_rule(p, low, t):
+    return bool(_APPROVAL_RULE.search(p))
+
+
+#: Абсолютный запрет. На 5.2 такие строки копятся и придерживают обычную
+#: работу; вендор советует вписать в правило область, причину и исключение.
+_ABSOLUTE_RULE = re.compile(
+    r"(?i)(?:\bникогда\b|\bни\s+в\s+коем\s+случае\b|\bни\s+при\s+каких\b|"
+    r"\bnever\b|\bunder\s+no\s+circumstances\b)"
+)
+
+
+def _c_absolute_rule(p, low, t):
+    return bool(_ABSOLUTE_RULE.search(p))
+
+
+#: Постоянная просьба делегировать субагентам.
+_DELEGATE_PUSH = re.compile(
+    r"(?i)(?:\b(?:используй|запускай|запусти|задействуй|подключай|подключи|порождай|привлекай)\b"
+    r"[^.!?\n]{0,30}(?:субагент|сабагент|подагент|параллельн\w*\s+агент|агент\w*\s+параллельно)|"
+    r"\bделегируй\b|"
+    r"\b(?:use|spawn|launch|start)\s+(?:multiple\s+|parallel\s+|several\s+)?(?:sub-?agents?|parallel\s+agents)\b|"
+    r"\bdelegate\b)"
+)
+
+
+def _c_delegate_push(p, low, t):
+    return bool(_DELEGATE_PUSH.search(p))
+
+
+#: Бюджет токенов на задачу, вписанный в текст промпта. Не путать с длиной
+#: ответа: «ответ до 200 токенов» — формат результата.
+_TOKEN_BUDGET = re.compile(
+    r"(?i)(?:\bбюджет\w*[^.!?\n]{0,25}\bтокен\w*|\bтокен\w*[^.!?\n]{0,15}\bбюджет\w*|"
+    r"\bосталось\s+(?:~|около\s+|примерно\s+)?\d[\d\s.,]*\s*(?:k|к|тыс\.?\s*)?токен\w*|"
+    r"\btoken\s+budget\b|\bbudget\s+of\s+[\d,.]+\s*k?\s+tokens\b|\btokens?\s+(?:left|remaining)\b)"
+)
+
+
+def _c_token_budget(p, low, t):
+    return bool(_TOKEN_BUDGET.search(p))
+
+
+#: «Считай прошлый ответ законченным» — строки со страницы Opus 5.5 для
+#: чат-промптов. На 5.2 они гасят поиск собственных ошибок.
+_TREAT_DONE = re.compile(
+    r"(?i)(?:\btreat\s+(?:that|the\s+(?:previous|earlier)|your\s+(?:previous|earlier))\s+answer\s+as\s+(?:done|final|complete)|"
+    r"\bсчитай\s+(?:свой\s+)?(?:прошл|предыдущ|прежн)\w*\s+ответ\s+(?:законченн|готов|закрыт|завершённ|завершенн)\w*)"
+)
+
+
+def _c_treat_done(p, low, t):
+    return bool(_TREAT_DONE.search(p))
+
+
+#: Жёсткий счёт слов или «одна мысль в предложении». На 5.2 делает прозу рубленой.
+_HARD_STYLE = re.compile(
+    r"(?i)(?:(?:не\s+(?:длиннее|больше|более)|до|максимум)\s+\d+\s+слов[^.!?\n]{0,20}предложени\w*|"
+    r"предложени\w*[^.!?\n]{0,25}(?:не\s+(?:длиннее|больше|более)|до|максимум)\s+\d+\s+слов|"
+    r"\bодн\w+\s+(?:мысл\w*|иде\w*|инструкци\w*|действи\w*)\s+(?:в|на)\s+(?:одно\s+|каждом\s+)?предложени\w*|"
+    r"\b(?:in|of)\s+\d+\s+words\s+or\s+(?:fewer|less)\b|"
+    r"\bone\s+(?:idea|instruction|thought)\s+per\s+sentence\b|"
+    r"\bsentences?\s+(?:of\s+)?(?:at\s+most|no\s+more\s+than|under)\s+\d+\s+words\b)"
+)
+
+
+def _c_hard_style_limit(p, low, t):
+    return bool(_HARD_STYLE.search(p))
+
+
+#: Просьба об итоговом отчёте или передаче дел после долгой работы.
+_REPORT_WORD = re.compile(
+    r"(?i)(?:\bотч[её]т\w*|\bсводк\w*|\bитог\w*\s+работы|\bпередач\w*\s+дел|"
+    r"\bhandoff\b|\bhand-off\b|\bfinal\s+report\b|\bstatus\s+report\b|"
+    r"\bwrite\s+(?:a\s+|up\s+a\s+)?(?:report|summary|handoff)\b)"
+)
+
+
+def _c_report_request(p, low, t):
+    """Отчёт для человека после длинной работы, а не «сделай отчёт о продажах»
+    в таблице: без длинной задачи текст про читателя без контекста ни к чему."""
+    return bool(_REPORT_WORD.search(p)) and _c_long_task(p, low, t)
+
+
+#: Просьба дать идеи, варианты или план — без поручения сразу строить.
+_IDEAS_REQUEST = re.compile(
+    r"(?i)(?:\b(?:предложи|накидай|подкинь|дай|придумай|набросай)\b[^.!?\n]{0,30}"
+    r"\b(?:иде\w*|вариант\w*|план\w*|подход\w*)\b|"
+    r"\b(?:give|suggest|brainstorm|propose)\b[^.!?\n]{0,30}\b(?:ideas|options|a\s+plan|approaches)\b|"
+    r"\bwhat\s+(?:can|could)\s+you\s+do\s+with\b|\bпокажи,?\s+что\s+(?:ты\s+)?(?:можешь|умеешь)\b)"
+)
+
+
+def _c_ideas_request(p, low, t):
+    return bool(_IDEAS_REQUEST.search(p))
+
+
+#: Строки, которые отговаривают от инструментов. Sonnet 5.5 и без того порой
+#: отвечает по памяти там, где поиск поймал бы изменившиеся детали.
+_DISCOURAGE_TOOLS = re.compile(
+    r"(?i)(?:\bминимизируй\s+(?:число\s+|количество\s+)?(?:вызов\w*|обращени\w*)|"
+    r"\b(?:используй|вызывай|применяй)\s+инструмент\w*\s+(?:только|лишь)\s+(?:при|в\s+случае|когда)\s+(?:крайн|острой|абсолютн)\w*|"
+    r"\bminimi[sz]e\s+tool\s+(?:calls|use|usage)\b|"
+    r"\bonly\s+use\s+tools\s+when\s+(?:strictly|absolutely)\s+necessary\b)"
+)
+
+
+def _c_discourage_tools(p, low, t):
+    return bool(_DISCOURAGE_TOOLS.search(p))
+
+
+#: «Все находки — только в финальном ответе». Sonnet 5.5 пишет заметки между
+#: вызовами инструментов, и вендор советует убрать такую строку.
+_HOLD_FINDINGS = re.compile(
+    r"(?i)(?:\bhold\s+(?:all\s+)?(?:your\s+)?findings\s+(?:for|until)\b|"
+    r"\b(?:все\s+)?(?:находки|результаты|выводы)\s+(?:держи|оставь|сохрани|выдай|пиши)\s+(?:только\s+)?(?:до|для|в)\s+(?:конц|финальн|итогов)\w*|"
+    r"\bничего\s+не\s+(?:пиши|сообщай)\s+до\s+(?:конца|финала)\b)"
+)
+
+
+def _c_hold_findings(p, low, t):
+    return bool(_HOLD_FINDINGS.search(p))
+
+
+#: Задача, где модель должна искать свежие факты. Haiku 5.5: дайте дату и
+#: скажите, что знания старше сегодняшнего дня.
+_SEARCH_TASK = re.compile(
+    r"(?i)(?:\b(?:найди|поищи|ищи|загугли|погугли)\b[^.!?\n]{0,30}\b(?:в\s+интернете|в\s+сети|онлайн|в\s+поиске)|"
+    r"\b(?:веб-?поиск\w*|поиск\w*\s+в\s+интернете|актуальн\w+\s+(?:цен|верси|данн|новост|курс)\w*|последн\w+\s+(?:новост|верси|релиз)\w*)|"
+    r"\b(?:search\s+the\s+web|web\s+search|search\s+tool|latest\s+(?:news|version|release|prices?)|current\s+prices?)\b)"
+)
+
+
+def _c_search_task(p, low, t):
+    return bool(_SEARCH_TASK.search(p))
+
+
+#: Системный промпт чат-бота или ассистента поддержки.
+_CHATBOT = re.compile(
+    r"(?i)(?:\bты\s+[—–-]?\s*(?:чат-?бот|бот|ассистент|помощник|консультант|оператор)\b|"
+    r"\b(?:чат-?бот\w*|бот\w*\s+поддержки|ассистент\w*\s+поддержки|служб\w*\s+поддержки)\b|"
+    r"\byou\s+are\s+(?:a|an|the)\s+(?:\w+\s+){0,2}(?:chatbot|support\s+(?:bot|assistant|agent)|customer\s+(?:service|support)\s+(?:bot|assistant|agent))\b)"
+)
+
+
+def _c_chatbot_prompt(p, low, t):
+    return bool(_CHATBOT.search(p))
+
+
+# ── Claude Code best practices, раздел «What you can stop doing» (11.2026) ──
+
+#: «Думай усерднее» словами. Глубину задаёт effort, а слово ultrathink работает
+#: на один ход; остальные такие фразы — обычный текст, а не переключатель.
+_THINK_HARD = re.compile(
+    r"(?i)(?:\bthink\s+(?:hard|harder|deeply|carefully)\b|\bbe\s+thorough\b|"
+    r"\b(?:подумай|думай|продумай)\s+(?:как\s+следует|хорошенько|усерднее|тщательнее|глубже|получше)\b|"
+    r"\bбудь\s+(?:предельно\s+|максимально\s+)?тщательн\w*)"
+)
+
+
+def _c_think_hard(p, low, t):
+    return bool(_THINK_HARD.search(p))
+
+
+#: «Не ленись, работай пока не закончишь». На большинстве моделей вендор
+#: считает это лишним; Fable 5.1, 5.2, Opus 5.5, Sonnet 5.5 и Haiku 5.5 на
+#: своих страницах, наоборот, советуют такой текст — там правило молчит.
+_KEEP_GOING = re.compile(
+    r"(?i)(?:\bне\s+ленись\b|\bdon'?t\s+be\s+lazy\b|\bloop\s+until\s+(?:done|finished)\b|"
+    r"\bkeep\s+going\s+until\b|\bработай,?\s+пока\s+не\s+(?:закончишь|сделаешь|доделаешь)\b|"
+    r"\bне\s+останавливайся,?\s+пока\s+не\s+(?:закончишь|сделаешь|доделаешь)\b)"
+)
+_ПРОСЯТ_ДОДЕЛАТЬ = {"fable-5-1", "fable-5-2", "mythos-5-1", "mythos-5-2", "opus-5-5",
+                    "sonnet-5-5", "haiku-5-5"}
+
+
+def _c_keep_going(p, low, t):
+    if (t or {}).get("generation") in _ПРОСЯТ_ДОДЕЛАТЬ:
+        return False
+    return bool(_KEEP_GOING.search(p))
+
+
+#: Автор сам ещё не решил, что строить. Вендор советует сначала дать Claude
+#: расспросить и записать спецификацию.
+_UNDECIDED = re.compile(
+    r"(?i)(?:\bне\s+знаю,?\s+как\s+(?:лучше|правильно|это)\b|\b(?:ещё|еще|пока)\s+не\s+(?:продумал|решил|придумал)\w*|"
+    r"\bnot\s+sure\s+(?:how|what)\s+(?:to|best|the\s+best)\b|\bhaven'?t\s+(?:decided|figured\s+out|thought\s+through)\b)"
+)
+
+
+def _c_undecided(p, low, t):
+    return bool(_UNDECIDED.search(p))
+
+
+#: Предел для /goal: «или остановись после 20 ходов», --max-turns.
+_STOP_BOUND = re.compile(
+    r"(?i)(?:\bstop\s+after\s+\d+|--max-turns|--max-budget|\bостановись\s+(?:после|через)\b|"
+    r"\bне\s+(?:больше|более|дольше)\s+\d+\s+(?:ход|раунд|итерац|попыт|час|минут)\w*|"
+    r"\b(?:within|at\s+most)\s+\d+\s+(?:turns|rounds|iterations|hours|minutes)\b)"
+)
+
+
+def _c_no_stop_bound(p, low, t):
+    """Только явный /goal: совет вендора про условие этой команды. Задача
+    «почини, пока не пройдёт» без /goal — обычный ход, предел ей не нужен."""
+    return "/goal" in low and not _STOP_BOUND.search(p)
+
+
 _CHECKS = {
     "always": _c_always,
+    "think_hard": _c_think_hard,
+    "keep_going": _c_keep_going,
+    "undecided": _c_undecided,
+    "no_stop_bound": _c_no_stop_bound,
+    "think_less": _c_think_less,
+    "bare_continue": _c_bare_continue,
+    "approval_rule": _c_approval_rule,
+    "absolute_rule": _c_absolute_rule,
+    "delegate_push": _c_delegate_push,
+    "token_budget": _c_token_budget,
+    "treat_done": _c_treat_done,
+    "hard_style_limit": _c_hard_style_limit,
+    "report_request": _c_report_request,
+    "ideas_request": _c_ideas_request,
+    "discourage_tools": _c_discourage_tools,
+    "hold_findings": _c_hold_findings,
+    "search_task": _c_search_task,
+    "chatbot_prompt": _c_chatbot_prompt,
     "writing_task": _c_writing_task,
     "missing_context": _c_missing_context,
     "missing_verification": _c_missing_verification,

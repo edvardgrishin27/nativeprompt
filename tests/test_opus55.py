@@ -108,20 +108,22 @@ def test_у_каждого_правила_якорь_на_раздел():
             "%s: ссылка ведёт не на страницу 5.5: %s" % (r["id"], r["source"]))
 
 
-def test_отказ_за_показ_рассуждений_горит_на_55_и_молчит_на_5():
-    """Категория reasoning_extraction — новая именно в 5.5.
-
-    На Opus 5 той же фразе ничего не грозит, и гореть там значит пугать
-    человека несуществующим отказом.
+def test_отказ_за_показ_рассуждений_горит_на_5_и_на_55():
+    """Сначала reasoning_extraction была новой именно в 5.5, и правило жило
+    только там. В ноябре 2026 страница Opus 5 получила раздел «Reasoning in the
+    response» с той же категорией: правило переехало на Opus 5, а 5.5 его
+    наследует через rules_of. Отдельного правила 5.5 больше нет, чтобы одна
+    и та же находка не печаталась дважды.
     """
     промпт = "разбери этот лог и покажи ход мыслей"
-    assert "opus55-no-show-thinking" in ids(промпт)
-    assert "opus55-no-show-thinking" not in ids(промпт, "claude-opus-5")
+    assert "opus5-no-show-thinking" in ids(промпт)
+    assert "opus5-no-show-thinking" in ids(промпт, "claude-opus-5")
+    assert "opus55-no-show-thinking" not in ids(промпт)
 
 
 def test_правило_про_отказ_называет_категорию():
     """Без имени категории совет нечем проверить в своих логах."""
-    r = next(r for r in ПРАВИЛА_55 if r["id"] == "opus55-no-show-thinking")
+    r = next(r for r in ПРАВИЛА["rules"] if r["id"] == "opus5-no-show-thinking")
     assert "reasoning_extraction" in r["why"], r["why"][:200]
     assert "refusal" in r["why"], r["why"][:200]
 
